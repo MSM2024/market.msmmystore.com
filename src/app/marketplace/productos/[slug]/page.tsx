@@ -7,6 +7,7 @@ import { ArrowLeft, Star, ShoppingCart, Heart, Truck, Shield, RotateCcw, Store, 
 import { formatPrice } from "@/lib/marketplace/constants"
 import { fetchProductBySlug, fetchProductVariants, fetchProductImages, fetchProductReviews } from "@/lib/marketplace/client"
 import { useCart } from "@/contexts/CartContext"
+import ElianaMarketplaceChat from "@/components/eliana/ElianaMarketplaceChat"
 import type { ProductWithStore, ProductVariant, ProductImage, MarketplaceReview } from "@/lib/marketplace/types"
 
 const FALLBACK_PRODUCT: ProductWithStore = {
@@ -547,6 +548,15 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ELIANA Marketplace Chat */}
+      <ElianaMarketplaceChat
+        productName={product.name}
+        productSlug={product.slug}
+        productPrice={displayPrice}
+        productCurrency={product.currency}
+        storeName={product.store?.name || "MSM Store"}
+      />
 
       {/* Mobile Sticky Add to Cart */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#050816]/95 backdrop-blur-xl border-t border-white/5 px-4 py-3">

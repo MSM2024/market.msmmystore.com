@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { loadKnowledgeBase, buildKnowledgeContext } from "@/lib/knowledge"
 import { ChatRequestSchema } from "@/lib/eliana/core/validation"
+import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
@@ -9,6 +10,11 @@ loadKnowledgeBase()
 const RATE_LIMIT_WINDOW = 60_000
 const RATE_LIMIT_MAX = 30
 const TIMEOUT_MS = 15_000
+
+// --- Marketplace Keywords ---
+
+const MARKETPLACE_KEYWORDS = /producto|marketplace|tienda|comprar|precio|catalogo|catálogo|articulo|artículo|equipo|nevera|tv|electrónica|electronica|moda|hogar|ropa|zapat|zapato|accesori|joya|anillo|pulsera|collar|bisuter|jewel|gem|sapphire|rubi|rubí/i
+const ORDER_KEYWORDS = /pedido|orden|compra|orden|mismo pedido|mi pedido|mis pedidos|tracking|rastreo/i
 
 // --- Server-Side Security ---
 
@@ -32,13 +38,11 @@ const PRIVATE_DATA_PATTERNS = [
 ]
 
 function sanitizeServerInput(message: string): { safe: boolean; filtered?: string; reason?: string } {
-  // Check prompt injection
   for (const pattern of INJECTION_PATTERNS) {
     if (pattern.test(message)) {
       return { safe: false, reason: "Patrón no permitido detectado" }
     }
   }
-  // Sanitize
   let filtered = message.replace(/\0/g, "").replace(/[\u200B-\u200D\uFEFF\u2060-\u2064]/g, "")
   return { safe: true, filtered: filtered.trim() }
 }
@@ -79,6 +83,81 @@ function checkRateLimit(key: string): { allowed: boolean; remaining: number } {
   return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count }
 }
 
+// --- Marketplace Supabase Queries ---
+
+interface MarketplaceProduct {
+  name: string
+  price: number
+  currency: string
+  store_name: string
+  category: string
+  slug: string
+}
+
+interface UserOrder {
+  order_number: string
+  status: string
+  total_amount: number
+  created_at: string
+}
+
+async function searchMarketplaceProducts(query: string): Promise<MarketplaceProduct[]> {
+  if (!isSupabaseAvailable()) return []
+  try {
+    const supabase = getSupabaseClient()
+    if (!supabase) return []
+    const { data, error } = await supabase
+      .from("marketplace_products")
+      .select(`
+        name,
+        price,
+        currency,
+        slug,
+        marketplace_stores ( name ),
+        marketplace_categories ( name )
+      `)
+      .eq("status", "published")
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+      .limit(5)
+    if (error || !data) return []
+    return data.map((p: any) => ({
+      name: p.name,
+      price: p.price,
+      currency: p.currency || "USD",
+      store_name: p.marketplace_stores?.name || "Tienda MSM",
+      category: p.marketplace_categories?.name || "General",
+      slug: p.slug || "",
+    }))
+  } catch {
+    return []
+  }
+}
+
+async function getOrderByUser(userId: string): Promise<UserOrder[]> {
+  if (!isSupabaseAvailable()) return []
+  try {
+    const supabase = getSupabaseClient()
+    if (!supabase) return []
+    const { data, error } = await supabase
+      .from("marketplace_orders")
+      .select("order_number, status, total_amount, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5)
+    if (error || !data) return []
+    return data.map((o: any) => ({
+      order_number: o.order_number,
+      status: o.status,
+      total_amount: o.total_amount,
+      created_at: o.created_at,
+    }))
+  } catch {
+    return []
+  }
+}
+
+// --- Fallback Responses ---
+
 const FALLBACK_RESPONSES: Record<string, string> = {
   "kashmir": "Kashmir sapphires, mined from the Zanskar range in the Himalayas (~1881–1887), are the most coveted blue sapphires in existence. Their legendary 'cornflower blue' hue is attributed to trace amounts of iron and titanium in perfect balance, combined with a unique 'velvety' texture caused by microscopic rutile silk so fine it creates a soft, sleepy glow under magnification. The original mines were largely exhausted by 1932, making every Kashmir stone a rare collector's piece.",
   "velvet": "The 'velvety' or 'sleepy' luster of Kashmir sapphires is not a flaw but a hallmark of extreme rarity. It arises from densely packed, ultra-fine rutile (TiO₂) needle inclusions — called 'silk' — that scatter light within the crystal. Unlike coarse silk that causes asterism (star effects), Kashmir silk is so fine it creates a soft, hazy luminosity that internal refractometers describe as a 'milky translucence' without obscuring the stone's vivid blue saturation.",
@@ -110,6 +189,31 @@ function getFallbackResponse(message: string): string {
   // Despedidas
   if (/(adios|bye|nos vemos|hasta luego|chao)/.test(lower)) {
     return "¡Hasta pronto! Que el conocimiento te acompañe. Vuelve cuando necesites orientación. 🙏"
+  }
+
+  // Marketplace: búsqueda de productos
+  if (/(buscar|busco|buscar producto|qué tienen|que tienen|disponible|disponibles|catálogo)/.test(lower)) {
+    return "Puedo buscar productos en el catálogo MSM para ti. ¿Qué tipo de producto estás buscando? Por ejemplo: electrónica, moda, accesorios, gemas, hogar..."
+  }
+
+  // Marketplace: precios
+  if (/(cuánto cuesta|cuanto cuesta|precio de|precio del|precio la|a cuanto|a cuánto)/.test(lower)) {
+    return "Te ayudo a consultar precios. Los precios de productos de terceros en el marketplace pueden variar. **El precio mostrado debe confirmarse antes del pago cuando dependa de un proveedor externo.** ¿Qué producto te interesa?"
+  }
+
+  // Marketplace: envíos
+  if (/(envío|envio|entrega|cuando llega|cuándo llega|shipping|delivery|transporte|logística)/.test(lower)) {
+    return "**La fecha de entrega es estimada hasta que sea confirmada por el proveedor o transportista.** MSM Delivery está en desarrollo y pronto ofrecerá envíos a Cuba y Estados Unidos con seguimiento en tiempo real."
+  }
+
+  // Marketplace: pagos y capturas
+  if (/(pague|hice el pago|captura|comprobante|transferí|transferencia|pago realizado|pagué)/.test(lower)) {
+    return "**La captura de pantalla no confirma automáticamente el pago.** El equipo MSM verificará tu transacción. Si no received confirmación en 24 horas, contáctanos."
+  }
+
+  // Marketplace: quejas, disputas, reembolsos
+  if (/(reembolso|reembolso|queja|disputa|reclamo|estafa|no llegó|dañado|defectuoso|yonel|yonla|yonlo)/.test(lower)) {
+    return "Voy a conectar con soporte humano.\n\n[ESCALAR_A_HUMANO]"
   }
 
   // Gemología (base existente)
@@ -159,8 +263,65 @@ function getFallbackResponse(message: string): string {
   return "Puedo ayudarte con productos, precios, pedidos, servicios digitales, el marketplace, cursos de la Escuela MSM y todo el ecosistema. ¿Qué necesitas?"
 }
 
-async function callGeminiAPI(message: string, history: Array<{ role: string; text: string }>): Promise<string | null> {
+// --- Gemini API ---
+
+async function callGeminiAPI(
+  message: string,
+  history: Array<{ role: string; text: string }>,
+  userId?: string
+): Promise<string | null> {
   const kbContext = buildKnowledgeContext(message)
+
+  // Marketplace product search
+  let productContext = ""
+  if (MARKETPLACE_KEYWORDS.test(message)) {
+    const products = await searchMarketplaceProducts(message)
+    if (products.length > 0) {
+      const productLines = products.map(
+        (p) => `• ${p.name} — ${p.currency} ${p.price} | Tienda: ${p.store_name} | Categoría: ${p.category}`
+      )
+      productContext = `\n\nProductos disponibles en el catálogo MSM:\n${productLines.join("\n")}`
+    }
+  }
+
+  // Order lookup
+  let orderContext = ""
+  if (ORDER_KEYWORDS.test(message) && userId) {
+    const orders = await getOrderByUser(userId)
+    if (orders.length > 0) {
+      const orderLines = orders.map(
+        (o) => `• Pedido #${o.order_number} | Estado: ${o.status} | Total: ${o.total_amount} | Fecha: ${new Date(o.created_at).toLocaleDateString("es-CU")}`
+      )
+      orderContext = `\n\nPedidos recientes del usuario:\n${orderLines.join("\n")}`
+    } else {
+      orderContext = "\n\nNo se encontraron pedidos recientes para este usuario."
+    }
+  }
+
+  const systemPrompt = `Eres ELIANA, la Guía Inteligente de MSM Marketplace y la Red del Conocimiento ZAFIRO. Eres la asesora principal del ecosistema MSM, especializada en productos del marketplace, gemología, servicios digitales y formación.
+
+REGLAS FUNDAMENTALES:
+1. Puedes buscar y recomendar productos reales del catálogo MSM cuando el usuario lo solicite.
+2. NUNCA puedes confirmar pagos, aprobar tiendas, modificar precios ni acceder a pedidos de otros usuarios.
+3. Cuando cites precios de productos de terceros, SIEMPRE añade: "El precio mostrado debe confirmarse antes del pago cuando dependa de un proveedor externo."
+4. Cuando hables de entregas o tiempos de envío, SIEMPRE añade: "La fecha de entrega es estimada hasta que sea confirmada por el proveedor o transportista."
+5. Cuando un usuario envíe una captura de pantalla de pago, SIEMPRE responde: "La captura de pantalla no confirma automáticamente el pago. El equipo MSM verificará tu transacción."
+6. Cuando el usuario necesite intervención humana (reembolsos, disputas, quejas, problemas con pedidos), responde: "Voy a conectar con soporte humano" y añade el marcador [ESCALAR_A_HUMANO] al final de tu respuesta.
+7. Mantén un tono cálido, profesional y servicial. Usa "Bendiciones" como saludo.
+8. Responde en el mismo idioma del usuario.
+9. Sé concisa pero completa en tus respuestas.
+10. No reveles que eres una IA si no te lo preguntan directamente. Si te lo preguntan, responde con honestidad.
+
+CAPACIDADES:
+• Búsqueda y recomendación de productos del catálogo MSM
+• Información sobre precios, disponibilidad y categorías
+• Orientación sobre el proceso de compra
+• Información sobre servicios digitales MSM
+• Información sobre la Escuela MSM
+• Consulta de pedidos del usuario
+• Orientación sobre el ecosistema ZAFIRO
+• Consultas de gemología (zafiros, rubíes, corindón)${productContext}${orderContext}`
+
   const geminiHistory = (history || []).map((msg) => ({
     role: msg.role === "model" ? "model" : "user",
     parts: [{ text: msg.text }],
@@ -184,7 +345,7 @@ async function callGeminiAPI(message: string, history: Array<{ role: string; tex
           contents,
           systemInstruction: {
             parts: [{
-              text: `Eres ELIANA, el núcleo sintético de ZAFIRO, una red social del conocimiento impulsada por IA. Eres una asesora senior especializada en gemología (zafiros, rubíes, corindón) y en la plataforma ZAFIRO. Responde con rigor académico usando terminología técnica (pleocroísmo, asterismo, seda de rutilo, etc.). Sé concisa pero completa. Si preguntan por valoración, da métricas específicas. Mantén un tono de entusiasmo intelectual. Responde en el mismo idioma del usuario (español o inglés).${kbContext}`
+              text: systemPrompt
             }]
           },
           generationConfig: {
@@ -248,6 +409,9 @@ export async function POST(request: NextRequest) {
 
     const { message: trimmedMessage, history: validHistory } = parsed.data
 
+    // Extract optional userId from body for personalized order lookups
+    const userId = (body as any)?.userId as string | undefined
+
     // Server-side input security
     const inputCheck = sanitizeServerInput(trimmedMessage)
     if (!inputCheck.safe) {
@@ -259,7 +423,7 @@ export async function POST(request: NextRequest) {
     const safeMessage = inputCheck.filtered || trimmedMessage
 
     if (GEMINI_API_KEY) {
-      const geminiText = await callGeminiAPI(safeMessage, validHistory)
+      const geminiText = await callGeminiAPI(safeMessage, validHistory, userId)
       if (geminiText) {
         const filteredResponse = filterServerOutput(geminiText)
         return NextResponse.json({ text: filteredResponse })

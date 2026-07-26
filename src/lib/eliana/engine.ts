@@ -112,6 +112,7 @@ export async function processElianaRequest(
       body: JSON.stringify({
         message,
         history: [{ role: "system", content: systemMessage }, ...history.slice(-10)],
+        userId: context.userId || undefined,
       }),
     })
     const data = await res.json()

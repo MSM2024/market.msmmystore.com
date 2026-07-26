@@ -6,7 +6,7 @@ import type {
   OrderItem,
 } from "@/lib/marketplace/types"
 import { ORDER_STATUS_LABELS, formatPrice } from "@/lib/marketplace/constants"
-import { MarketplaceBridgeSchema } from "@/lib/eliana/core/validation"
+import { MarketplaceBridgeSchema, SearchOrdersSchema } from "@/lib/eliana/core/validation"
 
 // ================================================================
 // ELIANA ↔ MARKETPLACE BRIDGE API
@@ -65,7 +65,9 @@ export async function POST(request: NextRequest) {
       case "getProductDetails":
         return await handleGetProductDetails(data)
       case "handoff":
-        return handleHandoff(data)
+        return await handleHandoff(data)
+      case "searchOrders":
+        return await handleSearchOrders(data)
       default:
         return NextResponse.json(
           { error: "Unknown action", message: `Action "${action}" is not supported` },
@@ -404,13 +406,14 @@ async function handleGetProductDetails(data: Record<string, unknown>) {
 
 // --- handoff ---
 // Route conversation from ELIANA to marketplace support
-// Returns context payload so the receiving system can pick up
-function handleHandoff(data: Record<string, unknown>) {
+// Persists to eliana_handoffs table, falls back to in-memory payload
+async function handleHandoff(data: Record<string, unknown>) {
   const reason = (data.reason as string) || "general"
   const customerMessage = (data.customerMessage as string) || ""
   const customerId = data.customerId as string | undefined
   const sessionId = data.sessionId as string | undefined
   const conversationHistory = data.conversationHistory as unknown[] | undefined
+  const conversationId = data.conversationId as string | undefined
 
   const REASON_MAP: Record<string, string> = {
     purchase_help: "Customer needs help completing a purchase",
@@ -421,15 +424,19 @@ function handleHandoff(data: Record<string, unknown>) {
     general: "General marketplace support inquiry",
   }
 
+  const handoffId = `HO-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+  const timestamp = new Date().toISOString()
+
   const handoffPayload = {
-    handoffId: `HO-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+    handoffId,
     reason,
     reasonDescription: REASON_MAP[reason] || reason,
+    conversationId: conversationId || null,
     customerMessage,
     customerId: customerId || null,
     sessionId: sessionId || null,
     conversationHistory: conversationHistory || [],
-    timestamp: new Date().toISOString(),
+    timestamp,
     status: "pending",
     instructions: [
       "Assign to a marketplace support agent",
@@ -438,9 +445,147 @@ function handleHandoff(data: Record<string, unknown>) {
     ],
   }
 
+  const supabase = getSupabase()
+  if (supabase) {
+    const { data: inserted, error } = await supabase
+      .from("eliana_handoffs")
+      .insert({
+        conversation_id: conversationId || null,
+        reason,
+        status: "pending",
+        priority: "high",
+        summary: JSON.stringify({ customerMessage, customerId, sessionId }),
+        metadata: {
+          handoffId,
+          customerMessage,
+          customerId: customerId || null,
+          sessionId: sessionId || null,
+          timestamp,
+          conversationHistory: conversationHistory || [],
+        },
+      })
+      .select("id")
+      .single()
+
+    if (error) {
+      console.error("ELIANA handoff insert failed:", error)
+      return NextResponse.json({
+        ok: true,
+        handoff: handoffPayload,
+        warning: "Handoff created in-memory only (DB write failed)",
+        message: `Handoff created. Reason: ${REASON_MAP[reason] || reason}. The conversation has been routed to marketplace support.`,
+      })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      handoff: { ...handoffPayload, supabaseId: inserted.id },
+      message: `Handoff persisted. Reason: ${REASON_MAP[reason] || reason}. The conversation has been routed to marketplace support.`,
+    })
+  }
+
   return NextResponse.json({
     ok: true,
     handoff: handoffPayload,
+    warning: "Handoff created in-memory only (Supabase not available)",
     message: `Handoff created. Reason: ${REASON_MAP[reason] || reason}. The conversation has been routed to marketplace support.`,
+  })
+}
+
+// --- searchOrders ---
+// Query a user's orders with items, status, and timeline
+async function handleSearchOrders(data: Record<string, unknown>) {
+  const parsed = SearchOrdersSchema.safeParse(data)
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]?.message || "Datos inválidos"
+    return NextResponse.json(
+      { error: "Validation error", message: firstError },
+      { status: 400 },
+    )
+  }
+
+  const { userId, orderNumber } = parsed.data
+
+  const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({
+      ok: true,
+      orders: [],
+      total: 0,
+      message: "Database not available — returning empty results",
+    })
+  }
+
+  let dbQuery = supabase
+    .from("marketplace_orders")
+    .select(
+      "*, items:marketplace_order_items(*), store:marketplace_stores(id, name, slug)",
+      { count: "exact" },
+    )
+    .eq("buyer_id", userId)
+    .order("created_at", { ascending: false })
+
+  if (orderNumber) {
+    dbQuery = dbQuery.ilike("order_number", `%${orderNumber}%`)
+  }
+
+  dbQuery = dbQuery.limit(20)
+
+  const { data: orders, error, count } = await dbQuery
+
+  if (error) {
+    console.error("ELIANA searchOrders:", error)
+    return NextResponse.json(
+      { error: "Query failed", message: error.message },
+      { status: 500 },
+    )
+  }
+
+  const results = (orders || []).map(
+    (o: MarketplaceOrder & { items?: OrderItem[]; store?: { id: string; name: string; slug: string } }) => ({
+      id: o.id,
+      orderNumber: o.order_number,
+      status: o.status,
+      statusLabel: ORDER_STATUS_LABELS[o.status] || o.status,
+      store: o.store ? { id: o.store.id, name: o.store.name, slug: o.store.slug } : null,
+      subtotal: o.subtotal,
+      shippingCost: o.shipping_cost,
+      taxAmount: o.tax_amount,
+      totalAmount: o.total_amount,
+      currency: o.currency,
+      deliveryMode: o.delivery_mode,
+      shippingName: o.shipping_name,
+      shippingAddress: o.shipping_address,
+      shippingCity: o.shipping_city,
+      shippingCountry: o.shipping_country,
+      buyerNotes: o.buyer_notes,
+      sellerNotes: o.seller_notes,
+      items: (o.items || []).map((i: OrderItem) => ({
+        id: i.id,
+        productName: i.product_name,
+        productImage: i.product_image,
+        variantName: i.variant_name,
+        quantity: i.quantity,
+        unitPrice: i.unit_price,
+        totalPrice: i.total_price,
+        itemStatus: i.item_status,
+      })),
+      timeline: {
+        createdAt: o.created_at,
+        confirmedAt: o.confirmed_at,
+        paidAt: o.paid_at,
+        shippedAt: o.shipped_at,
+        deliveredAt: o.delivered_at,
+        completedAt: o.completed_at,
+        cancelledAt: o.cancelled_at,
+      },
+    }),
+  )
+
+  return NextResponse.json({
+    ok: true,
+    orders: results,
+    total: count || 0,
+    hasMore: (count || 0) > 20,
   })
 }

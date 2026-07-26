@@ -31,8 +31,14 @@ export const MarketplaceBridgeSchema = z.object({
     "searchProducts",
     "getProductDetails",
     "handoff",
+    "searchOrders",
   ]),
   data: z.record(z.string(), z.unknown()).optional().default({}),
+})
+
+export const SearchOrdersSchema = z.object({
+  userId: z.string().uuid("userId must be a valid UUID"),
+  orderNumber: z.string().max(50).optional(),
 })
 
 export type MarketplaceBridgeRequest = z.infer<typeof MarketplaceBridgeSchema>

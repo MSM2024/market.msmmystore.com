@@ -27,6 +27,9 @@ const PAGE_LABELS: Record<string, string> = {
   "/perfil/": "Perfil", "/rewards": "MSM Rewards", "/eliana": "ELIANA",
   "/sponsors-page": "Sponsors", "/memberships": "Membresías",
   "/referidos": "Referidos", "/admin": "Panel Admin", "/settings": "Configuración",
+  "/marketplace": "Marketplace", "/marketplace/productos": "Productos MSM",
+  "/marketplace/tiendas": "Tiendas MSM", "/marketplace/pedidos": "Mis Pedidos",
+  "/marketplace/vender": "Vender en MSM",
 }
 
 function getPageFromPath(path: string): string {
