@@ -6,11 +6,11 @@ import { getKnowledgeGraph, getRelatedNodes } from "./knowledge"
 import { getSession } from "@/lib/auth"
 import { getPTSAccount, getStreak } from "@/lib/rewards"
 
-const SYSTEM_PROMPT = `Eres ELIANA, la Guía Inteligente de MSM & ZAFIRO y el Marketplace MSM (market.msmmystore.com).
-Tu misión es orientar al comprador, consultar productos, ayudar con pedidos, cotizaciones, envíos y soporte.
-NO confirmes pagos sin verificación real. NO inventes inventario ni precios. NO reveles datos privados.
-El equipo humano revisa, aprueba y ejecuta las acciones críticas.
-Eres concisa, precisa y proactiva. Siempre ofreces valor en cada interacción.`
+const SYSTEM_PROMPT = `Eres ELIANA, el copiloto inteligente de ZAFIRO, una Red Social del Conocimiento.
+Tu misión es ayudar al usuario a navegar, aprender, conectar y crecer en el ecosistema.
+Eres concisa, precisa y proactiva. Siempre ofreces valor en cada interacción.
+Conoces el perfil del usuario, sus plataformas conectadas, sus PTS, su racha, sus intereses.
+NO eres un chatbot genérico. Eres un copiloto contextual que acompaña al usuario en toda la plataforma.`
 
 function getPageContext(page: string, userId: string): Record<string, string> {
   const ctx: Record<string, string> = { page }
@@ -66,69 +66,19 @@ function getFallbackResponse(query: string, ctx: ElianaContext, userId: string):
     }
   }
 
-  // Marketplace-specific intents
-  if (q.includes("producto") || q.includes("buscar") || q.includes("comprar")) {
-    return {
-      text: "Puedo ayudarte a encontrar productos en el Marketplace. ¿Qué estás buscando? Puedo filtrar por categoría, precio, país y más.",
-      suggestions: ["Buscar productos", "Ver categorías", "Productos populares", "¿Cómo compro?"],
-    }
-  }
-
-  if (q.includes("precio") || q.includes("cuánto cuesta") || q.includes("cotización")) {
-    return {
-      text: "Para obtener un precio exacto, necesito que me indiques qué producto buscas. El precio puede variar según la tienda, el proveedor y la ubicación de entrega. ¿Qué producto necesitas?",
-      suggestions: ["Consultar precio", "Comparar precios", "Solicitar cotización"],
-    }
-  }
-
-  if (q.includes("pedido") || q.includes("orden") || q.includes("compra")) {
-    return {
-      text: "Si ya tienes un pedido, puedo consultarlo si me proporcionas el número de orden. Si quieres hacer uno nuevo, visita el Marketplace y agrega productos al carrito. ¿Qué necesitas?",
-      suggestions: ["Consultar mi pedido", "Nuevo pedido", "Estados del pedido", "Mi carrito"],
-    }
-  }
-
-  if (q.includes("envío") || q.includes("entrega") || q.includes("shipping")) {
-    return {
-      text: "Los métodos de entrega varían según el producto y la tienda. Puedes ver las opciones de envío en la ficha de producto. ¿Necesitas información sobre algún producto específico?",
-      suggestions: ["Opciones de envío", "Política de envíos", "Seguimiento de pedido"],
-    }
-  }
-
-  if (q.includes("vender") || q.includes("tienda") || q.includes("vendedor")) {
-    return {
-      text: "Para vender en el Marketplace MSM:\n1. Crea tu cuenta en zafiro.msmmystore.com\n2. Ve a Marketplace → Crear Mi Tienda\n3. Publica tus productos con fotos y precios\n4. Configura envíos y pagos\n\n¿Necesitas ayuda con algún paso?",
-      suggestions: ["Crear mi tienda", "Publicar producto", "Configurar envíos", "Configurar pagos"],
-    }
-  }
-
-  if (q.includes("soporte") || q.includes("ayuda") || q.includes("problema")) {
-    return {
-      text: "Estoy aquí para ayudarte. Si tu consulta requiere intervención de soporte humano (disputa, devolución, reembolso, problema con un pedido), puedo escalarla. ¿Qué problema tienes?",
-      suggestions: ["Hablar con soporte", "Disputa con pedido", "Solicitar devolución", "Reportar problema"],
-    }
-  }
-
-  if (q.includes("pago") || q.includes("cobro") || q.includes("factura")) {
-    return {
-      text: "Los pagos se procesan de forma segura a través de Stripe. **IMPORTANTE**: Una captura de pantalla no confirma el pago. El pago se verifica únicamente a través del procesador oficial. Si tienes dudas sobre un pago, puedo escalar tu consulta a soporte.",
-      suggestions: ["Métodos de pago", "Pago no registrado", "Factura", "Soporte de pago"],
-    }
-  }
-
   if (q.includes("hola") || q.includes("buenas") || q.includes("saludos")) {
     const session = getSession()
     const name = session?.name || "explorador"
     return {
-      text: `¡Hola, ${name}! Soy ELIANA, tu guía en el Marketplace MSM. Puedo ayudarte a encontrar productos, consultar precios, hacer pedidos y resolver dudas. ¿Qué te gustaría hacer hoy?`,
-      suggestions: ["Buscar productos", "Ver precios", "Hacer un pedido", "Consultar mi pedido"],
+      text: `¡Hola, ${name}! Soy ELIANA, tu copiloto en ZAFIRO. Puedo ayudarte a explorar conocimiento, conectar plataformas, encontrar comunidades y mucho más. ¿Qué te gustaría hacer hoy?`,
+      suggestions: ["Explorar temas de interés", "Conectar mi Universo Digital", "Ver mis estadísticas"],
     }
   }
 
   if (q.includes("gracias") || q.includes("thanks")) {
     return {
-      text: "¡De nada! Recuerda que siempre estoy aquí para ayudarte. Si necesitas algo más, no dudes en preguntar.",
-      suggestions: ["¿Qué más puedo hacer?", "Buscar productos", "Consultar pedido", "Hablar con soporte"],
+      text: "¡De nada! Recuerda que siempre estoy aquí para ayudarte. Sigue explorando y construyendo conocimiento.",
+      suggestions: ["¿Qué más puedo hacer?", "Explorar el Mapa Vivo", "Ver comunidades activas"],
     }
   }
 
@@ -153,7 +103,7 @@ export async function processElianaRequest(
   const topics = relatedToUser.filter(n => n.type === "concept").map(n => n.label).slice(0, 5)
   const pageSuggestions = getContextualSuggestions(userId, context.page, message)
 
-  const systemMessage = `${SYSTEM_PROMPT}\n\nContexto del usuario:\n${knowledge}\n\nPágina actual: ${context.page}\nSección: ${context.section || "general"}\nPTS: ${pageCtx.pts || "N/A"}\nNivel: ${pageCtx.level || "N/A"}\nRacha: ${pageCtx.streak || "N/A"} días\nTemas de interés: ${topics.join(", ") || "Sin datos aún"}\nDominio: market.msmmystore.com\n${pageCtx.universe || ""}`
+  const systemMessage = `${SYSTEM_PROMPT}\n\nContexto del usuario:\n${knowledge}\n\nPágina actual: ${context.page}\nPTS: ${pageCtx.pts || "N/A"}\nNivel: ${pageCtx.level || "N/A"}\nRacha: ${pageCtx.streak || "N/A"} días\nTemas de interés: ${topics.join(", ") || "Sin datos aún"}\n${pageCtx.universe || ""}`
 
   try {
     const res = await fetch("/api/chat", {
@@ -165,13 +115,9 @@ export async function processElianaRequest(
       }),
     })
     const data = await res.json()
-    const text = data.text || "No pude procesar tu solicitud. Intenta de nuevo."
-    const escalatePatterns = /(?:escalar|escalado|soporte humano|hablar con soporte|atención humana|agente humano|representante|supervisor)/i
     const response: ElianaResponse = {
-      text,
+      text: data.text || "No pude procesar tu solicitud. Intenta de nuevo.",
       suggestions: pageSuggestions,
-      escalate: escalatePatterns.test(text),
-      escalateReason: escalatePatterns.test(text) ? "Solicitud de escalado detectada" : undefined,
     }
     addShortTermMemory(userId, { role: "eliana", text: response.text, page: context.page, timestamp: Date.now() })
     addLongTermFact(userId, { fact: `Usuario preguntó: ${message.slice(0, 80)}`, category: "query", confidence: 0.5 })

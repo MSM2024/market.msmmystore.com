@@ -6,16 +6,12 @@ import type {
   OrderItem,
 } from "@/lib/marketplace/types"
 import { ORDER_STATUS_LABELS, formatPrice } from "@/lib/marketplace/constants"
+import { MarketplaceBridgeSchema } from "@/lib/eliana/core/validation"
 
 // ================================================================
 // ELIANA ↔ MARKETPLACE BRIDGE API
 // Connects ELIANA's conversation engine with Marketplace data
 // ================================================================
-
-interface BridgeRequest {
-  action: string
-  data: Record<string, unknown>
-}
 
 function getSupabase() {
   if (!isSupabaseAvailable()) return null
@@ -37,7 +33,7 @@ export async function POST(request: NextRequest) {
     return unauthorized()
   }
 
-  let body: BridgeRequest
+  let body: unknown
   try {
     body = await request.json()
   } catch {
@@ -47,14 +43,18 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { action, data = {} } = body
-
-  if (!action || typeof action !== "string") {
+  // Zod validation
+  const parsed = MarketplaceBridgeSchema.safeParse(body)
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+    const firstError = issues[0]?.message || "Datos inválidos"
     return NextResponse.json(
-      { error: "Missing action", message: "Provide an action: getCustomerContext, searchProducts, getProductDetails, handoff" },
+      { error: "Validation error", message: firstError },
       { status: 400 },
     )
   }
+
+  const { action, data = {} } = parsed.data
 
   try {
     switch (action) {

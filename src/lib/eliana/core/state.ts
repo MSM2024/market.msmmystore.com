@@ -11,7 +11,6 @@ export type ElianaState =
   | 'ESCUCHANDO'  // User is typing / message received
   | 'PENSANDO'    // Processing the request
   | 'HABLANDO'    // Delivering response
-  | 'ESCALANDO_A_HUMANO'  // Routing to human support
   | 'ERROR'       // Error occurred
   | 'DESCONECTADA' // Disconnected / offline
 
@@ -29,9 +28,8 @@ export type StateTransition =
 const VALID_TRANSITIONS: Record<ElianaState, ElianaState[]> = {
   VIVA: ['ESCUCHANDO', 'DESCONECTADA'],
   ESCUCHANDO: ['PENSANDO', 'DESCONECTADA', 'ERROR'],
-  PENSANDO: ['HABLANDO', 'ESCALANDO_A_HUMANO', 'ERROR', 'DESCONECTADA'],
+  PENSANDO: ['HABLANDO', 'ERROR', 'DESCONECTADA'],
   HABLANDO: ['VIVA', 'DESCONECTADA'],
-  ESCALANDO_A_HUMANO: ['VIVA', 'DESCONECTADA'],
   ERROR: ['VIVA', 'DESCONECTADA'],
   DESCONECTADA: ['VIVA'],
 }
@@ -42,7 +40,6 @@ export const STATE_LABELS: Record<ElianaState, string> = {
   ESCUCHANDO: 'ESCUCHANDO',
   PENSANDO: 'PENSANDO',
   HABLANDO: 'HABLANDO',
-  ESCALANDO_A_HUMANO: 'ESCALANDO A SOPORTE',
   ERROR: 'ERROR',
   DESCONECTADA: 'DESCONECTADA',
 }
@@ -53,7 +50,6 @@ export const STATE_DESCRIPTIONS: Record<ElianaState, string> = {
   ESCUCHANDO: 'Recibiendo tu mensaje...',
   PENSANDO: 'Procesando tu solicitud...',
   HABLANDO: 'Entregando respuesta...',
-  ESCALANDO_A_HUMANO: 'Conectando con soporte humano...',
   ERROR: 'Error de conexión',
   DESCONECTADA: 'Sin conexión',
 }
@@ -64,7 +60,6 @@ export const STATE_COLORS: Record<ElianaState, { bg: string; text: string; dot: 
   ESCUCHANDO: { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
   PENSANDO: { bg: 'bg-amber-500/10', text: 'text-amber-400', dot: 'bg-amber-400' },
   HABLANDO: { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
-  ESCALANDO_A_HUMANO: { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400' },
   ERROR: { bg: 'bg-rose-500/10', text: 'text-rose-400', dot: 'bg-rose-500' },
   DESCONECTADA: { bg: 'bg-slate-500/10', text: 'text-slate-400', dot: 'bg-slate-500' },
 }
@@ -125,10 +120,6 @@ export class ElianaStateMachine {
 
   reportError(): boolean {
     return this.transition('ERROR')
-  }
-
-  escalateToHuman(): boolean {
-    return this.transition('ESCALANDO_A_HUMANO')
   }
 
   disconnect(): boolean {
