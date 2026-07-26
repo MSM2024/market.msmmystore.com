@@ -81,6 +81,8 @@ export interface ElianaResponse {
   suggestions?: string[]
   actions?: ElianaAction[]
   context?: Record<string, string>
+  escalate?: boolean
+  escalateReason?: string
 }
 
 export interface ElianaAction {

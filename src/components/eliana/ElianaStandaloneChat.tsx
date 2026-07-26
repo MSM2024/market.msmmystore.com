@@ -30,12 +30,12 @@ import {
 type ChatMessage = PersistedMessage
 
 const QUICK_ACTIONS = [
-  { label: "Productos MSM", query: "¿Qué productos tienen disponibles?" },
-  { label: "Precios", query: "¿Cuáles son sus precios de servicios digitales?" },
+  { label: "Buscar Producto", query: "¿Qué productos tienen disponibles?" },
+  { label: "Precios", query: "¿Cuáles son los precios de los productos?" },
   { label: "Hacer Pedido", query: "Quiero hacer un pedido, ¿cómo empiezo?" },
-  { label: "¿Qué es ZAFIRO?", query: "¿Qué es ZAFIRO y cómo funciona?" },
-  { label: "Ser Vendedor", query: "¿Cómo puedo vender en el marketplace?" },
-  { label: "Escuela MSM", query: "¿Qué cursos ofrece la Escuela MSM?" },
+  { label: "Mis Pedidos", query: "¿Cómo puedo consultar el estado de mi pedido?" },
+  { label: "Envíos", query: "¿Cuáles son las opciones de envío?" },
+  { label: "Hablar con Soporte", query: "Necesito hablar con soporte humano", escalate: true },
 ]
 
 const DISCLAIMER = "Este contenido es una herramienta de orientación. Las decisiones financieras, legales o médicas deben ser examinadas responsablemente."
@@ -134,7 +134,7 @@ export default function ElianaStandaloneChat() {
         id: `welcome_${Date.now()}`,
         role: "eliana",
         text: session
-          ? `Bendiciones, ${session.name}. Soy ELIANA, la Guía Inteligente de MSM & ZAFIRO. ¿Cómo puedo orientarte hoy?`
+          ? `Bendiciones, ${session.name}. Soy ELIANA, la Guía Inteligente del Marketplace MSM. Puedo ayudarte con productos, pedidos, envíos, precios y soporte. ¿En qué puedo orientarte hoy?`
           : channelConfig.welcome_message,
         timestamp: Date.now(),
       }
@@ -243,7 +243,7 @@ export default function ElianaStandaloneChat() {
     smRef.current.startThinking()
 
     try {
-      const context = getElianaContext("eliana_domain", "standalone")
+      const context = getElianaContext("marketplace", "standalone")
       const history = messages.map((m) => ({
         role: m.role === "eliana" ? ("assistant" as const) : ("user" as const),
         content: m.text,
@@ -253,8 +253,12 @@ export default function ElianaStandaloneChat() {
       // Security: filter output
       const outputFilter = filterOutput(res.text)
 
-      // State: PENSANDO → HABLANDO
-      smRef.current.startSpeaking()
+      // State: PENSANDO → HABLANDO or ESCALANDO_A_HUMANO
+      if (res.escalate) {
+        smRef.current.escalateToHuman()
+      } else {
+        smRef.current.startSpeaking()
+      }
 
       const elianaMsg: ChatMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -305,8 +309,8 @@ export default function ElianaStandaloneChat() {
       id: `welcome_${Date.now()}`,
       role: "eliana",
       text: session
-        ? `Bendiciones, ${session.name}. ¿En qué puedo ayudarte ahora?`
-        : "Bendiciones. Soy ELIANA. ¿En qué puedo orientarte?",
+        ? `Bendiciones, ${session.name}. ¿En qué puedo orientarte ahora?`
+        : "Bendiciones. Soy ELIANA, la Guía del Marketplace MSM. ¿En qué puedo orientarte?",
       timestamp: Date.now(),
     }
     setMessages([welcome])
@@ -387,6 +391,9 @@ export default function ElianaStandaloneChat() {
               )}
               {elianaState === "ESCUCHANDO" && (
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+              )}
+              {elianaState === "ESCALANDO_A_HUMANO" && (
+                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
               )}
               {elianaState === "HABLANDO" && isSpeaking && (
                 <Volume2 className="w-3 h-3 text-purple-400 animate-pulse" />
@@ -485,12 +492,19 @@ export default function ElianaStandaloneChat() {
         )}
       </AnimatePresence>
 
-      {/* Disclaimer */}
+      {/* Disclaimer + Support */}
       {messages.length > 1 && (
-        <div className="px-5 py-1">
+        <div className="px-5 py-1 flex items-center justify-between">
           <p className="text-[9px] text-slate-600 flex items-center gap-1">
             <Shield className="w-2.5 h-2.5" /> {DISCLAIMER}
           </p>
+          <button
+            onClick={() => sendMessage("Necesito hablar con soporte humano")}
+            disabled={elianaState !== "VIVA"}
+            className="text-[9px] px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 transition-colors disabled:opacity-30 cursor-pointer"
+          >
+            Hablar con soporte
+          </button>
         </div>
       )}
 

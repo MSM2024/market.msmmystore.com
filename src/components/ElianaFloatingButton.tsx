@@ -10,11 +10,12 @@ import { getContextualSuggestions } from "@/lib/eliana/recommendations"
 import { getSession } from "@/lib/auth"
 import type { ElianaContext } from "@/lib/eliana/types"
 
-type ConnectionStatus = "online" | "processing" | "offline"
+type ConnectionStatus = "online" | "processing" | "escalating" | "offline"
 
 const STATUS_CONFIG = {
   online: { label: "En línea", dot: "bg-emerald-400", ring: "border-emerald-400/50" },
   processing: { label: "Procesando", dot: "bg-amber-400", ring: "border-amber-400/50" },
+  escalating: { label: "Conectando soporte", dot: "bg-orange-400", ring: "border-orange-400/50" },
   offline: { label: "Sin conexión", dot: "bg-rose-500", ring: "border-rose-500/50" },
 }
 
@@ -27,6 +28,13 @@ const PAGE_LABELS: Record<string, string> = {
   "/perfil/": "Perfil", "/rewards": "MSM Rewards", "/eliana": "ELIANA",
   "/sponsors-page": "Sponsors", "/memberships": "Membresías",
   "/referidos": "Referidos", "/admin": "Panel Admin", "/settings": "Configuración",
+  "/marketplace": "Marketplace", "/marketplace/productos": "Productos",
+  "/marketplace/tiendas": "Tiendas", "/marketplace/pedidos": "Mis Pedidos",
+  "/marketplace/vender": "Vender", "/marketplace/proveedores": "Proveedores",
+  "/marketplace/crear-tienda": "Crear Tienda",
+  "/admin/marketplace": "Admin Marketplace",
+  "/dashboard/tienda": "Mi Tienda", "/dashboard/productos": "Mis Productos",
+  "/dashboard/pedidos": "Mis Pedidos", "/dashboard/ganancias": "Mis Ganancias",
 }
 
 function getPageFromPath(path: string): string {
@@ -45,8 +53,8 @@ export default function ElianaFloatingButton() {
     return [{
       role: "eliana",
       text: session
-        ? `Soy ELIANA, tu copiloto en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
-        : "Soy ELIANA, el copiloto inteligente de ZAFIRO. Conéctate para una experiencia personalizada.",
+        ? `Soy ELIANA, tu guía en ${getPageFromPath(pathname)}. Puedo ayudarte con productos, pedidos, envíos y soporte.`
+        : "Soy ELIANA, la Guía Inteligente del Marketplace MSM. ¿En qué puedo orientarte?",
     }]
   })
   const [input, setInput] = useState("")
@@ -70,8 +78,8 @@ export default function ElianaFloatingButton() {
       setMessages([{
         role: "eliana",
         text: session
-          ? `Soy ELIANA, tu copiloto en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
-          : "Soy ELIANA, el copiloto inteligente de ZAFIRO. Conéctate para una experiencia personalizada.",
+          ? `Soy ELIANA, tu guía en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
+          : "Soy ELIANA, la Guía del Marketplace MSM. ¿En qué puedo orientarte?",
       }])
       setSuggestions(getContextualSuggestions(context.userId, context.page))
     }
@@ -98,7 +106,11 @@ export default function ElianaFloatingButton() {
       const res = await processElianaRequest(text, history, elianaContext)
       setMessages(prev => [...prev, { role: "eliana", text: res.text }])
       if (res.suggestions) setSuggestions(res.suggestions)
-      setStatus("online")
+      if (res.escalate) {
+        setStatus("escalating")
+      } else {
+        setStatus("online")
+      }
     } catch {
       setMessages(prev => [...prev, { role: "eliana", text: "Lo siento, tengo problemas de conexión. Intenta de nuevo." }])
       setStatus("offline")
@@ -138,7 +150,7 @@ export default function ElianaFloatingButton() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-white">ELIANA · {getPageFromPath(pathname)}</p>
-                  <p className={`text-[7px] ${status === "online" ? "text-emerald-400" : status === "processing" ? "text-amber-400" : "text-rose-400"}`}>
+                  <p className={`text-[7px] ${status === "online" ? "text-emerald-400" : status === "processing" ? "text-amber-400" : status === "escalating" ? "text-orange-400" : "text-rose-400"}`}>
                     {STATUS_CONFIG[status].label}
                   </p>
                 </div>
