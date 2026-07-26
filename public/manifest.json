@@ -1,0 +1,12 @@
+{
+  "name": "ZAFIRO — Knowledge Future",
+  "short_name": "ZAFIRO",
+  "description": "La red social del conocimiento impulsada por Inteligencia Artificial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050816",
+  "theme_color": "#050816",
+  "icons": [
+    { "src": "/eliana-diamond.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
