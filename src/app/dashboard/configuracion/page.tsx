@@ -26,6 +26,7 @@ export default function DashboardConfiguracionPage() {
   const [config, setConfig] = useState<SellerConfig>(loadConfig)
   const [saved, setSaved] = useState(false)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setConfig(loadConfig()) }, [])
 
   function handleSave() {

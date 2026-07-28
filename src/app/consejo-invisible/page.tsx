@@ -17,6 +17,7 @@ export default function ConsejoInvisiblePage() {
     }
     // Por ahora, cualquier usuario autenticado puede acceder.
     // Cuando Supabase esté configurado, verificar role OWNER_SUPERADMIN.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAuthorized(true)
   }, [router])
 

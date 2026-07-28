@@ -62,6 +62,7 @@ export default function ElianaStandaloneChat() {
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [hasSpeech, setHasSpeech] = useState(false)
   const speechSynthRef = useRef<SpeechSynthesis | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const speechRecogRef = useRef<any>(null)
@@ -81,6 +82,7 @@ export default function ElianaStandaloneChat() {
       }
       setIsLoaded(true)
     })
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemaining(getRemainingMessages())
 
     // Init speech APIs
@@ -109,6 +111,7 @@ export default function ElianaStandaloneChat() {
           }
         }
         speechRecogRef.current = recog
+        setHasSpeech(true)
       }
     }
   }, [])
@@ -138,6 +141,7 @@ export default function ElianaStandaloneChat() {
           : channelConfig.welcome_message,
         timestamp: Date.now(),
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([welcome])
       saveMessage(welcome)
     }
@@ -498,7 +502,7 @@ export default function ElianaStandaloneChat() {
       <div className="px-5 pb-4 pt-2">
         <div className="flex items-center gap-3 bg-[#14171A] border border-slate-800/50 rounded-2xl px-4 py-3 focus-within:border-[#00D9FF]/30 transition-colors">
           {/* Mic button */}
-          {speechRecogRef.current && (
+          {hasSpeech && (
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={elianaState !== "VIVA" && elianaState !== "ESCUCHANDO"}

@@ -84,6 +84,7 @@ export default function ElianaAdvancedChat() {
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [hasSpeech, setHasSpeech] = useState(false)
   const speechSynthRef = useRef<SpeechSynthesis | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const speechRecogRef = useRef<any>(null)
@@ -103,6 +104,7 @@ export default function ElianaAdvancedChat() {
       }
       setIsLoaded(true)
     })
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemaining(getRemainingMessages())
 
     // Init speech APIs
@@ -131,6 +133,7 @@ export default function ElianaAdvancedChat() {
           }
         }
         speechRecogRef.current = recog
+        setHasSpeech(true)
       }
     }
   }, [])
@@ -160,6 +163,7 @@ export default function ElianaAdvancedChat() {
           : `**Bendiciones**. Soy **ELIANA**, la Guía Inteligente Avanzada de **MSM & ZAFIRO**.\n\nMi base de conocimiento incluye **58 documentos** sobre todo el ecosistema MSM: productos, servicios, cursos, gemología, pagos, envíos y más.\n\n¿En qué puedo ayudarte hoy?`,
         timestamp: Date.now(),
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([welcome])
       saveMessage(welcome)
     }
@@ -573,7 +577,7 @@ export default function ElianaAdvancedChat() {
       <div className="px-5 pb-4 pt-2">
         <div className="flex items-center gap-3 bg-[#14171A] border border-slate-800/50 rounded-2xl px-4 py-3 focus-within:border-[#00D9FF]/30 transition-colors">
           {/* Mic button */}
-          {speechRecogRef.current && (
+          {hasSpeech && (
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={elianaState !== "VIVA" && elianaState !== "ESCUCHANDO"}

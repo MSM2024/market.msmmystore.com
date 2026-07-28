@@ -84,7 +84,7 @@ export class KnowledgeIngestion {
 
     let documentsProcessed = 0
     let chunksCreated = 0
-    let embeddingsGenerated = 0
+    const embeddingsGenerated = 0
     const errors: string[] = []
 
     for (const doc of documents) {
@@ -214,8 +214,8 @@ export class KnowledgeIngestion {
       job_type: "source_sync",
     })
 
-    let documentsProcessed = 0
-    let chunksCreated = 0
+    const documentsProcessed = 0
+    const chunksCreated = 0
     const errors: string[] = []
 
     try {

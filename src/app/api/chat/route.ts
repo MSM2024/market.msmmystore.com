@@ -6,6 +6,7 @@ import {
   formatCrossReferences,
 } from "@/lib/eliana/core/intelligent-engine"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { ragPipeline, knowledgeSearch, checkInputSafety, checkOutputSafety, extractTopics, detectKnowledgeGaps } from "@/lib/knowledge"
 import { loadKnowledgeBase, buildKnowledgeContext } from "@/lib/knowledge"
 
@@ -104,7 +105,7 @@ function sanitizeServerInput(message: string): { safe: boolean; filtered?: strin
       return { safe: false, reason: "Patrón no permitido detectado" }
     }
   }
-  let filtered = message.replace(/\0/g, "").replace(/[\u200B-\u200D\uFEFF\u2060-\u2064]/g, "")
+  const filtered = message.replace(/\0/g, "").replace(/[\u200B-\u200D\uFEFF\u2060-\u2064]/g, "")
   return { safe: true, filtered: filtered.trim() }
 }
 
@@ -181,12 +182,12 @@ async function searchMarketplaceProducts(query: string): Promise<MarketplaceProd
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
       .limit(5)
     if (error || !data) return []
-    return data.map((p: any) => ({
+    return data.map((p: Record<string, unknown>) => ({
       name: p.name,
       price: p.price,
       currency: p.currency || "USD",
-      store_name: p.marketplace_stores?.name || "Tienda MSM",
-      category: p.marketplace_categories?.name || "General",
+      store_name: (p.marketplace_stores as Record<string, unknown>)?.name || "Tienda MSM",
+      category: (p.marketplace_categories as Record<string, unknown>)?.name || "General",
       slug: p.slug || "",
     }))
   } catch {
@@ -206,7 +207,7 @@ async function getOrderByUser(userId: string): Promise<UserOrder[]> {
       .order("created_at", { ascending: false })
       .limit(5)
     if (error || !data) return []
-    return data.map((o: any) => ({
+    return data.map((o: Record<string, unknown>) => ({
       order_number: o.order_number,
       status: o.status,
       total_amount: o.total_amount,
@@ -533,6 +534,14 @@ CAPACIDADES AVANZADAS:
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check — allow as guest
+    const supabase = await getSupabaseServerClient()
+    let userId: string | undefined
+    if (supabase) {
+      const { data: { user } } = await supabase.auth.getUser()
+      userId = user?.id
+    }
+
     const rateLimitKey = getRateLimitKey(request)
     const { allowed } = checkRateLimit(rateLimitKey)
     if (!allowed) {
@@ -565,8 +574,9 @@ export async function POST(request: NextRequest) {
 
     const { message: trimmedMessage, history: validHistory } = parsed.data
 
-    // Extract optional userId from body for personalized order lookups
-    const userId = (body as any)?.userId as string | undefined
+    // Use server-side auth userId, fallback to body userId for guests
+    const bodyUserId = (body as Record<string, unknown>)?.userId as string | undefined
+    const effectiveUserId = userId || bodyUserId
 
     // Server-side input security
     const inputCheck = sanitizeServerInput(trimmedMessage)
@@ -580,7 +590,7 @@ export async function POST(request: NextRequest) {
 
     if (GEMINI_API_KEY) {
       try {
-        const geminiText = await callGeminiAPI(safeMessage, validHistory, userId)
+        const geminiText = await callGeminiAPI(safeMessage, validHistory, effectiveUserId)
         if (geminiText) {
           const filteredResponse = filterServerOutput(geminiText)
 

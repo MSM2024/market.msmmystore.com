@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo, knowledgeIngestion } from "@/lib/knowledge"
+import { getSupabaseServerClient } from "@/lib/supabase-server"
+import type { KnowledgeApproval } from "@/lib/knowledge/types"
 
 export async function GET() {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const approvals = await knowledgeRepo.listApprovals()
     return NextResponse.json({
       approvals,
       total: approvals.length,
-      pending: approvals.filter((a: any) => a.status === "pending").length,
+      pending: approvals.filter((a: KnowledgeApproval) => a.status === "pending").length,
     })
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
@@ -16,6 +23,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await request.json()
     const { document_id, version_number, review_notes } = body
 
@@ -55,6 +67,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await request.json()
     const { id, status, review_notes } = body
 

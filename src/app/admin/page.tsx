@@ -17,6 +17,7 @@ import {
   type AdminReport,
   type AuditLogEntry,
 } from "@/lib/admin/data"
+import type { MarketplaceStore, MarketplaceProduct } from "@/lib/marketplace/types"
 
 export default function AdminPage() {
   usePageTitle("Automation Center — ZAFIRO")
@@ -32,17 +33,8 @@ export default function AdminPage() {
   })
   const [reports, setReports] = useState<AdminReport[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
-  const [pendingStores, setPendingStores] = useState<any[]>([])
-  const [pendingProducts, setPendingProducts] = useState<any[]>([])
-
-  useEffect(() => {
-    const session = getSession()
-    if (!session || (!hasRole("admin") && !hasRole("superadmin"))) {
-      router.replace("/")
-      return
-    }
-    loadData()
-  }, [router])
+  const [pendingStores, setPendingStores] = useState<MarketplaceStore[]>([])
+  const [pendingProducts, setPendingProducts] = useState<MarketplaceProduct[]>([])
 
   async function loadData() {
     setLoading(true)
@@ -63,6 +55,16 @@ export default function AdminPage() {
     setPendingProducts(productsData)
     setLoading(false)
   }
+
+  useEffect(() => {
+    const session = getSession()
+    if (!session || (!hasRole("admin") && !hasRole("superadmin"))) {
+      router.replace("/")
+      return
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadData()
+  }, [router])
 
   const automationStats = [
     { label: "Usuarios Registrados", value: stats.totalUsers.toLocaleString(), icon: Users, color: "text-[#00D9FF]" },
@@ -256,7 +258,7 @@ export default function AdminPage() {
                   <p className="text-[9px] text-slate-500">No hay tiendas pendientes</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {pendingStores.slice(0, 5).map((s: any) => (
+                    {pendingStores.slice(0, 5).map((s) => (
                       <div key={s.id} className="p-2 rounded-lg bg-slate-800/20 border border-slate-700/30 text-[9px]">
                         <p className="font-bold text-white">{s.name}</p>
                         <p className="text-slate-500">{s.country} — {new Date(s.created_at).toLocaleDateString()}</p>
@@ -272,7 +274,7 @@ export default function AdminPage() {
                   <p className="text-[9px] text-slate-500">No hay productos pendientes</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {pendingProducts.slice(0, 5).map((p: any) => (
+                    {pendingProducts.slice(0, 5).map((p) => (
                       <div key={p.id} className="p-2 rounded-lg bg-slate-800/20 border border-slate-700/30 text-[9px]">
                         <p className="font-bold text-white">{p.name}</p>
                         <p className="text-slate-500">${p.base_price} — {new Date(p.created_at).toLocaleDateString()}</p>

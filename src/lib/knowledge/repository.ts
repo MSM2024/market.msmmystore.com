@@ -150,7 +150,7 @@ export class KnowledgeRepository {
     const { data, error } = await dbQuery
     if (error) return []
 
-    return (data || []).map((doc: any) => ({
+    return (data || []).map((doc: KnowledgeDocument) => ({
       document: doc as KnowledgeDocument,
       score: this.calculateRelevanceScore(doc as KnowledgeDocument, query),
       highlights: this.extractHighlights(doc as KnowledgeDocument, query),
@@ -333,7 +333,7 @@ export class KnowledgeRepository {
       .select("tag_id, knowledge_tags(*)")
       .eq("document_id", documentId)
     if (error) return []
-    return (data || []).map((d: any) => d.knowledge_tags).filter(Boolean)
+    return (data || []).map((d: Record<string, unknown>) => d.knowledge_tags).filter(Boolean)
   }
 
   // ============================================================================
@@ -455,10 +455,10 @@ export class KnowledgeRepository {
       .select("response_time_ms, top_score")
 
     const avgResponseTime = avgData?.length
-      ? avgData.reduce((sum: number, q: any) => sum + (q.response_time_ms || 0), 0) / avgData.length
+      ? avgData.reduce((sum: number, q: Record<string, unknown>) => sum + ((q.response_time_ms as number) || 0), 0) / avgData.length
       : 0
     const avgTopScore = avgData?.length
-      ? avgData.reduce((sum: number, q: any) => sum + (q.top_score || 0), 0) / avgData.length
+      ? avgData.reduce((sum: number, q: Record<string, unknown>) => sum + ((q.top_score as number) || 0), 0) / avgData.length
       : 0
 
     return {
@@ -499,8 +499,8 @@ export class KnowledgeRepository {
 
     if (!data) return { total: 0, helpful: 0, not_helpful: 0, avg_score: 0 }
 
-    const helpful = data.filter((f: any) => f.feedback_type === "helpful").length
-    const notHelpful = data.filter((f: any) => f.feedback_type === "not_helpful").length
+    const helpful = data.filter((f: Record<string, unknown>) => f.feedback_type === "helpful").length
+    const notHelpful = data.filter((f: Record<string, unknown>) => f.feedback_type === "not_helpful").length
 
     return {
       total: data.length,
@@ -728,9 +728,9 @@ export class KnowledgeRepository {
 
     const docsByType: Record<string, number> = {}
     const docsByStatus: Record<string, number> = {}
-    for (const doc of (docs.data || []) as any[]) {
-      docsByType[doc.doc_type] = (docsByType[doc.doc_type] || 0) + 1
-      docsByStatus[doc.status] = (docsByStatus[doc.status] || 0) + 1
+    for (const doc of (docs.data || []) as Record<string, unknown>[]) {
+      docsByType[String(doc.doc_type)] = (docsByType[String(doc.doc_type)] || 0) + 1
+      docsByStatus[String(doc.status)] = (docsByStatus[String(doc.status)] || 0) + 1
     }
 
     return {
@@ -741,8 +741,8 @@ export class KnowledgeRepository {
       total_queries: queries.count || 0,
       total_feedback: feedback.count || 0,
       total_gaps: (gaps.data || []).length,
-      open_gaps: (gaps.data || []).filter((g: any) => g.status !== "archived").length,
-      pending_approvals: (approvals.data || []).filter((a: any) => a.status === "pending").length,
+      open_gaps: (gaps.data || []).filter((g: Record<string, unknown>) => g.status !== "archived").length,
+      pending_approvals: (approvals.data || []).filter((a: Record<string, unknown>) => a.status === "pending").length,
       documents_by_type: docsByType,
       documents_by_status: docsByStatus,
       recent_queries: recentQueries.data || [],

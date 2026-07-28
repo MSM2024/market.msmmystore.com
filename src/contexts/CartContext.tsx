@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 import {
   getLocalCart, addToLocalCart, removeFromLocalCart,
   updateLocalCartQuantity, clearLocalCart, getCartTotal,
@@ -22,11 +22,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<LocalCartItem[]>([])
-
-  useEffect(() => {
-    setItems(getLocalCart())
-  }, [])
+  const [items, setItems] = useState<LocalCartItem[]>(() => getLocalCart())
 
   const addItem = useCallback((item: LocalCartItem) => {
     setItems(prev => {

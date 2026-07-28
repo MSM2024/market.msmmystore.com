@@ -99,7 +99,7 @@ export async function fetchRecentReports(limit = 20): Promise<AdminReport[]> {
 
   const profileMap = new Map((profiles || []).map((p: { id: string; username: string }) => [p.id, p.username]))
 
-  return data.map((r: any) => ({
+  return data.map((r: AdminReport & { reporter_id: string }) => ({
     ...r,
     user: profileMap.get(r.reporter_id) || "unknown",
   }))

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeSearch, ragPipeline, checkInputSafety } from "@/lib/knowledge"
-import type { SearchResult } from "@/lib/knowledge"
+import { getSupabaseServerClient } from "@/lib/supabase-server"
+import type { SearchResult, KnowledgeChunk } from "@/lib/knowledge/types"
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id
+
     const body = await request.json()
     const { query, limit, threshold, doc_type, visibility, source_id } = body
 
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
         summary: r.document.summary,
         score: Math.round(r.score * 100) / 100,
         highlights: r.highlights,
-        matched_chunks: r.matched_chunks?.map((c: any) => ({
+        matched_chunks: r.matched_chunks?.map((c: KnowledgeChunk) => ({
           id: c.id,
           content: c.content,
           heading: c.heading,
@@ -52,6 +58,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id
+
     const { searchParams } = new URL(request.url)
     const query = searchParams.get("q")
 

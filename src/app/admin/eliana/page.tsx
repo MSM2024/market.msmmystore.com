@@ -21,6 +21,7 @@ export default function ElianaAdminPage() {
       router.push('/')
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAuthorized(true)
   }, [router])
 

@@ -1,5 +1,6 @@
 import { knowledgeIngestion } from "./ingestion"
 import { knowledgeRepo } from "./repository"
+import type { KnowledgeTag } from "./types"
 
 export interface SeedDocument {
   title: string
@@ -651,7 +652,7 @@ export async function seedKnowledgeBase(): Promise<{
           const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
           const { knowledgeRepo } = await import("./repository")
           const existingTags = await knowledgeRepo.listTags()
-          let tag = existingTags.find((t: any) => t.slug === slug) || null
+          let tag = existingTags.find((t: KnowledgeTag) => t.slug === slug) || null
 
           if (!tag) {
             tag = await knowledgeRepo.createTag({

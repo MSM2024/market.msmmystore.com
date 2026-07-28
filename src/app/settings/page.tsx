@@ -71,12 +71,6 @@ export default function SettingsPage() {
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" })
   const [passwordMsg, setPasswordMsg] = useState<"ok" | "error" | null>(null)
 
-  // Settings state (persisted in localStorage)
-  const [settings, setSettings] = useState(() => {
-    if (typeof window === "undefined") return getDefaultSettings()
-    try { return JSON.parse(localStorage.getItem("zafiro_settings") || JSON.stringify(getDefaultSettings())) } catch { return getDefaultSettings() }
-  })
-
   function getDefaultSettings() {
     return {
       appearance: { darkMode: true, compactMode: false, fontSize: 14, accentColor: "cyan" },
@@ -88,6 +82,12 @@ export default function SettingsPage() {
       audio: { elianaVoice: true, voiceSpeed: 1, autoPlay: false, soundEffects: true, micPermission: false },
     }
   }
+
+  // Settings state (persisted in localStorage)
+  const [settings, setSettings] = useState(() => {
+    if (typeof window === "undefined") return getDefaultSettings()
+    try { return JSON.parse(localStorage.getItem("zafiro_settings") || JSON.stringify(getDefaultSettings())) } catch { return getDefaultSettings() }
+  })
 
   const updateSettings = (section: string, key: string, value: unknown) => {
     setSettings((prev: Record<string, Record<string, unknown>>) => {

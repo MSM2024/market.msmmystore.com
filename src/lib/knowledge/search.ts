@@ -154,7 +154,7 @@ export class KnowledgeSearchEngine {
     const { data, error } = await dbQuery
     if (error) return []
 
-    return (data || []).map((doc: any) => ({
+    return (data || []).map((doc: KnowledgeDocument) => ({
       document: doc as KnowledgeDocument,
       score: this.scoreDocument(doc as KnowledgeDocument, query, queryTokens),
       highlights: this.extractHighlights(doc as KnowledgeDocument, query, queryTokens),
@@ -175,7 +175,7 @@ export class KnowledgeSearchEngine {
 
     if (error || !data) return []
 
-    const docIds = [...new Set((data as any[]).map((chunk: any) => chunk.document_id))] as string[]
+    const docIds = [...new Set((data as Record<string, unknown>[]).map((chunk: Record<string, unknown>) => chunk.document_id as string))] as string[]
     const docs = await Promise.all(
       docIds.map(id => knowledgeRepo.getDocument(id))
     )
@@ -184,10 +184,10 @@ export class KnowledgeSearchEngine {
       .filter((doc): doc is KnowledgeDocument => doc !== null)
       .map(doc => ({
         document: doc,
-        score: data.find((chunk: any) => chunk.document_id === doc.id)?.similarity || 0,
+        score: (data.find((chunk: Record<string, unknown>) => chunk.document_id === doc.id)?.similarity as number) || 0,
         matched_chunks: data
-          .filter((chunk: any) => chunk.document_id === doc.id)
-          .map((chunk: any) => ({
+          .filter((chunk: Record<string, unknown>) => chunk.document_id === doc.id)
+          .map((chunk: Record<string, unknown>) => ({
             id: chunk.chunk_id,
             document_id: doc.id,
             chunk_index: chunk.chunk_index,

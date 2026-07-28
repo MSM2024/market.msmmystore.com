@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo } from "@/lib/knowledge"
+import { getSupabaseServerClient } from "@/lib/supabase-server"
+import type { KnowledgeGap } from "@/lib/knowledge/types"
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
     if (id) {
       const gaps = await knowledgeRepo.listGaps()
-      const gap = gaps.find((g: any) => g.id === id)
+      const gap = gaps.find((g: KnowledgeGap) => g.id === id)
       if (!gap) {
         return NextResponse.json({ error: "Gap not found" }, { status: 404 })
       }
@@ -19,7 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       gaps,
       total: gaps.length,
-      open: gaps.filter((g: any) => g.status !== "archived").length,
+      open: gaps.filter((g: KnowledgeGap) => g.status !== "archived").length,
     })
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
@@ -28,6 +35,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await request.json()
     const { gap_type, title, description, related_query, suggested_content, priority } = body
 
@@ -61,6 +73,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await request.json()
     const { id, ...updates } = body
 

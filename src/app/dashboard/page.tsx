@@ -2,125 +2,161 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Store, Package, ShoppingCart, DollarSign, TrendingUp, Plus, Settings, Loader2, AlertCircle } from "lucide-react"
+import { MessageSquare, BookOpen, Settings, User, Clock, ArrowRight, Loader2, Sparkles } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSession } from "@/lib/auth"
-import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
-import { fetchSellerStats } from "@/lib/marketplace/client"
-import { STORE_STATUS_LABELS, STORE_STATUS_COLORS, formatPrice } from "@/lib/marketplace/constants"
-import type { MarketplaceStore } from "@/lib/marketplace/types"
+
+interface Conversation {
+  id: string
+  status: string
+  summary: string | null
+  created_at: string
+  messages: { id: string; role: string; content: string; created_at: string }[]
+}
+
+interface Profile {
+  name: string
+  email: string
+  role: string
+  avatar: string
+}
 
 export default function DashboardPage() {
   usePageTitle("Dashboard — ZAFIRO")
   const session = getSession()
-  const [store, setStore] = useState<MarketplaceStore | null>(null)
-  const [stats, setStats] = useState({ totalProducts: 0, activeProducts: 0, totalOrders: 0, pendingOrders: 0, totalRevenue: 0, monthRevenue: 0 })
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
 
   useEffect(() => {
-    if (!session?.id) { setLoading(false); return }
-    const supabase = getSupabaseClient()
-    if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!session) { setLoading(false); return }
 
-    async function load() {
-      try {
-        const { data: storeData } = await supabase!
-          .from("marketplace_stores")
-          .select("*")
-          .eq("owner_id", session!.id)
-          .single()
-        if (storeData) {
-          setStore(storeData)
-          const s = await fetchSellerStats(storeData.id)
-          setStats(s)
-        }
-      } catch (e) { setError("Error al cargar datos") }
+    Promise.all([
+      fetch("/api/eliana/conversations").then(r => r.json()).catch(() => ({ conversations: [] })),
+      fetch("/api/user-profile").then(r => r.json()).catch(() => ({ profile: null })),
+    ]).then(([convData, profileData]) => {
+      setConversations((convData.conversations || []).slice(0, 5))
+      setProfile(profileData.profile)
       setLoading(false)
-    }
-    load()
-  }, [session?.id])
+    }).catch(() => setLoading(false))
+  }, [session])
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-6 h-6 text-[#197BD2] animate-spin" />
+      <Loader2 className="w-6 h-6 text-[#00D9FF] animate-spin" />
     </div>
   )
 
   if (!session) return (
     <div className="text-center py-20">
-      <AlertCircle className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+      <User className="w-10 h-10 text-slate-600 mx-auto mb-3" />
       <p className="text-sm text-slate-400">Inicia sesión para ver tu dashboard</p>
-      <Link href="/auth/login" className="inline-block mt-3 px-4 py-2 rounded-lg bg-[#197BD2] text-white text-xs font-bold">Iniciar Sesión</Link>
-    </div>
-  )
-
-  if (error) return (
-    <div className="text-center py-20">
-      <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-      <p className="text-sm text-red-400">{error}</p>
-    </div>
-  )
-
-  if (!store) return (
-    <div className="text-center py-20">
-      <Store className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-      <h2 className="text-lg font-black text-white mb-2">Crea tu primera tienda</h2>
-      <p className="text-xs text-slate-400 mb-4 max-w-sm mx-auto">
-        Configura tu tienda en el marketplace y comienza a vender productos a millones de usuarios.
-      </p>
-      <Link href="/marketplace/crear-tienda" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#197BD2] text-white text-xs font-bold hover:bg-[#197BD2]/90 transition-colors">
-        <Plus className="w-4 h-4" /> Crear Mi Tienda
+      <Link href="/auth/login" className="inline-block mt-3 px-4 py-2 rounded-lg bg-[#00D9FF] text-black text-xs font-bold">
+        Iniciar Sesión
       </Link>
     </div>
   )
 
+  const displayName = profile?.name || session.name || session.email?.split("@")[0] || "Usuario"
+
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#197BD2] to-[#D4AF37] flex items-center justify-center">
-          <Store className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-black text-white">{store.name}</h1>
-          <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full border ${STORE_STATUS_COLORS[store.status]}`}>
-            {STORE_STATUS_LABELS[store.status]}
-          </span>
-        </div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-black text-white mb-1">
+          Hola, {displayName}
+        </h1>
+        <p className="text-xs text-slate-400">Bienvenido a ZAFIRO — Tu ecosistema digital</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Productos", value: stats.totalProducts.toString(), icon: Package, color: "text-[#197BD2]" },
-          { label: "Pedidos Pendientes", value: stats.pendingOrders.toString(), icon: ShoppingCart, color: "text-amber-400" },
-          { label: "Ingresos del Mes", value: formatPrice(stats.monthRevenue), icon: TrendingUp, color: "text-emerald-400" },
-          { label: "Ingresos Totales", value: formatPrice(stats.totalRevenue), icon: DollarSign, color: "text-[#D4AF37]" },
-        ].map((s) => (
-          <div key={s.label} className="p-4 rounded-xl bg-slate-900/30 border border-slate-800/50">
-            <s.icon className={`w-4 h-4 ${s.color} mb-2`} />
-            <p className="text-lg font-black text-white">{s.value}</p>
-            <p className="text-[9px] text-slate-500">{s.label}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+        <Link href="/eliana/chat" className="p-5 rounded-2xl bg-gradient-to-br from-[#00D9FF]/10 to-[#050A1A] border border-[#00D9FF]/20 hover:border-[#00D9FF]/40 transition-all group">
+          <Sparkles className="w-6 h-6 text-[#00D9FF] mb-3" />
+          <h3 className="text-sm font-black text-white mb-1">ELIANA</h3>
+          <p className="text-[10px] text-slate-400">Tu Guía Inteligente</p>
+          <ArrowRight className="w-3 h-3 text-[#00D9FF] mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </Link>
+
+        <Link href="/knowledge/admin" className="p-5 rounded-2xl bg-gradient-to-br from-[#DAA520]/10 to-[#050A1A] border border-[#DAA520]/20 hover:border-[#DAA520]/40 transition-all group">
+          <BookOpen className="w-6 h-6 text-[#DAA520] mb-3" />
+          <h3 className="text-sm font-black text-white mb-1">Base de Conocimiento</h3>
+          <p className="text-[10px] text-slate-400">Documentos y reglas</p>
+          <ArrowRight className="w-3 h-3 text-[#DAA520] mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </Link>
+
+        <Link href="/settings" className="p-5 rounded-2xl bg-gradient-to-br from-slate-700/30 to-[#050A1A] border border-slate-700/30 hover:border-slate-600/50 transition-all group">
+          <Settings className="w-6 h-6 text-slate-400 mb-3" />
+          <h3 className="text-sm font-black text-white mb-1">Configuración</h3>
+          <p className="text-[10px] text-slate-400">Perfil, notificaciones, privacidad</p>
+          <ArrowRight className="w-3 h-3 text-slate-400 mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </Link>
+      </div>
+
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-black text-white">Conversaciones Recientes</h2>
+          <Link href="/eliana/conversaciones" className="text-[10px] text-[#00D9FF] hover:underline font-bold">
+            Ver todas
+          </Link>
+        </div>
+
+        {conversations.length === 0 ? (
+          <div className="p-8 rounded-2xl glass border border-slate-800/30 text-center">
+            <MessageSquare className="w-8 h-8 text-slate-700 mx-auto mb-3" />
+            <p className="text-xs text-slate-500">No hay conversaciones aún</p>
+            <Link href="/eliana/chat" className="inline-block mt-3 text-[10px] text-[#00D9FF] hover:underline font-bold">
+              Iniciar conversación
+            </Link>
           </div>
-        ))}
+        ) : (
+          <div className="space-y-2">
+            {conversations.map(conv => {
+              const lastMsg = conv.messages[conv.messages.length - 1]
+              return (
+                <Link
+                  key={conv.id}
+                  href={`/eliana/chat?conversation=${conv.id}`}
+                  className="flex items-center gap-3 p-4 rounded-xl glass border border-slate-800/30 hover:border-[#00D9FF]/20 transition-all"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">
+                      {conv.summary || `Conversación ${new Date(conv.created_at).toLocaleDateString("es")}`}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                      {lastMsg ? lastMsg.content.slice(0, 80) : "Sin mensajes"}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[9px] text-slate-600 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      {new Date(conv.created_at).toLocaleDateString("es", { day: "numeric", month: "short" })}
+                    </p>
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold mt-1 inline-block ${
+                      conv.status === "active" ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-700/30 text-slate-500"
+                    }`}>
+                      {conv.status === "active" ? "Activa" : conv.status}
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/dashboard/productos" className="flex items-center gap-3 p-4 rounded-xl bg-[#197BD2]/10 border border-[#197BD2]/20 hover:border-[#197BD2]/40 transition-all">
-          <Package className="w-5 h-5 text-[#197BD2]" />
-          <span className="text-[10px] font-bold text-[#197BD2]">Gestionar Productos</span>
-        </Link>
-        <Link href="/dashboard/pedidos" className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all">
-          <ShoppingCart className="w-5 h-5 text-amber-400" />
-          <span className="text-[10px] font-bold text-amber-400">Ver Pedidos</span>
-        </Link>
-        <Link href="/dashboard/tienda" className="flex items-center gap-3 p-4 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 hover:border-[#D4AF37]/40 transition-all">
-          <Settings className="w-5 h-5 text-[#D4AF37]" />
-          <span className="text-[10px] font-bold text-[#D4AF37]">Configurar Tienda</span>
-        </Link>
-        <Link href="/marketplace/vender/crear-producto" className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
-          <Plus className="w-5 h-5 text-emerald-400" />
-          <span className="text-[10px] font-bold text-emerald-400">Crear Producto</span>
-        </Link>
+      <div className="p-5 rounded-2xl glass border border-slate-800/30">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
+            <User className="w-5 h-5 text-[#00D9FF]" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-white">{displayName}</p>
+            <p className="text-[10px] text-slate-500">{session.email} · {profile?.role || "VIEWER"}</p>
+          </div>
+          <Link href="/settings" className="ml-auto text-[10px] text-[#00D9FF] hover:underline font-bold">
+            Editar perfil
+          </Link>
+        </div>
       </div>
     </div>
   )

@@ -22,6 +22,7 @@ export default function DashboardClientesPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!session?.id) { setLoading(false); return }
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }

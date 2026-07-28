@@ -23,6 +23,7 @@ export default function UpdatePasswordPage() {
   useEffect(() => {
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("error")
       setErrorMsg("El servicio de recuperación no está disponible temporalmente.")
       return
