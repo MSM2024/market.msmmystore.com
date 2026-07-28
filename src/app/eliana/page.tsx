@@ -354,13 +354,13 @@ export default function ElianaPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
               { href: "/", label: "ZAFIRO", desc: "Plataforma principal", color: "#00D9FF" },
-              { href: "https://marketplace.msmmystore.com", label: "Marketplace", desc: "Tiendas y productos", color: "#7c3aed" },
+              { href: "https://marketplace.msmmystore.com", label: "Marketplace", desc: "Tiendas y productos", color: "#7c3aed", external: true },
               { href: "/escuela", label: "Escuela", desc: "Cursos y mentores", color: "#10b981" },
               { href: "/album", label: "Álbum", desc: "Legado familiar", color: "#f59e0b" },
               { href: "/referidos", label: "Referidos", desc: "Invita y gana", color: "#22c55e" },
               { href: "/admin/eliana", label: "Admin", desc: "Panel de control", color: "#ef4444" },
             ].map((link, i) => (
-              <Link key={i} href={link.href} className="p-3 rounded-xl bg-[#14171A] border border-slate-800/30 hover:border-[#00D9FF]/30 transition-all group">
+              <Link key={i} href={link.href} {...('external' in link && link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="p-3 rounded-xl bg-[#14171A] border border-slate-800/30 hover:border-[#00D9FF]/30 transition-all group">
                 <div className="w-2 h-2 rounded-full mb-2" style={{ backgroundColor: link.color }} />
                 <p className="text-[11px] font-bold text-white group-hover:text-[#00D9FF] transition-colors">{link.label}</p>
                 <p className="text-[9px] text-slate-500">{link.desc}</p>

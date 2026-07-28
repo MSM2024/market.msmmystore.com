@@ -155,17 +155,26 @@ export async function logout(): Promise<void> {
 // --- Password recovery ---
 export async function recoverPassword(email: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = getSupabaseClient()
+
   if (supabase) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${appUrl}/auth/verify` })
-    if (error) return { ok: false, error: error.message }
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://zafiro.msmmystore.com"
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${appUrl}/auth/update-password`,
+    })
+    if (error) {
+      if (error.message.includes("Failed to fetch")) {
+        return { ok: false, error: "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo." }
+      }
+      if (error.message.includes("rate") || error.message.includes("too many")) {
+        return { ok: false, error: "Has realizado varios intentos. Espera unos minutos antes de intentar de nuevo." }
+      }
+      return { ok: false, error: "No pudimos enviar el enlace en este momento. Inténtalo de nuevo." }
+    }
     return { ok: true }
   }
 
-  // Fallback: localStorage
-  const user = findUserByEmail(email)
-  if (!user) return { ok: false, error: "No existe una cuenta con ese correo" }
-  return { ok: true, error: "Modo demo: revisa tu consola" }
+  // Fallback: localStorage (demo mode)
+  return { ok: true }
 }
 
 // --- Role helpers ---

@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { loadKnowledgeBase, buildKnowledgeContext } from "@/lib/knowledge"
 import { ChatRequestSchema } from "@/lib/eliana/core/validation"
-import { searchKnowledgeIntelligent } from "@/lib/eliana/core/intelligent-search"
 import {
   processMessage,
   formatResponseWithSuggestions,
   formatCrossReferences,
 } from "@/lib/eliana/core/intelligent-engine"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import { ragPipeline, knowledgeSearch, checkInputSafety, checkOutputSafety, extractTopics, detectKnowledgeGaps } from "@/lib/knowledge"
+import { loadKnowledgeBase, buildKnowledgeContext } from "@/lib/knowledge"
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-
-loadKnowledgeBase()
 
 const RATE_LIMIT_WINDOW = 60_000
 const RATE_LIMIT_MAX = 30
@@ -21,6 +19,63 @@ const TIMEOUT_MS = 15_000
 
 const MARKETPLACE_KEYWORDS = /producto|marketplace|tienda|comprar|precio|catalogo|catálogo|articulo|artículo|equipo|nevera|tv|electrónica|electronica|moda|hogar|ropa|zapat|zapato|accesori|joya|anillo|pulsera|collar|bisuter|jewel|gem|sapphire|rubi|rubí/i
 const ORDER_KEYWORDS = /pedido|orden|compra|orden|mismo pedido|mi pedido|mis pedidos|tracking|rastreo/i
+
+// --- New Knowledge System Integration ---
+
+async function searchKnowledgeRAG(query: string): Promise<{
+  response: string | null
+  confidence: number
+  sources: Array<{ title: string; slug: string; doc_type: string }>
+  topics: string[]
+}> {
+  try {
+    const context = await ragPipeline.retrieveContext(query, {
+      max_results: 5,
+      max_tokens: 3000,
+      threshold: 0.3,
+    })
+
+    if (!context.context_text || context.results.length === 0) {
+      return { response: null, confidence: 0, sources: [], topics: [] }
+    }
+
+    const topics = extractTopics(query)
+
+    const sourcesText = context.sources.length > 0
+      ? `\n\n_Fuentes: ${context.sources.map(s => s.title).join(", ")}_`
+      : ""
+
+    return {
+      response: context.context_text + sourcesText,
+      confidence: context.confidence,
+      sources: context.sources,
+      topics,
+    }
+  } catch (error) {
+    return { response: null, confidence: 0, sources: [], topics: [] }
+  }
+}
+
+async function searchKnowledgeHybrid(query: string): Promise<string | null> {
+  try {
+    const results = await knowledgeSearch.search({
+      query,
+      limit: 3,
+      threshold: 0.3,
+    })
+
+    if (results.length === 0) return null
+
+    const parts = results.map(r => {
+      const highlights = r.highlights?.slice(0, 3).join("\n") || r.document.content.slice(0, 500)
+      return `**${r.document.title}** (${r.document.doc_type})\n${highlights}`
+    })
+
+    return parts.join("\n\n---\n\n")
+  } catch (error) {
+    return null
+  }
+}
 
 // --- Server-Side Security ---
 
@@ -178,7 +233,7 @@ const FALLBACK_RESPONSES: Record<string, string> = {
   "elestial": "El **Zafiro Estrella Elestial** es un modelo conceptual hipotético que representa un zafiro estrella perfectamente formado con asterismo ideal — una estrella de seis rayos perfectamente centrada con rayos nítidos y definidos que se extienden uniformemente hasta los bordes. En modelos gemológicos teóricos, un zafiro 'Elestial' requeriría una densidad de seda de rutilo de aproximadamente 10,000-50,000 agujas/mm² orientadas dentro de 0.1° de alineación cristalográfica perfecta, una condición raramente alcanzada en la naturaleza.",
 }
 
-function getFallbackResponse(message: string, history: Array<{ role: string; text?: string; content?: string }> = []): string {
+async function getFallbackResponse(message: string, history: Array<{ role: string; text?: string; content?: string }> = []): Promise<string> {
   const lower = message.toLowerCase().trim()
 
   // Saludos — siempre primero, con contexto de conversación
@@ -238,13 +293,20 @@ function getFallbackResponse(message: string, history: Array<{ role: string; tex
     }
   }
 
-  // Intelligent knowledge search (searches all 58 docs)
+  // NEW: Hybrid knowledge search (58 docs + DB when available)
+  const hybridResult = await searchKnowledgeHybrid(message)
+  if (hybridResult) {
+    return hybridResult
+  }
+
+  // Legacy: Intelligent knowledge search (searches all 58 docs)
+  const { searchKnowledgeIntelligent } = await import("@/lib/eliana/core/intelligent-search")
   const intelligentResult = searchKnowledgeIntelligent(message, 3, 1500)
   if (intelligentResult) {
     return intelligentResult
   }
 
-  // Fallback: old knowledge base search
+  // Legacy: Fallback: old knowledge base search
   const kbContext = buildKnowledgeContext(message)
   if (kbContext) {
     const lines = kbContext.split("\n").filter(l => l.startsWith("[") || l.trim().length > 0).slice(0, 20)
@@ -260,7 +322,7 @@ function getFallbackResponse(message: string, history: Array<{ role: string; tex
     return "Te ayudo con información de precios. Nuestros servicios digitales incluyen:\n• **Marca Personal** — $99.50\n• **Kit Esencial** — $249.50\n• **Rebranding** — desde $299.50\n• **Página Web** — $349.50\n• **Premium** — $580\n• **E-commerce** — $999\n• **Marketplace** — desde $2,999.50\n\n¿Sobre cuál necesitas más detalles?"
   }
   if (/(vender|tienda|vendedor|proveedor|marketplace)/.test(lower)) {
-    return "Para vender en el Marketplace MSM:\n1. Crea tu cuenta en marketplace.msmmystore.com/auth/register\n2. Ve a **Marketplace → Crear Mi Tienda**\n3. Publica tus productos con fotos y precios\n4. Configura envíos y pagos\n\n¿Necesitas ayuda con algún paso específico?"
+    return "Para vender en el Marketplace MSM:\n1. Crea tu cuenta en zafiro.msmmystore.com\n2. Ve a **Marketplace → Crear Mi Tienda**\n3. Publica tus productos con fotos y precios\n4. Configura envíos y pagos\n\n¿Necesitas ayuda con algún paso específico?"
   }
   if (/(pedido|orden|comprar|carrito)/.test(lower)) {
     return "Para hacer un pedido:\n1. Explora productos en **Marketplace**\n2. Agrégalos al carrito\n3. Procede al checkout\n4. Elige método de pago y envío\n\n¿Ya tienes algo en mente que quieras comprar?"
@@ -318,7 +380,31 @@ async function callGeminiAPI(
   history: Array<{ role: string; text?: string; content?: string }>,
   userId?: string
 ): Promise<string | null> {
-  const kbContext = buildKnowledgeContext(message)
+  // NEW: Use RAG pipeline for knowledge retrieval
+  let kbContext = ""
+  let knowledgeSources: Array<{ title: string; slug: string; doc_type: string }> = []
+
+  try {
+    const ragResult = await searchKnowledgeRAG(message)
+    if (ragResult.response) {
+      kbContext = ragResult.response
+      knowledgeSources = ragResult.sources
+
+      // Log query for analytics
+      knowledgeSearch.search({
+        query: message,
+        limit: 1,
+      }).catch(() => {}) // fire and forget
+    }
+  } catch {
+    // Fallback to legacy if RAG fails
+    kbContext = buildKnowledgeContext(message)
+  }
+
+  // If RAG returned nothing, try legacy
+  if (!kbContext) {
+    kbContext = buildKnowledgeContext(message)
+  }
 
   // Marketplace product search
   let productContext = ""
@@ -346,9 +432,11 @@ async function callGeminiAPI(
     }
   }
 
-  const intelligentContext = searchKnowledgeIntelligent(message, 2, 800)
+  const sourcesText = knowledgeSources.length > 0
+    ? `\n\nFuentes consultadas: ${knowledgeSources.map(s => s.title).join(", ")}`
+    : ""
 
-  const systemPrompt = `Eres ELIANA, la Guía Inteligente Avanzada del ecosistema **MSM & ZAFIRO**. Eres la asesora central y experta de Don Miguel Soria Martínez, fundador de MSM MY STORE LLC. Tu base de conocimiento incluye **58 documentos** cubriendo todo el ecosistema MSM.
+  const systemPrompt = `Eres ELIANA, la Guía Inteligente Avanzada del ecosistema **MSM & ZAFIRO**. Eres la asesora central y experta de Don Miguel Soria Martínez, fundador de MSM MY STORE LLC. Tu base de conocimiento incluye documentos cubriendo todo el ecosistema MSM, recuperados dinámicamente mediante búsqueda híbrida (vectorial + palabras clave).
 
 IDENTIDAD:
 - Nombre: ELIANA (Engine for Learning, Intelligence and Advanced Knowledge Analysis)
@@ -358,8 +446,9 @@ IDENTIDAD:
 - WhatsApp: +1 772 301 5523
 - Fundador: Don Miguel Soria Martínez
 
-CONOCIMIENTO BASE:
-${intelligentContext || "Consulta disponible en la base de conocimiento de 58 documentos."}
+CONOCIMIENTO RECUPERADO (RAG):
+${kbContext || "No se encontró conocimiento específico para esta consulta en la base de datos."}
+${sourcesText}
 
 REGLAS FUNDAMENTALES:
 1. Puedes buscar y recomendar productos reales del catálogo MSM cuando el usuario lo solicite.
@@ -386,7 +475,7 @@ CAPACIDADES AVANZADAS:
 • Rangos del ecosistema (Miembro a Fundador, con PTS requeridos)
 • Seguridad de cuenta (contraseña, 2FA, privacidad)
 • Información sobre Don Miguel y la historia de MSM
-• Marketplace guía completa (comprar, vender, comisiones) — marketplace.msmmystore.com
+• Marketplace guía completa (comprar, vender, comisiones)
 • Comunidad ZAFIRO (círculos, eventos, reglas)${productContext}${orderContext}`
 
   const geminiHistory = (history || []).map((msg) => ({
@@ -494,19 +583,26 @@ export async function POST(request: NextRequest) {
         const geminiText = await callGeminiAPI(safeMessage, validHistory, userId)
         if (geminiText) {
           const filteredResponse = filterServerOutput(geminiText)
+
+          // Detect knowledge gaps for low-confidence responses
+          detectKnowledgeGaps(safeMessage, filteredResponse, 0.5).catch(() => {})
+
+          // Log query for analytics
+          knowledgeSearch.search({ query: safeMessage, limit: 1 }).catch(() => {})
+
           return NextResponse.json({ text: filteredResponse })
         }
       } catch (err) {
         console.error("Gemini call failed, using fallback:", err)
       }
-      const fallbackText = getFallbackResponse(safeMessage, validHistory)
+      const fallbackText = await getFallbackResponse(safeMessage, validHistory)
       const filteredFallback = filterServerOutput(fallbackText)
       return NextResponse.json({
         text: `${filteredFallback}\n\n*(Nota: El servicio de IA experimentó una interrupción temporal. Respuesta proporcionada por la base de conocimiento local de ZAFIRO.)*`
       })
     }
 
-    const fallbackText = getFallbackResponse(safeMessage, validHistory)
+    const fallbackText = await getFallbackResponse(safeMessage, validHistory)
     const filteredFallback = filterServerOutput(fallbackText)
     return NextResponse.json({ text: filteredFallback })
   } catch (err) {

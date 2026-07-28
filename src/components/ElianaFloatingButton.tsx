@@ -22,14 +22,12 @@ export function openElianaChat() {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("eliana:open"))
 }
 
+// Note: /marketplace/* routes are cross-domain (marketplace.msmmystore.com) and won't match on eliana domain
 const PAGE_LABELS: Record<string, string> = {
   "/": "Inicio", "/dashboard": "Dashboard", "/universo": "Universo Digital",
   "/perfil/": "Perfil", "/rewards": "MSM Rewards", "/eliana": "ELIANA",
   "/sponsors-page": "Sponsors", "/memberships": "Membresías",
   "/referidos": "Referidos", "/admin": "Panel Admin", "/settings": "Configuración",
-  "/marketplace": "Marketplace", "/marketplace/productos": "Productos MSM",
-  "/marketplace/tiendas": "Tiendas MSM", "/marketplace/pedidos": "Mis Pedidos",
-  "/marketplace/vender": "Vender en MSM",
 }
 
 function getPageFromPath(path: string): string {

@@ -1,45 +1,51 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import {
-  getAppForDomain,
-  isElianaRoute,
-  isPublicRoute as checkPublicRoute,
-  isProtectedRoute,
-  isAdminRoute,
-  isSellerRoute,
-  getRedirect,
-  getPrefixRedirect,
-  MARKETPLACE_SHORT_MAP,
-  APPS,
-  type AppId,
-} from "@/config/apps-registry"
+
+const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/recover", "/auth/verify", "/auth/update-password", "/eliana", "/eliana/chat", "/eliana/conversaciones", "/eliana/memoria", "/eliana/tareas", "/eliana/configuracion"]
+const marketplacePublicRoutes = ["/marketplace", "/marketplace/productos", "/marketplace/tiendas"]
+const sellerRoutes = ["/marketplace/vender", "/marketplace/crear-tienda", "/dashboard"]
+const adminRoutes = ["/admin"]
+const authRequiredRoutes = ["/marketplace/pedidos", "/marketplace/proveedores", "/settings", "/messages", "/profile-page", "/rewards", "/referidos"]
+
+function isPublicRoute(pathname: string): boolean {
+  if (publicRoutes.includes(pathname)) return true
+  if (marketplacePublicRoutes.some(r => pathname === r || pathname.startsWith(r + "/"))) return true
+  if (pathname.startsWith("/api/")) return true
+  return false
+}
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, search } = request.nextUrl
   const host = (request.headers.get("host") || "").split(":")[0].toLowerCase()
-  const appId = getAppForDomain(host)
-  const app = APPS[appId]
 
-  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/") || pathname.startsWith("/favicon")) {
-    return NextResponse.next()
-  }
+  // market.msmmystore.com → rewrite to /marketplace routes
+  if (host === "market.msmmystore.com") {
+    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/") || pathname.startsWith("/favicon")) {
+      return NextResponse.next()
+    }
 
-  if (appId === "marketplace") {
-    const shortPath = MARKETPLACE_SHORT_MAP[pathname]
-    if (shortPath) {
+    const marketplaceMap: Record<string, string> = {
+      "/": "/marketplace",
+      "/productos": "/marketplace/productos",
+      "/tiendas": "/marketplace/tiendas",
+      "/pedidos": "/marketplace/pedidos",
+      "/vender": "/marketplace/vender",
+      "/crear-tienda": "/marketplace/crear-tienda",
+      "/proveedores": "/marketplace/proveedores",
+    }
+
+    if (marketplaceMap[pathname]) {
       const url = request.nextUrl.clone()
-      url.pathname = shortPath
+      url.pathname = marketplaceMap[pathname]
       return NextResponse.rewrite(url)
     }
 
     if (pathname === "/marketplace" || pathname.startsWith("/marketplace/")) {
-      if (isElianaRoute(pathname)) {
-        return NextResponse.next()
-      }
       return NextResponse.next()
     }
 
-    if (isElianaRoute(pathname)) {
+    // Allow /eliana routes within marketplace domain (don't rewrite to /marketplace/eliana)
+    if (pathname === "/eliana" || pathname.startsWith("/eliana/")) {
       return NextResponse.next()
     }
 
@@ -56,35 +62,37 @@ export async function proxy(request: NextRequest) {
     return NextResponse.rewrite(url)
   }
 
-  if (appId === "eliana") {
-    if (isElianaRoute(pathname)) {
+  // eliana.msmmystore.com → serve /eliana page
+  if (host === "eliana.msmmystore.com") {
+    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/") || pathname.startsWith("/favicon")) {
       return NextResponse.next()
     }
 
-    const exactRedirect = getRedirect(pathname, appId)
-    if (exactRedirect) {
-      const qs = request.nextUrl.search.toString()
-      return NextResponse.redirect(exactRedirect + qs)
+    // Redirect marketplace-related paths to marketplace.msmmystore.com (308 permanent)
+    const marketplacePaths = ["/marketplace", "/tienda", "/mi-tienda", "/catalogo", "/inventario", "/pedidos", "/productos"]
+    const isMarketplacePath = marketplacePaths.some(p => pathname === p || pathname.startsWith(p + "/"))
+    if (isMarketplacePath) {
+      const targetUrl = `https://marketplace.msmmystore.com${pathname}${search}`
+      return NextResponse.redirect(targetUrl, 308)
     }
 
-    const prefixRedirect = getPrefixRedirect(pathname, appId)
-    if (prefixRedirect) {
-      const qs = request.nextUrl.search.toString()
-      return NextResponse.redirect(prefixRedirect + qs)
-    }
-
+    // Rewrite / to /eliana
     if (pathname === "/") {
       const url = request.nextUrl.clone()
       url.pathname = "/eliana"
       return NextResponse.rewrite(url)
     }
-  }
-
-  if (appId === "zafiro" || appId === "admin") {
-    if (checkPublicRoute(pathname, appId)) {
+    // Pass through /eliana/* paths
+    if (pathname === "/eliana" || pathname.startsWith("/eliana/")) {
       return NextResponse.next()
     }
+    // Everything else on eliana domain goes to /eliana
+    const url = request.nextUrl.clone()
+    url.pathname = "/eliana"
+    return NextResponse.rewrite(url)
   }
+
+  if (isPublicRoute(pathname)) return NextResponse.next()
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -107,15 +115,17 @@ export async function proxy(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  const needsAuth = isProtectedRoute(pathname, appId) || isSellerRoute(pathname, appId) || isAdminRoute(pathname, appId)
+  const isAuthRequired = authRequiredRoutes.some(r => pathname.startsWith(r))
+  const isSellerRoute = sellerRoutes.some(r => pathname.startsWith(r))
+  const isAdminRoute = adminRoutes.some(r => pathname.startsWith(r))
 
-  if (!session && needsAuth) {
+  if (!session && (isAuthRequired || isSellerRoute || isAdminRoute)) {
     const url = new URL("/auth/login", request.url)
     url.searchParams.set("redirect", pathname)
     return NextResponse.redirect(url)
   }
 
-  if (session && (isSellerRoute(pathname, appId) || isAdminRoute(pathname, appId))) {
+  if (session && (isSellerRoute || isAdminRoute)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -124,11 +134,11 @@ export async function proxy(request: NextRequest) {
 
     const userRole = profile?.role || "customer"
 
-    if (isAdminRoute(pathname, appId) && userRole !== "admin" && userRole !== "superadmin") {
+    if (isAdminRoute && userRole !== "admin" && userRole !== "superadmin") {
       return NextResponse.redirect(new URL("/", request.url))
     }
 
-    if (isSellerRoute(pathname, appId) && !["seller", "admin", "superadmin"].includes(userRole)) {
+    if (isSellerRoute && !["seller", "admin", "superadmin"].includes(userRole)) {
       return NextResponse.redirect(new URL("/", request.url))
     }
   }

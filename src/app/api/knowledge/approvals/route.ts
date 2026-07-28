@@ -1,0 +1,97 @@
+import { NextRequest, NextResponse } from "next/server"
+import { knowledgeRepo, knowledgeIngestion } from "@/lib/knowledge"
+
+export async function GET() {
+  try {
+    const approvals = await knowledgeRepo.listApprovals()
+    return NextResponse.json({
+      approvals,
+      total: approvals.length,
+      pending: approvals.filter((a: any) => a.status === "pending").length,
+    })
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { document_id, version_number, review_notes } = body
+
+    if (!document_id) {
+      return NextResponse.json({ error: "Document ID is required" }, { status: 400 })
+    }
+
+    const doc = await knowledgeRepo.getDocument(document_id)
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 })
+    }
+
+    const approval = await knowledgeRepo.createApproval({
+      document_id,
+      version_number,
+      status: "pending",
+    })
+
+    if (!approval) {
+      return NextResponse.json({ error: "Failed to create approval" }, { status: 500 })
+    }
+
+    await knowledgeRepo.updateDocument(document_id, { status: "review" })
+
+    await knowledgeRepo.logAudit({
+      action: "request_approval",
+      resource_type: "document",
+      resource_id: document_id,
+      resource_title: doc.title,
+    })
+
+    return NextResponse.json({ approval }, { status: 201 })
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, status, review_notes } = body
+
+    if (!id || !status) {
+      return NextResponse.json({ error: "ID and status are required" }, { status: 400 })
+    }
+
+    const validStatuses = ["approved", "rejected", "revision_needed"]
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 })
+    }
+
+    const approval = await knowledgeRepo.updateApproval(id, {
+      status,
+      review_notes,
+      reviewed_at: new Date().toISOString(),
+    })
+
+    if (!approval) {
+      return NextResponse.json({ error: "Failed to update approval" }, { status: 500 })
+    }
+
+    if (status === "approved") {
+      await knowledgeIngestion.publishDocument(approval.document_id)
+    } else if (status === "rejected") {
+      await knowledgeRepo.updateDocument(approval.document_id, { status: "rejected" })
+    }
+
+    await knowledgeRepo.logAudit({
+      action: `approval_${status}`,
+      resource_type: "document",
+      resource_id: approval.document_id,
+      new_value: { status, review_notes },
+    })
+
+    return NextResponse.json({ approval })
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
