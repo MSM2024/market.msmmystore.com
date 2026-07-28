@@ -1,16 +1,10 @@
 import type { ElianaContext, ElianaResponse } from "./types"
-import { addShortTermMemory, addLongTermFact, getElianaMemory, getContextSummary } from "./memory"
+import { addShortTermMemory, addLongTermFact, getContextSummary } from "./memory"
 import { generateAggregatedSummary } from "./analysis"
 import { getPersonalizedRecommendations, getContextualSuggestions } from "./recommendations"
 import { getKnowledgeGraph, getRelatedNodes } from "./knowledge"
 import { getSession } from "@/lib/auth"
 import { getPTSAccount, getStreak } from "@/lib/rewards"
-
-const SYSTEM_PROMPT = `Eres ELIANA, el copiloto inteligente de ZAFIRO, una Red Social del Conocimiento.
-Tu misión es ayudar al usuario a navegar, aprender, conectar y crecer en el ecosistema.
-Eres concisa, precisa y proactiva. Siempre ofreces valor en cada interacción.
-Conoces el perfil del usuario, sus plataformas conectadas, sus PTS, su racha, sus intereses.
-NO eres un chatbot genérico. Eres un copiloto contextual que acompaña al usuario en toda la plataforma.`
 
 function getPageContext(page: string, userId: string): Record<string, string> {
   const ctx: Record<string, string> = { page }
@@ -70,15 +64,15 @@ function getFallbackResponse(query: string, ctx: ElianaContext, userId: string):
     const session = getSession()
     const name = session?.name || "explorador"
     return {
-      text: `¡Hola, ${name}! Soy ELIANA, tu copiloto en ZAFIRO. Puedo ayudarte a explorar conocimiento, conectar plataformas, encontrar comunidades y mucho más. ¿Qué te gustaría hacer hoy?`,
-      suggestions: ["Explorar temas de interés", "Conectar mi Universo Digital", "Ver mis estadísticas"],
+      text: `**Bendiciones**, ${name}. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**. Puedo orientarte sobre productos, servicios, pedidos, vender en el marketplace, cursos, servicios digitales y todo el ecosistema MSM. ¿En qué puedo ayudarte hoy?`,
+      suggestions: ["Explorar marketplace", "Ver cursos de la Escuela", "Conocer servicios digitales"],
     }
   }
 
   if (q.includes("gracias") || q.includes("thanks")) {
     return {
-      text: "¡De nada! Recuerda que siempre estoy aquí para ayudarte. Sigue explorando y construyendo conocimiento.",
-      suggestions: ["¿Qué más puedo hacer?", "Explorar el Mapa Vivo", "Ver comunidades activas"],
+      text: "¡Con gusto! Recuerda que siempre estoy aquí para ayudarte. ¿Hay algo más en lo que pueda orientarte?",
+      suggestions: ["¿Qué más puedo hacer?", "Ver productos", "Explorar cursos"],
     }
   }
 
@@ -103,22 +97,37 @@ export async function processElianaRequest(
   const topics = relatedToUser.filter(n => n.type === "concept").map(n => n.label).slice(0, 5)
   const pageSuggestions = getContextualSuggestions(userId, context.page, message)
 
-  const systemMessage = `${SYSTEM_PROMPT}\n\nContexto del usuario:\n${knowledge}\n\nPágina actual: ${context.page}\nPTS: ${pageCtx.pts || "N/A"}\nNivel: ${pageCtx.level || "N/A"}\nRacha: ${pageCtx.streak || "N/A"} días\nTemas de interés: ${topics.join(", ") || "Sin datos aún"}\n${pageCtx.universe || ""}`
-
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
-        history: [{ role: "system", content: systemMessage }, ...history.slice(-10)],
+        history: history.slice(-10),
         userId: context.userId || undefined,
       }),
     })
     const data = await res.json()
+    const responseText = data.text || "No pude procesar tu solicitud. Intenta de nuevo."
+    // Extract suggestions from engine's formatted response
+    const suggestionMatch = responseText.match(/\*\*¿[^*]+\*\*\n((?:• [^\n]+\n?)+)/)
+    const engineSuggestions = suggestionMatch
+      ? suggestionMatch[1].split("\n").filter((l: string) => l.startsWith("• ")).map((l: string) => l.replace(/^• /, "").trim()).filter(Boolean)
+      : []
+    // Also extract inline questions from the response as fallback suggestions
+    const inlineQuestions = responseText.match(/¿[^?]+\?/g) || []
+    const extractedSuggestions = inlineQuestions
+      .map((q: string) => q.trim())
+      .filter((q: string) => q.length > 10 && q.length < 80)
+      .slice(0, 3)
+    const finalSuggestions = engineSuggestions.length > 0
+      ? engineSuggestions
+      : extractedSuggestions.length > 0
+        ? extractedSuggestions
+        : pageSuggestions
     const response: ElianaResponse = {
-      text: data.text || "No pude procesar tu solicitud. Intenta de nuevo.",
-      suggestions: pageSuggestions,
+      text: responseText,
+      suggestions: finalSuggestions,
     }
     addShortTermMemory(userId, { role: "eliana", text: response.text, page: context.page, timestamp: Date.now() })
     addLongTermFact(userId, { fact: `Usuario preguntó: ${message.slice(0, 80)}`, category: "query", confidence: 0.5 })

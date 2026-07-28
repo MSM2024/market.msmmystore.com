@@ -2,10 +2,7 @@
 // MARKETPLACE FEATURE FLAGS — Configuración del sistema
 // ================================================================
 
-import { createClient } from "@supabase/supabase-js"
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 
 export interface FeatureFlag {
   key: string
@@ -50,12 +47,8 @@ const DEFAULT_FLAGS: Record<string, unknown> = {
 }
 
 function getSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null
-  try {
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  } catch {
-    return null
-  }
+  if (!isSupabaseAvailable()) return null
+  return getSupabaseClient()
 }
 
 export async function fetchFeatureFlags(): Promise<Record<string, unknown>> {

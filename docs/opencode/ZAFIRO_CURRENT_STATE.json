@@ -1,0 +1,148 @@
+{
+  "project": {
+    "name": "MSM-Zafiro",
+    "organization": "MSM MY STORE LLC",
+    "owner": "Miguel Soria Martínez",
+    "role": "OWNER_SUPERADMIN",
+    "version": "1.0.0",
+    "lastAudit": "2026-07-27T06:00:00Z"
+  },
+  "stack": {
+    "framework": "Next.js 16.2.10",
+    "language": "TypeScript 5.x",
+    "ui": "Tailwind CSS 4 + shadcn/ui",
+    "animation": "Framer Motion 12",
+    "database": "Supabase (PostgreSQL)",
+    "auth": "Supabase Auth + localStorage fallback",
+    "ai": "Google Gemini 2.0 (placeholder)",
+    "payments": "Stripe (unconfigured)",
+    "validation": "Zod v4.4.3",
+    "runtime": "Node.js v24.18.0"
+  },
+  "deployment": {
+    "platform": "Vercel",
+    "projectId": "prj_lVx7uFJ8vanKDhsMp4vcLyiZyBhm",
+    "orgId": "team_eYjbIlfQF6GWALFMxqAXYyZo",
+    "domains": {
+      "main": "zafiro.msmmystore.com",
+      "eliana": "eliana.msmmystore.com"
+    },
+    "status": "LIVE",
+    "lastDeploy": "https://zafiro-lbcum51sg-msmmystore.vercel.app"
+  },
+  "inventory": {
+    "pages": 68,
+    "components": 31,
+    "apiRoutes": 12,
+    "sqlMigrations": 34,
+    "knowledgeDocs": 57,
+    "totalFiles": 158
+  },
+  "features": {
+    "zafiro": {
+      "status": "partial",
+      "implemented": [
+        "Marketplace (UI)",
+        "Memberships (UI + localStorage)",
+        "Consejo Invisible (19 tables)",
+        "Settings (8 sections, full)",
+        "Knowledge Base (57 docs)",
+        "ELIANA Chat (fallback mode)"
+      ],
+      "incomplete": [
+        "Payments (mockup)",
+        "Delivery (mockup)",
+        "Album (partial)",
+        "Escuela (partial)",
+        "Publicidad (placeholder)",
+        "Admin pages (6 pages, mock data)"
+      ]
+    },
+    "eliana": {
+      "status": "functional_fallback",
+      "features": [
+        "Intelligent engine v2.0 (sentiment, intent, entities)",
+        "Knowledge search (57 docs scored)",
+        "State machine (VIVA→ESCUCHANDO→PENSANDO→HABLANDO→VIVA)",
+        "Security (19 injection patterns, rate limiting)",
+        "Persistence (localStorage)",
+        "Voice (Web Speech API)"
+      ],
+      "missing": [
+        "Real Gemini API connection",
+        "Server-side memory/persistence",
+        "Conversation history API",
+        "Multi-turn context"
+      ]
+    },
+    "consejoInvisible": {
+      "status": "database_only",
+      "tables": 19,
+      "migrations": "00016-00034",
+      "roleGuards": ["OWNER_SUPERADMIN", "MASTER", "ELITE", "ADMIN"]
+    },
+    "marketplace": {
+      "status": "partial",
+      "tables": 67,
+      "entities": ["Marketplace", "MarketplaceSeller", "SellerProduct", "SellerAnalytics", "SellerPayout", "SellerSubscription"]
+    }
+  },
+  "database": {
+    "provider": "Supabase",
+    "connected": false,
+    "migrations": 34,
+    "rlsEnabled": false,
+    "duplicateClients": [
+      "src/lib/supabase.ts",
+      "src/lib/consejo-invisible/queries.ts",
+      "src/lib/marketplace/feature-flags.ts",
+      "src/lib/proxy.ts"
+    ]
+  },
+  "auth": {
+    "provider": "Supabase Auth + localStorage fallback",
+    "roles": ["customer", "vendedor", "admin", "superadmin", "OWNER_SUPERADMIN", "MASTER", "ELITE"],
+    "protectedRoutes": ["/admin/*", "/vendedor/*", "/consejo/*"],
+    "localStorageKeys": [
+      "zafiro_user",
+      "zafiro_user_role",
+      "zafiro_profile",
+      "zafiro_settings"
+    ]
+  },
+  "envVars": {
+    "required": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "GEMINI_API_KEY",
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_APP_URL"
+    ],
+    "configured": [
+      "NEXT_PUBLIC_APP_URL=https://zafiro.msmmystore.com",
+      "GEMINI_API_KEY=placeholder"
+    ]
+  },
+  "knownIssues": [
+    "4 duplicate Supabase client instances",
+    "No tests exist",
+    "No error boundaries",
+    "No loading states on many pages",
+    "Hardcoded mock data in admin pages",
+    "Supabase realtime not configured",
+    "Some components use 'any' type",
+    "No middleware for API routes"
+  ],
+  "nextSteps": {
+    "priority1": "Get real credentials (Supabase, Gemini, Stripe)",
+    "priority2": "Consolidate 4 Supabase clients",
+    "priority3": "Connect to real database",
+    "priority4": "Connect Gemini AI",
+    "priority5": "Connect Stripe payments",
+    "priority6": "Complete incomplete pages",
+    "priority7": "Add test suite"
+  }
+}

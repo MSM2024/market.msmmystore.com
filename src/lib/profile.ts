@@ -236,7 +236,7 @@ export function seedMiguelProfile(): UserProfile {
     visits: 8200,
     customProjects: [
       { id: "proj_zafiro", name: "ZAFIRO", description: "Red Social del Conocimiento impulsada por Inteligencia Artificial", url: "https://zafiro.com", status: "activo", icon: "💎", color: "text-[#00D9FF]", tags: ["ia", "conocimiento", "red-social"] },
-      { id: "proj_marketplace", name: "MSM Marketplace", description: "Plataforma de comercio digital del ecosistema MSM", url: "https://msmmystore.com", status: "beta", icon: "🏪", color: "text-amber-400", tags: ["comercio", "marketplace"] },
+      { id: "proj_marketplace", name: "MSM Marketplace", description: "Plataforma de comercio digital del ecosistema MSM", url: "https://marketplace.msmmystore.com", status: "beta", icon: "🏪", color: "text-amber-400", tags: ["comercio", "marketplace"] },
       { id: "proj_album", name: "Álbum de la Vida", description: "Plataforma para preservar recuerdos, historias familiares y legado", url: "https://blog.msmmystore.com", status: "activo", icon: "📓", color: "text-purple-400", tags: ["memorias", "legado", "familia"] },
       { id: "proj_mente", name: "MSM Mente Maestra", description: "Plataforma de crecimiento, disciplina, propósito y comunidad", url: "https://t.me/msmmystor", status: "activo", icon: "🧠", color: "text-indigo-400", tags: ["crecimiento", "comunidad", "disciplina"] },
       { id: "proj_eliana", name: "ELIANA", description: "Asistente virtual e inteligencia central del ecosistema MSM", url: "https://elianamsm.com", status: "activo", icon: "✨", color: "text-cyan-300", tags: ["ia", "asistente", "inteligencia"] },

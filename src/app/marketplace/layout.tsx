@@ -24,7 +24,7 @@ export default function MarketplaceLayout({ children }: { children: React.ReactN
       <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-[#197BD2] font-black text-lg">MSM</Link>
+            <Link href="/marketplace" className="text-[#197BD2] font-black text-lg">MSM</Link>
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input

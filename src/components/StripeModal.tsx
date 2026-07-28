@@ -21,13 +21,13 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
     setStripePaying(true)
     setStripeError(null)
     try {
-      const res = await fetch("/api/marketplace/checkout", {
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          type: "marketplace",
           items: [{ name: `Campaña Patrocinada — ${companyName}`, price: budget, quantity: 1, image: "" }],
-          successUrl: `${window.location.origin}/sponsors-page?campaign=success`,
-          cancelUrl: `${window.location.origin}/sponsors-page?campaign=canceled`,
+          source: "marketplace",
         }),
       })
       const data = await res.json()

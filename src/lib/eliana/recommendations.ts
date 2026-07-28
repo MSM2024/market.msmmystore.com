@@ -97,6 +97,28 @@ export function getContextualSuggestions(userId: string, page: string, query?: s
     suggestions.push("Analiza mi perfil", "¿Cómo mejorar mi presencia?", "¿Qué dicen mis estadísticas?")
   } else if (page === "dashboard") {
     suggestions.push("Resume mi actividad", "¿Qué métricas mejorar?", "Proyecta mi crecimiento")
+  } else if (page === "Marketplace" || page === "Productos MSM" || page === "Tiendas MSM" || page === "Vender en MSM") {
+    suggestions.push("¿Qué productos buscas?", "¿Cómo crear mi tienda?", "¿Cuáles son las comisiones?")
+  } else if (page === "ELIANA") {
+    suggestions.push("¿Qué puedes hacer?", "Explora el ecosistema MSM", "¿Cómo me ayudas?")
+  } else if (page === "Escuela MSM") {
+    suggestions.push("¿Qué cursos hay disponibles?", "¿Cómo obtener un certificado?", "¿Cuáles son los rangos?")
+  } else if (page === "Album de la Vida") {
+    suggestions.push("¿Cómo creo mi álbum?", "¿Qué planes hay?", "¿Cómo comparto con mi familia?")
+  } else if (page === "Consejo Invisible") {
+    suggestions.push("¿Cómo presentar una propuesta?", "¿Quiénes son los consejeros?", "¿Cómo funciona la gobernanza?")
+  } else if (page === "MSM Payments" || page === "MSM Delivery") {
+    suggestions.push("¿Qué métodos de pago aceptan?", "¿Cuánto tarda el envío?", "¿Cómo rastreo mi pedido?")
+  } else if (page === "Referidos") {
+    suggestions.push("¿Cuál es mi código?", "¿Cómo gan comisiones?", "¿Quiénes son mis referidos?")
+  } else if (page === "Membresías") {
+    suggestions.push("¿Qué planes hay?", "¿Cuánto cuesta cada plan?", "¿Cómo cambio de plan?")
+  } else if (page === "Configuración") {
+    suggestions.push("¿Cómo cambio mi contraseña?", "¿Activo la verificación 2FA?", "¿Cómo elimino mi cuenta?")
+  } else if (page === "Panel Admin") {
+    suggestions.push("Resume la actividad reciente", "¿Qué necesita atención?", "Analiza métricas")
+  } else if (page === "ZAFIRO") {
+    suggestions.push("¿Qué es ZAFIRO?", "Explora el ecosistema", "¿Cómo me registro?")
   }
   if (query) {
     suggestions.push(`Explícame más sobre: ${query.slice(0, 40)}`)

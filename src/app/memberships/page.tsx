@@ -1,12 +1,13 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Check, Star, Sparkles, Crown, Zap, Shield, Gem } from "lucide-react"
+import { ArrowLeft, Check, Star, Sparkles, Crown, Zap, Shield, Gem, ExternalLink, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 const plans = [
   {
+    id: "free",
     name: "Free", price: "0", pts: "100/día", icon: Gem, color: "text-slate-400", border: "border-slate-700",
     features: [
       "Acceso al feed de conocimiento",
@@ -18,6 +19,7 @@ const plans = [
     ]
   },
   {
+    id: "pro",
     name: "Pro", price: "9.99", pts: "500/día", icon: Star, color: "text-[#00D9FF]", border: "border-[#00D9FF]/40", popular: true,
     features: [
       "Todo lo de Free",
@@ -31,6 +33,7 @@ const plans = [
     ]
   },
   {
+    id: "cuba_plus",
     name: "Cuba Plus", price: "14.99", pts: "1000/día", icon: Crown, color: "text-amber-400", border: "border-amber-500/40",
     features: [
       "Todo lo de Pro",
@@ -51,6 +54,42 @@ export default function MembershipsPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly")
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubscribe = async () => {
+    if (!selectedPlan || selectedPlan === "Free") return
+    setLoading(true)
+    setError(null)
+
+    try {
+      const planId = selectedPlan === "Pro" ? "pro" : "cuba_plus"
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "membership",
+          planId,
+          source: "membership",
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else if (data.error) {
+        setError(data.error)
+        setLoading(false)
+      } else {
+        setError("Error al crear sesión de pago")
+        setLoading(false)
+      }
+    } catch {
+      setError("Error de conexión con Stripe")
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#050816] text-white">
@@ -69,6 +108,12 @@ export default function MembershipsPage() {
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${billing === "annual" ? "bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white" : "text-slate-400"}`}>Anual <span className="text-emerald-400 text-[9px]">-20%</span></button>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 max-w-2xl mx-auto">
+            <p className="text-xs text-red-300">{error}</p>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-5">
           {plans.map((plan, i) => {
@@ -98,11 +143,18 @@ export default function MembershipsPage() {
                     </li>
                   ))}
                 </ul>
-                <button onClick={() => { setSelectedPlan(plan.name); setConfirming(true) }} className={`w-full py-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  plan.price === "0"
-                    ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                    : "bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white hover:opacity-90"
-                }`}>
+                <button
+                  onClick={() => {
+                    if (plan.price === "0") return
+                    setSelectedPlan(plan.name)
+                    setConfirming(true)
+                  }}
+                  className={`w-full py-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    plan.price === "0"
+                      ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      : "bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white hover:opacity-90"
+                  }`}
+                >
                   {plan.price === "0" ? "Comenzar Gratis" : "Suscribirse"}
                   {plan.price !== "0" && <Zap className="w-3.5 h-3.5" />}
                 </button>
@@ -118,15 +170,32 @@ export default function MembershipsPage() {
       </div>
 
       {confirming && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setConfirming(false)}>
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => { if (!loading) setConfirming(false) }}>
           <div className="w-full max-w-sm p-6 rounded-3xl border border-slate-700 bg-[#0B1220] text-center" onClick={e => e.stopPropagation()}>
-            <Gem className="w-10 h-10 text-[#00D9FF] mx-auto mb-3" />
-            <h2 className="text-lg font-black mb-2">Confirmar Membresía</h2>
-            <p className="text-xs text-slate-400 mb-4">Estás a punto de suscribirte al plan <strong className="text-white">{selectedPlan}</strong>.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirming(false)} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 hover:bg-slate-800 transition-all cursor-pointer">Cancelar</button>
-              <button onClick={() => { setConfirming(false); alert(`✅ Redirigiendo a Stripe para el plan ${selectedPlan}…`) }} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-xs font-bold text-white hover:opacity-90 transition-all cursor-pointer">Confirmar</button>
-            </div>
+            {loading ? (
+              <>
+                <Loader2 className="w-10 h-10 text-[#00D9FF] mx-auto mb-3 animate-spin" />
+                <h2 className="text-lg font-black mb-2">Redirigiendo a Stripe...</h2>
+                <p className="text-xs text-slate-400">Espera un momento</p>
+              </>
+            ) : (
+              <>
+                <Gem className="w-10 h-10 text-[#00D9FF] mx-auto mb-3" />
+                <h2 className="text-lg font-black mb-2">Confirmar Membresía</h2>
+                <p className="text-xs text-slate-400 mb-4">
+                  Estás a punto de suscribirte al plan <strong className="text-white">{selectedPlan}</strong>
+                  {billing === "annual" && <span className="block mt-1 text-emerald-400">Ahorro 20% con facturación anual</span>}
+                </p>
+                {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+                <div className="flex gap-3">
+                  <button onClick={() => setConfirming(false)} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 hover:bg-slate-800 transition-all cursor-pointer">Cancelar</button>
+                  <button onClick={handleSubscribe} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-xs font-bold text-white hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-2">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Pagar con Stripe
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

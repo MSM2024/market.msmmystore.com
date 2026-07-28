@@ -1,0 +1,65 @@
+You are continuing work on the MSM-Zafiro project. Here is the complete context:
+
+PROJECT: MSM-Zafiro (Next.js 16 + Supabase + ELIANA AI)
+OWNER: Miguel Soria Martínez (OWNER_SUPERADMIN)
+ORG: MSM MY STORE LLC
+DEPLOYED: zafiro.msmmystore.com (Vercel)
+REPO: C:\Users\cm8ms\OneDrive\Documents\MSM-Zafiro-main
+
+CURRENT STATE:
+- 68 pages, 31 components, 12 API routes, 34 SQL migrations
+- 57 knowledge documents
+- ELIANA AI works but uses knowledge-fallback (Gemini key is placeholder)
+- Supabase NOT connected (no real credentials; all data in localStorage)
+- Stripe NOT configured (checkout returns 503)
+- 4 duplicate Supabase client instances need consolidation
+- No tests exist
+- No error boundaries
+
+IMMEDIATE TASKS (in order):
+1. Ask Don Miguel for real credentials (Supabase URL/keys, Gemini API key, Stripe keys)
+2. Configure .env.local with real credentials
+3. Consolidate 4 Supabase clients into single factory
+4. Run all 34 SQL migrations against Supabase
+5. Replace localStorage calls with Supabase queries
+6. Connect ELIANA to real Gemini API
+7. Connect Stripe with real Price IDs
+
+KEY FILES:
+- src/lib/auth.ts — Auth (Supabase + localStorage fallback)
+- src/lib/supabase.ts — Supabase client (keep as single source)
+- src/lib/eliana/engine.ts — ELIANA engine
+- src/lib/eliana/core/intelligent-engine.ts — v2.0 engine (sentiment, intent, entities)
+- src/app/api/chat/route.ts — Chat API endpoint
+- src/app/settings/page.tsx — Settings (8 sections, fully functional)
+- src/app/memberships/page.tsx — 9 membership plans
+- supabase/migrations/ — 34 SQL migration files
+- .env.local — Environment variables (placeholder values)
+
+ENV VARS REQUIRED:
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxxx
+SUPABASE_SERVICE_ROLE_KEY=eyJxxxxx
+GEMINI_API_KEY=AIzaxxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+
+DO NOT:
+- Delete localStorage code until Supabase is confirmed working
+- Change the project structure without reason
+- Add new dependencies without checking if one already exists
+- Skip error handling
+
+DO:
+- Test each change incrementally
+- Check browser console for errors
+- Update docs/opencode/FILES_CHANGED.md with every change
+- Run npm run build to verify no TypeScript errors
+- Ask for clarification if unsure
+
+Read these files for full context:
+- docs/opencode/OPEN_CODE_HANDOFF.md
+- docs/opencode/ZAFIRO_CURRENT_STATE.json
+- docs/opencode/DATABASE_AND_RLS.md
+- docs/opencode/FILES_CHANGED.md

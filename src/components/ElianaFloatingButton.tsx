@@ -48,8 +48,8 @@ export default function ElianaFloatingButton() {
     return [{
       role: "eliana",
       text: session
-        ? `Soy ELIANA, tu copiloto en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
-        : "Soy ELIANA, el copiloto inteligente de ZAFIRO. Conéctate para una experiencia personalizada.",
+        ? `**Bendiciones**, ${session.name}. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**. Estoy en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
+        : "**Bendiciones**. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**. Puedo orientarte sobre productos, servicios, cursos y todo el ecosistema MSM. ¿En qué puedo ayudarte hoy?",
     }]
   })
   const [input, setInput] = useState("")
@@ -73,8 +73,8 @@ export default function ElianaFloatingButton() {
       setMessages([{
         role: "eliana",
         text: session
-          ? `Soy ELIANA, tu copiloto en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
-          : "Soy ELIANA, el copiloto inteligente de ZAFIRO. Conéctate para una experiencia personalizada.",
+          ? `**Bendiciones**, ${session.name}. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**. Estoy en ${getPageFromPath(pathname)}. ¿En qué puedo ayudarte?`
+          : "**Bendiciones**. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**. Puedo orientarte sobre productos, servicios, cursos y todo el ecosistema MSM. ¿En qué puedo ayudarte hoy?",
       }])
       setSuggestions(getContextualSuggestions(context.userId, context.page))
     }
@@ -100,10 +100,15 @@ export default function ElianaFloatingButton() {
       const history = messages.map(m => ({ role: m.role === "eliana" ? "assistant" : "user" as const, content: m.text }))
       const res = await processElianaRequest(text, history, elianaContext)
       setMessages(prev => [...prev, { role: "eliana", text: res.text }])
-      if (res.suggestions) setSuggestions(res.suggestions)
+      // Use engine's contextual suggestions if available, else page-based
+      if (res.suggestions && res.suggestions.length > 0) {
+        setSuggestions(res.suggestions)
+      } else {
+        setSuggestions(getContextualSuggestions(context.userId, context.page, text))
+      }
       setStatus("online")
     } catch {
-      setMessages(prev => [...prev, { role: "eliana", text: "Lo siento, tengo problemas de conexión. Intenta de nuevo." }])
+      setMessages(prev => [...prev, { role: "eliana", text: "Lo siento, estoy teniendo problemas de conexión. Por favor, intenta de nuevo." }])
       setStatus("offline")
     } finally {
       setLoading(false)

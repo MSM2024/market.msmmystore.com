@@ -1,16 +1,14 @@
 'use client'
 
-import { createBrowserClient } from '@supabase/ssr'
+import { getSupabaseClient, isSupabaseAvailable } from '@/lib/supabase'
 import type { CouncilGuide, CouncilTeaching, CouncilSession, CouncilGoal, CouncilJournalEntry, CouncilPrayer, CouncilAudioFile } from './types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 function getClient() {
-  if (!supabaseUrl || supabaseUrl === 'https://your-project.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'your-anon-key-here') {
-    return null
-  }
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return getSupabaseClient()
+}
+
+function hasDb(): boolean {
+  return isSupabaseAvailable() && !!getClient()
 }
 
 // ================================================================

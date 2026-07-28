@@ -127,13 +127,13 @@ export default function CartPage() {
     if (items.length === 0) return
     setSubmitting(true)
     try {
-      const res = await fetch("/api/marketplace/checkout", {
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          type: "marketplace",
           items: items.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
-          successUrl: `${window.location.origin}/marketplace/pedidos?success=true`,
-          cancelUrl: `${window.location.origin}/marketplace/pedidos?canceled=true`,
+          source: "marketplace",
         }),
       })
       const data = await res.json()

@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import Stripe from "stripe"
-
-function getStripe(): Stripe | null {
-  const key = process.env.STRIPE_SECRET_KEY
-  if (!key || key.startsWith("sk_live_TU") || key.startsWith("sk_test_TU")) return null
-  return new Stripe(key, { apiVersion: "2026-06-24.dahlia" })
-}
+import { getStripe, isStripeAvailable } from "@/lib/stripe/server"
+import { STRIPE_CONFIG, getPlanById } from "@/lib/stripe/config"
 
 interface CheckoutItem {
   name: string
@@ -15,24 +10,61 @@ interface CheckoutItem {
 }
 
 export async function POST(request: NextRequest) {
-  const stripe = getStripe()
-  if (!stripe) {
-    return NextResponse.json({ error: "Stripe not configured" }, { status: 503 })
+  if (!isStripeAvailable()) {
+    return NextResponse.json(
+      { error: "Stripe no está configurado. Contacta al administrador." },
+      { status: 503 }
+    )
   }
 
   try {
-    const { items, orderId, successUrl, cancelUrl } = await request.json() as {
-      items: CheckoutItem[]
-      orderId: string
-      successUrl: string
-      cancelUrl: string
+    const body = await request.json()
+    const { type, items, planId, userId, orderId, source, successUrl, cancelUrl } = body as {
+      type: "membership" | "marketplace"
+      items?: CheckoutItem[]
+      planId?: string
+      userId?: string
+      orderId?: string
+      source?: string
+      successUrl?: string
+      cancelUrl?: string
+    }
+
+    const stripe = getStripe()
+    const metadata: Record<string, string> = {
+      userId: userId || "",
+      orderId: orderId || "",
+      source: source || (type === "membership" ? "membership" : "marketplace"),
+    }
+
+    if (type === "membership" && planId) {
+      const plan = getPlanById(planId)
+      if (!plan || !plan.priceId) {
+        return NextResponse.json(
+          { error: "Plan no encontrado o no configurado en Stripe" },
+          { status: 400 }
+        )
+      }
+
+      metadata.planId = planId
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: plan.priceId, quantity: 1 }],
+        success_url: successUrl || STRIPE_CONFIG.checkout.successUrl,
+        cancel_url: cancelUrl || STRIPE_CONFIG.checkout.cancelUrl,
+        metadata,
+        subscription_data: { metadata },
+      })
+
+      return NextResponse.json({ url: session.url, sessionId: session.id })
     }
 
     if (!items || items.length === 0) {
-      return NextResponse.json({ error: "No items provided" }, { status: 400 })
+      return NextResponse.json({ error: "No hay items" }, { status: 400 })
     }
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => ({
+    const lineItems = items.map((item) => ({
       price_data: {
         currency: "usd",
         product_data: {
@@ -47,16 +79,17 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
-      success_url: successUrl || `${request.nextUrl.origin}/marketplace/pedidos?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${request.nextUrl.origin}/marketplace/pedidos?canceled=true`,
-      metadata: {
-        orderId: orderId || "",
-      },
+      success_url: successUrl || `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/marketplace/pedidos?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/marketplace/pedidos?canceled=true`,
+      metadata,
     })
 
     return NextResponse.json({ url: session.url, sessionId: session.id })
   } catch (err) {
-    console.error("Checkout error:", err)
-    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
+    console.error("Stripe checkout error:", err)
+    return NextResponse.json(
+      { error: "Error al crear sesión de pago" },
+      { status: 500 }
+    )
   }
 }

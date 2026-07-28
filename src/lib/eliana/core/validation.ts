@@ -15,7 +15,8 @@ export const ChatRequestSchema = z.object({
     .array(
       z.object({
         role: z.enum(["user", "assistant", "system"]),
-        text: z.string().max(4000),
+        text: z.string().max(4000).optional(),
+        content: z.string().max(4000).optional(),
       })
     )
     .max(20, "El historial no puede exceder 20 mensajes")
