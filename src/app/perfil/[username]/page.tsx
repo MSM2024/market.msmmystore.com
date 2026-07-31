@@ -84,7 +84,7 @@ export default function PublicCreatorProfile() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <UserIcon className="w-12 h-12 text-slate-700 mx-auto mb-4" />
           <p className="text-sm text-slate-400">Perfil no encontrado</p>
@@ -114,7 +114,7 @@ export default function PublicCreatorProfile() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* ELIANA Floating Assistant */}
       <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
         {showEliana && (

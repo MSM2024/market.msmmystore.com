@@ -55,13 +55,13 @@ export default function BookDetailPage() {
   }, [params.id])
 
   if (loading) return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <div className="text-white/50">Cargando obra...</div>
     </div>
   )
 
   if (!data?.book) return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <div className="text-center">
         <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p className="text-white/50">Obra no encontrada</p>
@@ -73,7 +73,7 @@ export default function BookDetailPage() {
   const { book, chapters, versions, relationships } = data
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/biblioteca" className="inline-flex items-center gap-2 text-white/50 hover:text-[#00D9FF] mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Volver a la biblioteca

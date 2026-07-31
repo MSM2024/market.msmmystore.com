@@ -58,14 +58,14 @@ export default function RecoverPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center p-4">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
         {sent ? (
           <>
             <Link href="/" className="flex items-center justify-center gap-2 mb-8">
               <Gem className="w-8 h-8 text-[#00D9FF]" />
-              <span className="text-lg font-black">ZAFIRO</span>
+              <span className="text-lg font-black zafiro-gold-text">ZAFIRO</span>
             </Link>
             <div className="p-6 rounded-3xl border border-slate-800 bg-[#0B1220]/60 text-center">
               <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
@@ -96,7 +96,7 @@ export default function RecoverPage() {
             </Link>
             <Link href="/" className="flex items-center justify-center gap-2 mb-8">
               <Gem className="w-8 h-8 text-[#00D9FF]" />
-              <span className="text-lg font-black">ZAFIRO</span>
+              <span className="text-lg font-black zafiro-gold-text">ZAFIRO</span>
             </Link>
             <div className="p-6 rounded-3xl border border-slate-800 bg-[#0B1220]/60">
               <h1 className="text-xl font-black mb-1">Recuperar Contraseña</h1>

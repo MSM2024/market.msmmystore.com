@@ -42,9 +42,9 @@ export default function HistoriasPage() {
   const totalPages = Math.ceil(total / limit)
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Historias</h1>
+        <h1 className="text-3xl font-bold zafiro-gold-text mb-8">Historias</h1>
 
         <div className="flex flex-wrap gap-3 mb-6">
           <input

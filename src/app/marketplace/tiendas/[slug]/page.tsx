@@ -56,7 +56,7 @@ export default function StoreDetailPage({ params }: { params: Promise<{ slug: st
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[#197BD2] animate-spin" />
       </div>
     )
@@ -64,7 +64,7 @@ export default function StoreDetailPage({ params }: { params: Promise<{ slug: st
 
   if (notFound || !store) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white">
+      <div className="min-h-screen zafiro-page text-white">
         <div className="max-w-7xl mx-auto px-4 py-12 text-center">
           <div className="w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto mb-6">
             <Package className="w-10 h-10 text-slate-600" />
@@ -92,7 +92,7 @@ export default function StoreDetailPage({ params }: { params: Promise<{ slug: st
     : null
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* Cover */}
       <div className="h-36 bg-gradient-to-br from-[#0C3F6A] to-[#197BD2] relative">
         {store.cover_url && (

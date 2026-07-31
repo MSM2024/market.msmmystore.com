@@ -151,7 +151,7 @@ export default function CartPage() {
 
   if (orderSuccess) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white">
+      <div className="min-h-screen zafiro-page text-white">
         <div className="max-w-2xl mx-auto px-4 py-12 text-center">
           <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
             <Check className="w-10 h-10 text-emerald-400" />
@@ -183,7 +183,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

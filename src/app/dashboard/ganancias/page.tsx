@@ -56,7 +56,7 @@ export default function DashboardGananciasPage() {
     <div>
       <div className="flex items-center gap-2 mb-6">
         <DollarSign className="w-5 h-5 text-[#D4AF37]" />
-        <h1 className="text-lg font-black text-white">Ganancias</h1>
+        <h1 className="text-lg font-black zafiro-gold-text">Ganancias</h1>
       </div>
 
       {error && (

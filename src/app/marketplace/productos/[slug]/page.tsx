@@ -207,7 +207,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white">
+      <div className="min-h-screen zafiro-page text-white">
         <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
             <Link href="/marketplace/productos" className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors">
@@ -236,7 +236,7 @@ export default function ProductDetailPage() {
 
   if (notFound || !product) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white">
+      <div className="min-h-screen zafiro-page text-white">
         <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
             <Link href="/marketplace/productos" className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors">
@@ -258,7 +258,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">

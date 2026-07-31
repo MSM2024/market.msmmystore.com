@@ -113,15 +113,15 @@ export default function MarketplacePage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="relative overflow-hidden bg-gradient-to-br from-[#0C3F6A] via-[#197BD2] to-[#0C3F6A] rounded-2xl p-6 md:p-8">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-4 right-4 w-32 h-32 border border-white/20 rounded-full" />
           <div className="absolute bottom-4 left-4 w-24 h-24 border border-white/20 rounded-full" />
         </div>
         <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black mb-2">
-            MSM <span className="text-[#D4AF37]">Marketplace</span>
+          <h1 className="text-2xl md:text-3xl font-black zafiro-gold-text mb-2">
+            MSM <span className="text-[#F1D98C]">Marketplace</span>
           </h1>
           <p className="text-sm text-white/70 mb-4 max-w-md">
             Compra y vende con confianza. Envíos a Cuba, Estados Unidos y Latinoamérica.

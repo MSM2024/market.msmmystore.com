@@ -17,7 +17,7 @@ export default function AlbumDeLaVidaPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO
@@ -28,7 +28,7 @@ export default function AlbumDeLaVidaPage() {
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">Álbum de la Vida</h1>
+            <h1 className="text-2xl font-black zafiro-gold-text">Álbum de la Vida</h1>
             <p className="text-sm text-slate-400">Tu Legado — Preserva la Historia de Tu Familia</p>
           </div>
         </div>

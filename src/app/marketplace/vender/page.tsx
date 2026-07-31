@@ -43,13 +43,13 @@ export default function SellerPortalPage() {
   }, [session?.id])
 
   if (loading) return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <Loader2 className="w-6 h-6 text-[#197BD2] animate-spin" />
     </div>
   )
 
   if (!hasStore) return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-8">
           <Link href="/marketplace" className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors">
@@ -76,7 +76,7 @@ export default function SellerPortalPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/marketplace" className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors">

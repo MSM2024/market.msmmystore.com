@@ -222,7 +222,7 @@ function MarketplaceProductsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -387,7 +387,7 @@ function MarketplaceProductsContent() {
 export default function MarketplaceProductsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+      <div className="min-h-screen zafiro-page flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#197BD2] border-t-transparent rounded-full animate-spin" />
       </div>
     }>

@@ -24,7 +24,7 @@ export default function GemologiaPage() {
   const [activeTab, setActiveTab] = useState<GemTab>("lab")
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <header className="sticky top-0 z-40 border-b border-slate-800 bg-[#050816]/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">

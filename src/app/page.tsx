@@ -308,7 +308,7 @@ export default function Home() {
   }, [sponsors, selectedTag, searchQuery, joinedCommunities])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white overflow-hidden relative">
+    <div className="min-h-screen zafiro-page text-white overflow-hidden relative">
 
       <ParticlesBackground isDarkMode={isDarkMode} />
 
@@ -319,7 +319,7 @@ export default function Home() {
             <Gem className="w-4 h-4 text-[#00D9FF]" />
           </div>
           <div className="hidden sm:block leading-none">
-            <span className="text-sm font-black font-display tracking-widest text-gradient uppercase block leading-none">ZAFIRO</span>
+            <span className="text-sm font-black font-display tracking-widest zafiro-gold-text uppercase block leading-none">ZAFIRO</span>
             <span className="text-[7.5px] font-mono tracking-wider font-extrabold text-[#00D9FF] block uppercase mt-0.5">Knowledge Future</span>
           </div>
         </div>
@@ -434,10 +434,10 @@ export default function Home() {
                 {/* HERO */}
                 <div className="text-left space-y-2">
                   <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-black font-display tracking-tight leading-none text-white uppercase"
+                    className="text-2xl font-black font-display tracking-tight leading-none zafiro-gold-text uppercase"
                   >
                     Cada pregunta <br />
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00D9FF] via-[#2563EB] to-[#7C3AED] animate-pulse-glow">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F1D98C] to-[#B8860B] animate-pulse-glow">
                       construye el futuro
                     </span>
                   </motion.h1>

@@ -183,7 +183,7 @@ export default function ProfileFullPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <Gem className="w-12 h-12 text-slate-700 mx-auto mb-4 animate-pulse" />
           <p className="text-sm text-slate-400">Cargando perfil...</p>
@@ -194,7 +194,7 @@ export default function ProfileFullPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center max-w-xs">
           <Gem className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <p className="text-sm text-slate-300 mb-4">{error}</p>
@@ -215,7 +215,7 @@ export default function ProfileFullPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-sm text-slate-400">No se encontró el perfil.</p>
           <button onClick={loadProfile}
@@ -251,7 +251,7 @@ export default function ProfileFullPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* ELIANA widget */}
       <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
         {showEliana && (

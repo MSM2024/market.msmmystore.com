@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="flex">
         {/* Sidebar */}
         <aside className="hidden md:block w-56 shrink-0 border-r border-white/5 bg-slate-900/20 min-h-screen p-4">

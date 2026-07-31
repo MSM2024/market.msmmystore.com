@@ -92,14 +92,14 @@ export default function MembershipsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO
         </Link>
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black mb-2">Planes de Membresía</h1>
+          <h1 className="text-3xl font-black zafiro-gold-text mb-2">Planes de Membresía</h1>
           <p className="text-sm text-slate-400">Desbloquea el conocimiento completo de ZAFIRO</p>
           <div className="inline-flex items-center gap-1 mt-4 p-1 rounded-xl bg-slate-900/60 border border-slate-800">
             <button onClick={() => setBilling("monthly")}

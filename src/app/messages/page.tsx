@@ -54,7 +54,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="h-screen flex flex-col">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 shrink-0">
           <Link href="/" className="text-slate-400 hover:text-white transition-colors"><ArrowLeft className="w-5 h-5" /></Link>

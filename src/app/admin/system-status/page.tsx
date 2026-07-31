@@ -173,14 +173,14 @@ export default function SystemStatusPage() {
 
   if (!authorized) {
     return (
-      <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+      <div className="min-h-screen zafiro-page flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-[#00D9FF] border-t-transparent rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/admin" className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors">

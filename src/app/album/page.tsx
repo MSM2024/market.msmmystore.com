@@ -71,11 +71,11 @@ export default function AlbumPage() {
     : stories
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Álbum de la Vida</h1>
+            <h1 className="text-3xl font-bold zafiro-gold-text">Álbum de la Vida</h1>
             <p className="text-sm text-white/40 mt-1">Tu legado familiar en historias</p>
           </div>
           {isOwner && (

@@ -237,7 +237,7 @@ export default function SettingsPage() {
   }
 
   if (status === "idle" || status === "loading") return (
-    <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+    <div className="min-h-screen zafiro-page flex items-center justify-center">
       <Loader2 className="w-6 h-6 text-[#00D9FF] animate-spin" />
     </div>
   )
@@ -245,7 +245,7 @@ export default function SettingsPage() {
   if (status === "unauthorized") return null
 
   if (status === "error") return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <div className="text-center max-w-xs">
         <Loader2 className="w-10 h-10 text-slate-600 mx-auto mb-4" />
         <p className="text-sm text-slate-300 mb-1">No pudimos cargar la configuración</p>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
   const userInitial = displayName.charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO

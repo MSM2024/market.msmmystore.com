@@ -68,17 +68,17 @@ export default function HistoriaDetailPage() {
     load()
   }, [params.slug])
 
-  if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Cargando...</div>
+  if (loading) return <div className="min-h-screen zafiro-page text-white flex items-center justify-center">Cargando...</div>
 
   if (!story) return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen zafiro-page text-white flex flex-col items-center justify-center gap-4">
       <p className="text-xl text-white/50">Historia no encontrada</p>
       <Link href="/historias" className="text-purple-400 hover:underline">Ver todas las historias</Link>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
           <Link href="/historias" className="hover:text-white">Historias</Link>

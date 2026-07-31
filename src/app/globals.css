@@ -9,6 +9,15 @@
   --color-violet: #7c3aed;
   --color-electric: #2563eb;
   --color-magenta: #d946ef;
+  --color-ivory: #f5f1e8;
+  --color-gold: #d4af37;
+  --color-gold-light: #f1d98c;
+  --color-sapphire-950: #020617;
+  --color-sapphire-900: #050816;
+  --color-sapphire-800: #0a1630;
+  --color-sapphire-700: #10224a;
+  --color-sapphire-600: #16306b;
+  --color-sapphire-500: #1e4a9c;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
@@ -150,3 +159,177 @@ body {
 .scroll-thin::-webkit-scrollbar { width: 3px; display: block; }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin::-webkit-scrollbar-thumb { background: rgba(0, 217, 255, 0.2); border-radius: 10px; }
+
+/* ═══════════════════════════════════════════════════════════
+   ZAFIRO VISUAL UNIVERSE — fondo premium
+   Azul zafiro profundo · luz celestial · destellos dorados ·
+   diamante como símbolo central · SVG/CSS nativo (0 imágenes)
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --zafiro-sapphire-950: #020617;
+  --zafiro-sapphire-900: #050816;
+  --zafiro-sapphire-800: #0a1630;
+  --zafiro-sapphire-700: #10224a;
+  --zafiro-sapphire-600: #16306b;
+  --zafiro-sapphire-500: #1e4a9c;
+  --zafiro-gold: #d4af37;
+  --zafiro-gold-light: #f1d98c;
+  --zafiro-ivory: #f5f1e8;
+  --zafiro-cyan: #00d9ff;
+  --zafiro-celestial: #7eb6ff;
+
+  --zafiro-glow-a: rgba(46, 120, 255, 0.28);
+  --zafiro-glow-b: rgba(212, 175, 55, 0.20);
+  --zafiro-glow-c: rgba(0, 217, 255, 0.18);
+  --zafiro-diamond-opacity: 0.40;
+  --zafiro-diamond-size: clamp(220px, 34vw, 380px);
+  --zafiro-sparkle-opacity: 0.8;
+  --zafiro-scrim-strength: 0.62;
+}
+
+/* ─── Fondo fijo (detrás de todo el contenido) ─── */
+.zafiro-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--zafiro-sapphire-950);
+  isolation: isolate;
+}
+.zafiro-bg__base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #0c2148 0%, var(--zafiro-sapphire-800) 26%, var(--zafiro-sapphire-900) 56%, var(--zafiro-sapphire-950) 100%);
+}
+/* Luz celestial (destellos de luz en el cielo) */
+.zafiro-bg__celestial {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(58% 44% at 50% 2%, var(--zafiro-glow-a) 0%, transparent 70%),
+    radial-gradient(34% 30% at 84% 10%, var(--zafiro-glow-b) 0%, transparent 70%),
+    radial-gradient(32% 28% at 10% 78%, var(--zafiro-glow-c) 0%, transparent 70%),
+    radial-gradient(24% 20% at 88% 74%, var(--zafiro-glow-b) 0%, transparent 70%);
+  animation: zafiro-glow-pulse 16s ease-in-out infinite;
+}
+/* Energía tecnológica: líneas de constelación sutiles */
+.zafiro-bg__lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+}
+/* Destellos dorados */
+.zafiro-bg__sparkles {
+  position: absolute;
+  inset: 0;
+}
+.zafiro-bg__sparkle {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fff7d6 0%, var(--zafiro-gold-light) 45%, rgba(212, 175, 55, 0) 72%);
+  box-shadow: 0 0 6px rgba(241, 217, 140, 0.9);
+  animation: zafiro-twinkle 4s ease-in-out infinite;
+}
+/* Diamante — punto focal simbólico (nunca sobre menús/formularios) */
+.zafiro-bg__diamond {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  width: var(--zafiro-diamond-size);
+  height: var(--zafiro-diamond-size);
+  transform: translateX(-50%);
+  opacity: var(--zafiro-diamond-opacity);
+  filter: drop-shadow(0 0 34px rgba(0, 180, 255, 0.32)) drop-shadow(0 0 90px rgba(212, 175, 55, 0.16));
+  animation: zafiro-float-slow 13s ease-in-out infinite;
+}
+.zafiro-bg__diamond svg {
+  width: 100%;
+  height: 100%;
+}
+/* Overlay degradado azul oscuro con transparencia → contraste garantizado */
+.zafiro-bg__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.72) 0%, rgba(2, 6, 23, 0.30) 22%, rgba(2, 6, 23, 0.40) 52%, rgba(2, 6, 23, 0.80) 100%),
+    radial-gradient(150% 95% at 50% 32%, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 0.55) 100%);
+  opacity: var(--zafiro-scrim-strength);
+}
+
+/* ─── Variantes por módulo (misma identidad, variación sutil) ─── */
+.zafiro-bg--home { --zafiro-diamond-size: clamp(240px, 38vw, 430px); --zafiro-diamond-opacity: 0.46; --zafiro-glow-a: rgba(46, 120, 255, 0.32); --zafiro-glow-b: rgba(212, 175, 55, 0.26); }
+.zafiro-bg--auth { --zafiro-glow-a: rgba(46, 120, 255, 0.20); --zafiro-glow-b: rgba(212, 175, 55, 0.16); --zafiro-diamond-opacity: 0.30; --zafiro-diamond-size: clamp(200px, 30vw, 330px); --zafiro-sparkle-opacity: 0.5; --zafiro-scrim-strength: 0.7; }
+.zafiro-bg--control { --zafiro-glow-a: rgba(46, 120, 255, 0.16); --zafiro-glow-b: rgba(212, 175, 55, 0.10); --zafiro-glow-c: rgba(0, 217, 255, 0.12); --zafiro-diamond-opacity: 0.22; --zafiro-diamond-size: clamp(150px, 20vw, 240px); --zafiro-sparkle-opacity: 0.35; --zafiro-scrim-strength: 0.72; }
+.zafiro-bg--eliana { --zafiro-glow-a: rgba(90, 160, 255, 0.36); --zafiro-glow-b: rgba(212, 175, 55, 0.30); --zafiro-glow-c: rgba(0, 217, 255, 0.20); --zafiro-diamond-opacity: 0.5; --zafiro-diamond-size: clamp(230px, 34vw, 400px); }
+.zafiro-bg--knowledge { --zafiro-glow-a: rgba(46, 120, 255, 0.30); --zafiro-glow-c: rgba(0, 217, 255, 0.26); --zafiro-diamond-opacity: 0.38; --zafiro-scrim-strength: 0.66; }
+.zafiro-bg--legado { --zafiro-glow-b: rgba(212, 175, 55, 0.30); --zafiro-glow-a: rgba(126, 182, 255, 0.22); --zafiro-diamond-opacity: 0.34; --zafiro-diamond-size: clamp(200px, 30vw, 340px); --zafiro-scrim-strength: 0.66; }
+.zafiro-bg--marketplace { --zafiro-glow-c: rgba(0, 217, 255, 0.24); --zafiro-glow-a: rgba(30, 74, 156, 0.32); --zafiro-glow-b: rgba(212, 175, 55, 0.14); --zafiro-diamond-opacity: 0.30; --zafiro-diamond-size: clamp(160px, 22vw, 260px); --zafiro-scrim-strength: 0.68; }
+.zafiro-bg--economia { --zafiro-glow-a: rgba(46, 120, 255, 0.24); --zafiro-glow-b: rgba(212, 175, 55, 0.26); --zafiro-diamond-opacity: 0.28; --zafiro-diamond-size: clamp(170px, 22vw, 280px); --zafiro-scrim-strength: 0.7; }
+.zafiro-bg--rutas { --zafiro-glow-a: rgba(126, 182, 255, 0.26); --zafiro-glow-c: rgba(0, 217, 255, 0.22); --zafiro-diamond-opacity: 0.30; --zafiro-diamond-size: clamp(180px, 24vw, 300px); --zafiro-scrim-strength: 0.66; }
+
+/* ─── Versión ligera (conexiones lentas) ─── */
+.zafiro-bg--lite .zafiro-bg__sparkle { animation: none; opacity: 0.18; }
+.zafiro-bg--lite .zafiro-bg__celestial { animation: none; }
+.zafiro-bg--lite .zafiro-bg__lines { opacity: 0.25; }
+
+/* ─── Adaptación de texto por luminosidad ─── */
+.zafiro-page { position: relative; }
+.zafiro-page h1,
+.zafiro-page h2,
+.zafiro-page h3 {
+  color: var(--zafiro-ivory);
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 2px rgba(2, 6, 23, 0.75), 0 3px 16px rgba(2, 6, 23, 0.5);
+}
+.zafiro-text-adaptive {
+  color: var(--zafiro-ivory);
+  text-shadow: 0 1px 2px rgba(2, 6, 23, 0.7), 0 2px 14px rgba(2, 6, 23, 0.45);
+}
+.zafiro-gold-text {
+  background: linear-gradient(120deg, var(--zafiro-gold-light) 0%, var(--zafiro-gold) 45%, #f9e7b0 70%, var(--zafiro-gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(2, 6, 23, 0.6));
+}
+.zafiro-gold-soft { color: var(--zafiro-gold-light); }
+.zafiro-gold-soft-subtle { color: var(--zafiro-gold); }
+
+/* ─── Animaciones del universo ZAFIRO ─── */
+@keyframes zafiro-twinkle {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: var(--zafiro-sparkle-opacity); }
+}
+@keyframes zafiro-glow-pulse {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+@keyframes zafiro-float-slow {
+  0%, 100% { transform: translateX(-50%) translateY(0px); }
+  50% { transform: translateX(-50%) translateY(-14px); }
+}
+
+/* ─── Móvil: ligero y sin deformar ─── */
+@media (max-width: 640px) {
+  .zafiro-bg__lines { opacity: 0.3; }
+  .zafiro-bg__diamond { --zafiro-diamond-size: clamp(180px, 58vw, 270px); }
+  .zafiro-bg__sparkle { box-shadow: none; }
+}
+
+/* ─── Accesibilidad: sin animación / alto contraste ─── */
+@media (prefers-reduced-motion: reduce) {
+  .zafiro-bg__celestial,
+  .zafiro-bg__diamond,
+  .zafiro-bg__sparkle { animation: none !important; }
+  .zafiro-bg__diamond { transform: translateX(-50%); }
+}
+@media (prefers-contrast: more) {
+  .zafiro-bg__diamond { opacity: 0.5; }
+  .zafiro-bg__scrim { opacity: 0.85; }
+}

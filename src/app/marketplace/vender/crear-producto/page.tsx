@@ -174,7 +174,7 @@ export default function CrearProductoPage() {
   }
 
   if (loadingStore) return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <Loader2 className="w-6 h-6 text-[#197BD2] animate-spin" />
     </div>
   )
@@ -185,7 +185,7 @@ export default function CrearProductoPage() {
     }`
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

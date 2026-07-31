@@ -55,11 +55,11 @@ export default function BibliotecaPage() {
     : books
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <BookOpen className="w-8 h-8 text-[#00D9FF]" />
-          <h1 className="text-3xl font-bold">Biblioteca Viva de Don Miguel</h1>
+          <h1 className="text-3xl font-bold zafiro-gold-text">Biblioteca Viva de Don Miguel</h1>
         </div>
 
         <div className="flex flex-wrap gap-3 mb-6">

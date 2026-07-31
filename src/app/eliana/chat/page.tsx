@@ -468,7 +468,7 @@ function ElianaChatContent() {
     : null
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white flex flex-col">
+    <div className="min-h-screen zafiro-page text-white flex flex-col">
       {/* Header */}
       <div className="border-b border-slate-800/60 bg-[#0B1220]/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -660,7 +660,7 @@ function ElianaChatContent() {
 export default function ElianaChatPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <ElianaDiamond size={48} variant="animated" />
           <p className="text-xs text-slate-400 mt-4">Cargando ELIANA...</p>
