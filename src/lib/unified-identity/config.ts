@@ -43,13 +43,13 @@ export const RATE_LIMITS = {
 };
 
 // Admin role hierarchy - only these can access admin panel
-export const ADMIN_ROLES = ['owner', 'superadmin', 'finance', 'kyc', 'inventory', 'support', 'auditor'] as const;
+export const ADMIN_ROLES = ['owner', 'superadmin', 'admin', 'finance', 'kyc', 'inventory', 'support', 'auditor'] as const;
 
 // Owner-only operations (require MFA)
 export const OWNER_ONLY_ROLES = ['owner', 'superadmin'] as const;
 
 // Roles that can access the admin panel
-export const ADMIN_ACCESS_ROLES = ['owner', 'superadmin', 'finance', 'kyc', 'inventory', 'support', 'auditor'] as const;
+export const ADMIN_ACCESS_ROLES = ['owner', 'superadmin', 'admin', 'finance', 'kyc', 'inventory', 'support', 'auditor'] as const;
 
 // Helper to determine current app from hostname
 export function getCurrentApp(): AppName | null {

@@ -2,7 +2,7 @@
 
 import { getSupabaseClient } from "./supabase"
 
-export type UserRole = "customer" | "seller" | "vip" | "referrer" | "supplier" | "support" | "finance" | "admin" | "superadmin" | "owner"
+export type UserRole = "customer" | "seller" | "vip" | "referrer" | "supplier" | "support" | "finance" | "admin" | "superadmin" | "owner" | "kyc" | "inventory" | "auditor" | "vendor"
 
 export interface ZafiroSession {
   email: string
@@ -176,8 +176,12 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   owner: 110,
   superadmin: 100,
   admin: 90,
+  auditor: 72,
   finance: 70,
+  kyc: 65,
+  inventory: 65,
   support: 60,
+  vendor: 55,
   supplier: 50,
   seller: 40,
   vip: 30,

@@ -138,11 +138,11 @@ export default async function proxy(request: NextRequest) {
 
     const userRole = profile?.role || "customer"
 
-    if (isAdminRoute && userRole !== "admin" && userRole !== "superadmin") {
+    if (isAdminRoute && !["owner", "admin", "superadmin"].includes(userRole)) {
       return NextResponse.redirect(new URL("/", request.url))
     }
 
-    if (isSellerRoute && !["seller", "admin", "superadmin"].includes(userRole)) {
+    if (isSellerRoute && !["owner", "seller", "admin", "superadmin"].includes(userRole)) {
       return NextResponse.redirect(new URL("/", request.url))
     }
   }

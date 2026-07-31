@@ -27,7 +27,7 @@ Nada de la Fase 1 puede validarse en producción sin esto. Se trabaja en paralel
 | 0.1 Claves Supabase reales | Don Miguel copia `SUPABASE_SERVICE_ROLE_KEY`, URL y anon/publishable key a `.env.local` (y Vercel). | Todas las fases |
 | 0.2 Claves Stripe reales | Webhook secret + crear Price IDs (pro mensual/anual, cuba_plus mensual/anual). | Fase 3 |
 | 0.3 `ZAFIRO_SETUP_TOKEN` | Generar valor seguro; documentar seed de owner. | Fase 1 (admin) |
-| 0.4 Verificar migraciones aplicadas | Confirmar en Supabase que 00001–00044 corrieron en orden; 00044 necesita `pgvector`. | Todas |
+| 0.4 Verificar migraciones aplicadas | Confirmar en Supabase que 00001–00044 corrieron en orden (incluye **00037**, creada el 2026-07-31 para la taxonomía de roles); 00044 necesita `pgvector`. | Todas |
 | 0.5 Rotar clave Gemini | La clave expuesta en historial de chat debe regenerarse. | Seguridad |
 
 ## FASE 1 — NÚCLEO: USUARIOS, SEGURIDAD, CONFIGURACIÓN, ADMIN
@@ -36,7 +36,7 @@ Objetivo: una persona puede registrarse, iniciar sesión, ser configurada, y Don
 
 | # | Tarea | Prioridad | Cómo verificar |
 |---|---|---|---|
-| 1.1 | **Unificar taxonomía de roles** (P0): resolver 00003 vs 00036 CHECK vs 00041 (`admin`/`seller`/`owner`), corregir `proxy.ts` para que `owner` acceda a `/admin` y vendedor a `/dashboard`, alinear `hasRole`/`isAdmin`/`isOwner`. | P0 | Login como owner → entra a `/admin`. Login seller → entra a `/dashboard`. 403 reales en API. |
+| 1.1 | **Unificar taxonomía de roles** (P0): resolver 00003 vs 00036 CHECK vs 00041 (`admin`/`seller`/`owner`), corregir `proxy.ts` para que `owner` acceda a `/admin` y vendedor a `/dashboard`, alinear `hasRole`/`isAdmin`/`isOwner`. ✅ **Código 2026-07-31** (`00037_role_taxonomy_fix.sql` + `src/proxy.ts` + `src/lib/auth.ts` + `unified-identity/config.ts`). ⏳ Pendiente validación e2e con claves reales. | P0 | Login como owner → entra a `/admin`. Login seller → entra a `/dashboard`. 403 reales en API. |
 | 1.2 | **Endurecer API auth** (P0): auth+rol en `api/biblioteca/*` (8 rutas), `api/knowledge/seed`, `api/stripe/{checkout,billing,portal}` (verificar sesión real, no `userId` del body), `api/eliana/health`. | P0 | Pruebas: petición sin token → 401; con rol no autorizado → 403. |
 | 1.3 | **Cerrar flujo de registro/login/verificación** e2e: verificación de email real, reenvío, recovery con código, reset, expiración de sesión. | P0 | Don Miguel registra cuenta nueva → verifica email → login → cierra sesión → recupera contraseña. |
 | 1.4 | **Configuración completa**: `/settings` con perfil, seguridad, notificaciones, cuenta; persistencia real en `user_settings`; borrado de cuenta con cascada real. | P0 | Guardar cambios → recargar → persistidos. |
