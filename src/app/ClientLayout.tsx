@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import Footer from "@/components/Footer"
 import ElianaUniversalLauncher from "@/components/ElianaUniversalLauncher"
 import ZafiroBackground, { type ZafiroVariant } from "@/components/ZafiroBackground"
+import OfflineBanner from "@/components/ui/OfflineBanner"
 import { CartProvider } from "@/contexts/CartContext"
 import { AuthProvider } from "@/lib/AuthContext"
 import { useMemo } from "react"
@@ -70,9 +71,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <AuthProvider>
     <CartProvider>
+      <OfflineBanner />
+      <a
+        href="#contenido"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-lg focus:bg-[#D4AF37] focus:text-[#050816] focus:text-xs focus:font-bold"
+      >
+        Saltar al contenido
+      </a>
       <ZafiroBackground variant={zafiroVariant} />
       <div className="relative z-10">
-        {children}
+        <main id="contenido" className="flex flex-col flex-1 min-w-0">
+          {children}
+        </main>
       </div>
       {!isHome && !isMarketplace && !isEliana && <Footer />}
       {showLauncher && (

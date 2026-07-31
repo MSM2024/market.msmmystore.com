@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { BookOpen, Search, Filter, Sparkles, Layers, Users, MapPin } from "lucide-react"
+import EmptyState from "@/components/ui/EmptyState"
 
 interface Book {
   id: string
@@ -102,11 +103,11 @@ export default function BibliotecaPage() {
         {loading ? (
           <div className="text-center text-white/50 py-12">Cargando biblioteca...</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center text-white/50 py-12">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>No se encontraron obras en esta colección</p>
-            <p className="text-sm mt-2">Las obras se importarán desde Google Drive</p>
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title="No se encontraron obras en esta colección"
+            description="Las obras se importarán desde Google Drive y aparecerán aquí."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map(book => (

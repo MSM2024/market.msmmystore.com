@@ -61,6 +61,7 @@ const SUB_ADMIN_PAGES = [
   { href: "/admin/eliana", label: "ELIANA", icon: Bot, desc: "Dashboard de IA", color: "text-[#00D9FF]" },
   { href: "/admin/biblioteca-importacion", label: "Biblioteca", icon: Database, desc: "Importación y libros", color: "text-purple-400" },
   { href: "/admin/system-status", label: "System Status", icon: Server, desc: "Monitoreo de componentes", color: "text-amber-400" },
+  { href: "/admin/auditoria", label: "Auditoría", icon: Shield, desc: "Bitácora de acciones sensibles", color: "text-slate-300" },
 ]
 
 export default function AdminPage() {

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { BookOpen } from "lucide-react"
+import EmptyState from "@/components/ui/EmptyState"
 
 interface Story {
   id: string
@@ -72,7 +74,11 @@ export default function HistoriasPage() {
         {loading ? (
           <div className="text-center py-20 text-white/50">Cargando historias...</div>
         ) : stories.length === 0 ? (
-          <div className="text-center py-20 text-white/50">No hay historias publicadas aún</div>
+          <EmptyState
+            icon={BookOpen}
+            title="No hay historias publicadas aún"
+            description="Las historias publicadas por los autores aparecerán aquí."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stories.map((story) => (

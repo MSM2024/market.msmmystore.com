@@ -9,6 +9,7 @@ export interface ZafiroSession {
   name: string
   id: string
   role?: UserRole
+  roles?: UserRole[]
 }
 
 const SESSION_KEY = "zafiro_session"
@@ -71,6 +72,41 @@ function translateError(msg: string): string {
   return msg
 }
 
+// --- Server-authoritative session (roles from server, not localStorage) ---
+export interface ServerMe {
+  user?: { id: string; email: string; name: string; emailConfirmed: boolean }
+  profile?: { role?: string; plan?: string | null; name?: string | null; username?: string | null; avatar?: string | null }
+  roles: UserRole[]
+  ok: boolean
+}
+
+export async function fetchServerMe(): Promise<ServerMe> {
+  try {
+    const res = await fetch("/api/auth/me", { cache: "no-store" })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.user) return { roles: [], ok: false }
+
+    const roles: UserRole[] = Array.isArray(data.roles) ? [...data.roles] : []
+    if (data.profile?.role && !roles.includes(data.profile.role)) {
+      roles.unshift(data.profile.role)
+    }
+
+    return {
+      user: {
+        id: data.user.id,
+        email: data.user.email || "",
+        name: data.user.name || data.user.email?.split("@")[0] || "",
+        emailConfirmed: !!data.user.email_confirmed_at,
+      },
+      profile: data.profile,
+      roles,
+      ok: true,
+    }
+  } catch {
+    return { roles: [], ok: false }
+  }
+}
+
 // --- Login (Supabase-only) ---
 export async function loginUser(email: string, password: string): Promise<{ ok: boolean; error?: string; session?: ZafiroSession; needsEmailConfirm?: boolean }> {
   const supabase = getSupabaseClient()
@@ -85,6 +121,21 @@ export async function loginUser(email: string, password: string): Promise<{ ok: 
 
   const name = data.user.user_metadata?.name || email.split("@")[0]
 
+  const me = await fetchServerMe()
+  if (me.ok && me.user) {
+    const roles = (me.roles.length ? me.roles : ["customer"]) as UserRole[]
+    const session: ZafiroSession = {
+      email: me.user.email,
+      name: me.user.name,
+      id: me.user.id,
+      role: roles[0],
+      roles,
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(ROLES_KEY, JSON.stringify(roles))
+    return { ok: true, session }
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -92,7 +143,7 @@ export async function loginUser(email: string, password: string): Promise<{ ok: 
     .single()
 
   const role = (profile?.role || "customer") as UserRole
-  const session: ZafiroSession = { email, name, id: data.user.id, role }
+  const session: ZafiroSession = { email, name, id: data.user.id, role, roles: [role] }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   localStorage.setItem(ROLES_KEY, JSON.stringify([role]))
   return { ok: true, session }
@@ -121,6 +172,21 @@ export async function refreshSession(): Promise<ZafiroSession | null> {
 
   const user = data.session.user
 
+  const me = await fetchServerMe()
+  if (me.ok && me.user) {
+    const roles = (me.roles.length ? me.roles : ["customer"]) as UserRole[]
+    const session: ZafiroSession = {
+      email: me.user.email,
+      name: me.user.name,
+      id: me.user.id,
+      role: roles[0],
+      roles,
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(ROLES_KEY, JSON.stringify(roles))
+    return session
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -133,6 +199,7 @@ export async function refreshSession(): Promise<ZafiroSession | null> {
     name: user.user_metadata?.name || user.email?.split("@")[0] || "",
     id: user.id,
     role,
+    roles: [role],
   }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   localStorage.setItem(ROLES_KEY, JSON.stringify([role]))

@@ -166,6 +166,7 @@ body {
    diamante como símbolo central · SVG/CSS nativo (0 imágenes)
    ═══════════════════════════════════════════════════════════ */
 :root {
+  color-scheme: dark;
   --zafiro-sapphire-950: #020617;
   --zafiro-sapphire-900: #050816;
   --zafiro-sapphire-800: #0a1630;

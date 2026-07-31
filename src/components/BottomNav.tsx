@@ -46,7 +46,7 @@ export default function BottomNav({ activeNav, onNavChange, onAddQuestion }: Bot
   )
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t border-slate-800/60 backdrop-blur-xl bg-[#050816]/85 flex items-center justify-around px-1 z-50 lg:hidden" style={{paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+    <nav aria-label="Navegación principal" className="fixed bottom-0 left-0 right-0 h-16 border-t border-slate-800/60 backdrop-blur-xl bg-[#050816]/85 flex items-center justify-around px-1 z-50 lg:hidden" style={{paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
       {navItems.map((item) => {
         const isActive = activeNav === item.key
         const Icon = item.icon
@@ -54,6 +54,7 @@ export default function BottomNav({ activeNav, onNavChange, onAddQuestion }: Bot
           <button
             key={item.key}
             onClick={() => onNavChange(item.key)}
+            aria-current={isActive ? "page" : undefined}
             className="relative flex flex-col items-center justify-center w-14 h-full gap-0.5 transition-all duration-200"
           >
             {renderIcon(Icon, isActive)}

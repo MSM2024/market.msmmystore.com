@@ -60,20 +60,20 @@ function LoginForm() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Correo Electrónico</label>
+              <label htmlFor="login-email" className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Correo Electrónico</label>
               <div className="relative mt-1">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                <input id="login-email" type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:border-[#00D9FF] outline-none" placeholder="tu@correo.com" />
               </div>
             </div>
             <div>
-              <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Contraseña</label>
+              <label htmlFor="login-password" className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Contraseña</label>
               <div className="relative mt-1">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input type={showPw ? "text" : "password"} required value={password} onChange={e => setPassword(e.target.value)}
+                <input id="login-password" type={showPw ? "text" : "password"} required value={password} onChange={e => setPassword(e.target.value)}
                   className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white focus:border-[#00D9FF] outline-none" placeholder="••••••••" />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer">
+                <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Ocultar contraseña" : "Mostrar contraseña"} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer">
                   {showPw ? <EyeOff className="w-4 h-4 text-slate-500" /> : <Eye className="w-4 h-4 text-slate-500" />}
                 </button>
               </div>
