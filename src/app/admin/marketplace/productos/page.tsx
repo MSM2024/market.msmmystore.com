@@ -25,8 +25,6 @@ export default function AdminMarketplaceProductosPage() {
   const [search, setSearch] = useState("")
   const [toast, setToast] = useState("")
 
-  useEffect(() => { loadProducts() }, [])
-
   async function loadProducts() {
     if (!isSupabaseAvailable()) { setLoading(false); return }
     const supabase = getSupabaseClient()
@@ -35,6 +33,8 @@ export default function AdminMarketplaceProductosPage() {
     setProducts((data || []) as ProductWithStore[])
     setLoading(false)
   }
+
+  useEffect(() => { Promise.resolve().then(() => loadProducts()) }, [])
 
   function showToast(msg: string) {
     setToast(msg)

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { MessageSquare, BookOpen, Settings, User, Clock, ArrowRight, Loader2, Sparkles } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
-import { getSession } from "@/lib/auth"
+import { refreshSession, type ZafiroSession } from "@/lib/auth"
 
 interface Conversation {
   id: string
@@ -23,24 +23,31 @@ interface Profile {
 
 export default function DashboardPage() {
   usePageTitle("Dashboard — ZAFIRO")
-  const session = getSession()
+  const [session, setSession] = useState<ZafiroSession | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!session) { setLoading(false); return }
+    mountedRef.current = true
+    ;(async () => {
+      const s = await refreshSession()
+      if (!mountedRef.current) return
+      setSession(s)
+      if (!s) { setLoading(false); return }
 
-    Promise.all([
-      fetch("/api/eliana/conversations").then(r => r.json()).catch(() => ({ conversations: [] })),
-      fetch("/api/user-profile").then(r => r.json()).catch(() => ({ profile: null })),
-    ]).then(([convData, profileData]) => {
+      const [convData, profileData] = await Promise.all([
+        fetch("/api/eliana/conversations").then(r => r.json()).catch(() => ({ conversations: [] })),
+        fetch("/api/user-profile").then(r => r.json()).catch(() => ({ profile: null })),
+      ])
+      if (!mountedRef.current) return
       setConversations((convData.conversations || []).slice(0, 5))
       setProfile(profileData.profile)
       setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [session])
+    })()
+    return () => { mountedRef.current = false }
+  }, [])
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">

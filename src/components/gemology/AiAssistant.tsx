@@ -58,11 +58,10 @@ export default function AiAssistant() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
       setMessages(prev => [...prev, modelMessage])
-    } catch (err: unknown) {
-      console.error("Failed to connect with Zafiro AI:", err)
+    } catch {
       const errorMessage: ChatMessage = {
         role: "model",
-        text: `**System Notice:** Could not establish handshake with the AI node.\n\n*Error details:* ${err instanceof Error ? err.message : "Connection refused."}`,
+        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado; inténtalo nuevamente en unos segundos.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
       setMessages(prev => [...prev, errorMessage])

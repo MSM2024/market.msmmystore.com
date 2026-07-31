@@ -37,7 +37,10 @@ export async function POST(request: Request) {
       .single()
     if (error) throw error
     return NextResponse.json({ intake })
-  } catch { return NextResponse.json({ error: "Failed" }, { status: 500 }) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error al crear intake"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
 
 export async function PUT(request: Request) {
@@ -47,6 +50,7 @@ export async function PUT(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const { id, intake_type, data, completed } = await request.json()
+    if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 })
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (intake_type !== undefined) update.intake_type = intake_type
     if (data !== undefined) update.data = data
@@ -59,5 +63,8 @@ export async function PUT(request: Request) {
       .single()
     if (error) throw error
     return NextResponse.json({ intake })
-  } catch { return NextResponse.json({ error: "Failed" }, { status: 500 }) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error al actualizar intake"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

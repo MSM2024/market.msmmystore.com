@@ -1,21 +1,37 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Send, Mail, MessageSquare, HelpCircle } from "lucide-react"
+import { ArrowLeft, Send, Mail, MessageSquare, HelpCircle, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function ContactPage() {
   usePageTitle("Contacto")
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState("")
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const msgs = JSON.parse(localStorage.getItem("zafiro_contact_messages") || "[]")
-    msgs.push({ ...form, timestamp: new Date().toISOString() })
-    localStorage.setItem("zafiro_contact_messages", JSON.stringify(msgs))
-    setTimeout(() => setSent(true), 600)
+    setSending(true)
+    setError("")
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Error al enviar")
+      }
+      setSent(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al enviar el mensaje")
+    } finally {
+      setSending(false)
+    }
   }
 
   if (sent) {
@@ -83,9 +99,15 @@ export default function ContactPage() {
                 <textarea value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} required rows={5}
                   className="w-full mt-1 bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#00D9FF] outline-none transition-colors resize-none" />
               </div>
-              <button type="submit" disabled={!form.name || !form.email || !form.message}
+              {error && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+                  {error}
+                </div>
+              )}
+              <button type="submit" disabled={sending || !form.name || !form.email || !form.message}
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer">
-                <Send className="w-4 h-4" /> Enviar Mensaje
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {sending ? "Enviando..." : "Enviar Mensaje"}
               </button>
             </form>
           </div>

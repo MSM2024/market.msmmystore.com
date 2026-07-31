@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { hasRole, refreshSession } from "@/lib/auth"
 
 interface KnowledgeStats {
   total_documents: number
@@ -53,6 +55,16 @@ const VISIBILITIES = ["public", "internal", "confidential", "restricted"]
 const GAP_TYPES = ["missing_topic", "outdated_info", "low_coverage", "contradiction", "user_request"]
 
 export default function KnowledgeAdminPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    refreshSession().then(session => {
+      if (!session || (!hasRole("owner") && !hasRole("admin") && !hasRole("superadmin"))) {
+        router.replace("/")
+      }
+    })
+  }, [router])
+
   const [tab, setTab] = useState<"overview" | "documents" | "gaps" | "approvals" | "settings">("overview")
   const [stats, setStats] = useState<KnowledgeStats | null>(null)
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([])

@@ -20,7 +20,10 @@ export default function SellerPortalPage() {
 
   useEffect(() => {
     const supabase = getSupabaseClient()
-    if (!supabase || !isSupabaseAvailable() || !session?.id) { setLoading(false); return }
+    if (!supabase || !isSupabaseAvailable() || !session?.id) {
+      Promise.resolve().then(() => setLoading(false))
+      return
+    }
 
     async function load() {
       const { data: storeData } = await supabase!

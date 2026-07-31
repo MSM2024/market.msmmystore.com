@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { DollarSign, Save, Info, Calculator } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { loadMarginConfig, saveMarginConfig, type MarginConfig } from "@/lib/marketplace/client"
@@ -10,8 +10,6 @@ export default function AdminMarketplaceMargenesPage() {
 
   const [config, setConfig] = useState<MarginConfig>(loadMarginConfig)
   const [toast, setToast] = useState("")
-
-  useEffect(() => { setConfig(loadMarginConfig()) }, [])
 
   function updateConfig(key: keyof MarginConfig, value: string) {
     const num = parseFloat(value)

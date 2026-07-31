@@ -51,3 +51,27 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Failed to save" }, { status: 500 })
   }
 }
+
+export async function DELETE() {
+  try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const { error: deleteError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", user.id)
+
+    if (deleteError) throw deleteError
+
+    const { error: signOutError } = await supabase.auth.signOut()
+    if (signOutError) throw signOutError
+
+    return NextResponse.json({ ok: true })
+  } catch {
+    return NextResponse.json({ error: "Failed to delete account" }, { status: 500 })
+  }
+}

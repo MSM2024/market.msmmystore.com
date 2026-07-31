@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Layers, Plus, Trash2, Save, ExternalLink, Edit3, X, Globe } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
-import { getSession } from "@/lib/auth"
-import { getProfile, updateProfile, addProject, updateProject, removeProject, seedMiguelProfile, type UserProject, type UserProfile } from "@/lib/profile"
+import { getProfile, updateProfile, type UserProject, type UserProfile } from "@/lib/profile"
 
 const PROJECT_ICONS = ["💎", "🏪", "📓", "🧠", "✨", "🛒", "🌐", "📣", "💳", "🎵", "📱", "🎨", "⚡", "🔬", "🤖", "🚀"]
 const STATUS_OPTIONS: ("activo" | "beta" | "próximamente")[] = ["activo", "beta", "próximamente"]
@@ -29,30 +28,27 @@ const COLOR_OPTIONS = [
   { cls: "text-slate-100", hex: "#f1f5f9" },
 ]
 
-function loadProjectsProfile(): UserProfile | null {
-  if (typeof window === "undefined") return null
-  const session = getSession()
-  let p: UserProfile | null = null
-  if (session) p = getProfile(session.id)
-  if (!p) p = seedMiguelProfile()
-  return p
+function genId(): string {
+  return `proj_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 }
 
 export default function ProjectsPage() {
   usePageTitle("Mis Proyectos")
-  const [profile] = useState<UserProfile | null>(() => loadProjectsProfile())
-  const [projects, setProjects] = useState<UserProject[]>(() => {
-    if (typeof window === "undefined") return []
-    const session = getSession()
-    let p: UserProfile | null = null
-    if (session) p = getProfile(session.id)
-    if (!p) p = seedMiguelProfile()
-    return p?.customProjects || []
-  })
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [projects, setProjects] = useState<UserProject[]>([])
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: "", description: "", url: "", status: "activo" as UserProject["status"], icon: "💎", color: "text-[#00D9FF]", tags: "" })
+
+  useEffect(() => {
+    getProfile().then(p => {
+      if (p) {
+        setProfile(p)
+        setProjects(p.customProjects || [])
+      }
+    })
+  }, [])
 
   const resetForm = () => {
     setForm({ name: "", description: "", url: "", status: "activo", icon: "💎", color: "text-[#00D9FF]", tags: "" })
@@ -60,12 +56,14 @@ export default function ProjectsPage() {
     setShowAdd(false)
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!profile || !form.name) return
     const tags = form.tags.split(",").map(t => t.trim()).filter(Boolean)
-    const proj = addProject(profile.userId, { ...form, tags })
-    if (proj) {
-      setProjects([...projects, proj])
+    const newProj: UserProject = { id: genId(), ...form, tags }
+    const updatedProjects = [...projects, newProj]
+    const ok = await updateProfile({ customProjects: updatedProjects })
+    if (ok) {
+      setProjects(updatedProjects)
       resetForm()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -82,22 +80,25 @@ export default function ProjectsPage() {
     setShowAdd(true)
   }
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!profile || !editing) return
     const tags = form.tags.split(",").map(t => t.trim()).filter(Boolean)
-    const updated = updateProject(profile.userId, editing, { ...form, tags })
-    if (updated) {
-      setProjects(projects.map(p => p.id === editing ? updated : p))
+    const updatedProjects = projects.map(p => p.id === editing ? { ...p, ...form, tags } : p)
+    const ok = await updateProfile({ customProjects: updatedProjects })
+    if (ok) {
+      setProjects(updatedProjects)
       resetForm()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     }
   }
 
-  const handleRemove = (id: string) => {
+  const handleRemove = async (id: string) => {
     if (!profile) return
-    if (removeProject(profile.userId, id)) {
-      setProjects(projects.filter(p => p.id !== id))
+    const updatedProjects = projects.filter(p => p.id !== id)
+    const ok = await updateProfile({ customProjects: updatedProjects })
+    if (ok) {
+      setProjects(updatedProjects)
       if (editing === id) resetForm()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)

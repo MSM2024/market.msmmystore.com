@@ -1,21 +1,10 @@
 'use client'
 
 import { useState, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
-import { MessageSquare, X, ExternalLink } from "lucide-react"
+import { MessageSquare, X } from "lucide-react"
 import ElianaDiamond from "./ElianaDiamond"
-import { getSession } from "@/lib/auth"
-
-const ELIANA_DOMAIN = "https://eliana.msmmystore.com"
-
-const RETURN_URL_ALLOWLIST = [
-  "https://msmmystore.com",
-  "https://zafiro.msmmystore.com",
-  "https://market.msmmystore.com",
-  "https://marketplace.msmmystore.com",
-  "https://beta.msmmystore.com",
-  "https://eliana.msmmystore.com",
-]
 
 interface ElianaContext {
   source_app: string
@@ -34,28 +23,18 @@ interface Props {
   className?: string
 }
 
-function getReturnUrl(): string {
-  if (typeof window === "undefined") return ""
-  const current = window.location.origin
-  if (RETURN_URL_ALLOWLIST.includes(current)) return current
-  return RETURN_URL_ALLOWLIST[0]
-}
-
-function buildElianaUrl(path: string, context?: ElianaContext): string {
-  const url = new URL(path, ELIANA_DOMAIN)
-
+function buildElianaPath(context?: ElianaContext): string {
+  const params = new URLSearchParams()
   if (context) {
-    if (context.source_app) url.searchParams.set("src", context.source_app)
-    if (context.source_module) url.searchParams.set("mod", context.source_module)
-    if (context.resource_type) url.searchParams.set("rt", context.resource_type)
-    if (context.resource_id) url.searchParams.set("rid", context.resource_id)
-    if (context.requested_action) url.searchParams.set("action", context.requested_action)
-
-    const returnUrl = context.return_url || getReturnUrl()
-    if (returnUrl) url.searchParams.set("return", returnUrl)
+    if (context.source_app) params.set("src", context.source_app)
+    if (context.source_module) params.set("mod", context.source_module)
+    if (context.resource_type) params.set("rt", context.resource_type)
+    if (context.resource_id) params.set("rid", context.resource_id)
+    if (context.requested_action) params.set("action", context.requested_action)
+    if (context.return_url) params.set("return", context.return_url)
   }
-
-  return url.toString()
+  const qs = params.toString()
+  return `/eliana/chat${qs ? `?${qs}` : ""}`
 }
 
 export default function ElianaUniversalLauncher({
@@ -65,13 +44,12 @@ export default function ElianaUniversalLauncher({
   showStatus = true,
   className = "",
 }: Props) {
+  const router = useRouter()
   const [hovered, setHovered] = useState(false)
-  const session = useMemo(() => getSession(), [])
 
   const handleOpen = useCallback(() => {
-    const url = buildElianaUrl("/chat", context)
-    window.open(url, "_blank", "noopener,noreferrer")
-  }, [context])
+    router.push(buildElianaPath(context))
+  }, [router, context])
 
   if (variant === "floating") {
     return (
@@ -121,7 +99,6 @@ export default function ElianaUniversalLauncher({
       >
         <ElianaDiamond size={16} variant="animated" />
         {label}
-        <ExternalLink className="w-3 h-3 opacity-50" />
       </button>
     )
   }
@@ -145,7 +122,7 @@ export default function ElianaUniversalLauncher({
           <p className="text-[9px] text-slate-500">Asistencia para {context.source_app}</p>
         )}
         <div className="flex items-center gap-1 mt-2 text-[9px] text-[#00D9FF]">
-          <ExternalLink className="w-2.5 h-2.5" /> Abrir en eliana.msmmystore.com
+          Abrir ELIANA
         </div>
       </button>
     )

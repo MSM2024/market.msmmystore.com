@@ -37,7 +37,7 @@ export default function ConversacionesPage() {
     fetch("/api/eliana/conversations")
       .then(r => r.json())
       .then(data => setConversations(data.conversations || []))
-      .catch(() => {})
+      .catch(() => console.warn("ELIANA: Failed to load conversations"))
       .finally(() => setLoading(false))
   }, [session])
 
@@ -46,7 +46,7 @@ export default function ConversacionesPage() {
     try {
       await fetch(`/api/eliana/conversations?id=${id}`, { method: "DELETE" })
       setConversations(prev => prev.filter(c => c.id !== id))
-    } catch {}
+    } catch { console.warn("ELIANA: Failed to delete conversation") }
   }
 
   const filtered = conversations.filter(c => {

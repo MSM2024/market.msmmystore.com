@@ -107,33 +107,47 @@ export async function processElianaRequest(
         userId: context.userId || undefined,
       }),
     })
+
     const data = await res.json()
-    const responseText = data.text || "No pude procesar tu solicitud. Intenta de nuevo."
-    // Extract suggestions from engine's formatted response
-    const suggestionMatch = responseText.match(/\*\*¿[^*]+\*\*\n((?:• [^\n]+\n?)+)/)
-    const engineSuggestions = suggestionMatch
-      ? suggestionMatch[1].split("\n").filter((l: string) => l.startsWith("• ")).map((l: string) => l.replace(/^• /, "").trim()).filter(Boolean)
-      : []
-    // Also extract inline questions from the response as fallback suggestions
-    const inlineQuestions = responseText.match(/¿[^?]+\?/g) || []
-    const extractedSuggestions = inlineQuestions
-      .map((q: string) => q.trim())
-      .filter((q: string) => q.length > 10 && q.length < 80)
-      .slice(0, 3)
-    const finalSuggestions = engineSuggestions.length > 0
-      ? engineSuggestions
-      : extractedSuggestions.length > 0
-        ? extractedSuggestions
-        : pageSuggestions
+
+    if (!res.ok || data.error) {
+      const err = new Error(data.text || "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.")
+      err.name = data.error === "rate_limited" ? "RATE_LIMITED" : "API_ERROR"
+      if (data.error === "rate_limited") {
+        (err as Error & { code: string }).code = "RATE_LIMITED"
+      }
+      throw err
+    }
+
+    if (data.error === "rate_limited") {
+      const err = new Error("Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.")
+      err.name = "RATE_LIMITED"
+      ;(err as Error & { code: string }).code = "RATE_LIMITED"
+      throw err
+    }
+
+    const responseText = data.text || ""
+    if (!responseText.trim()) {
+      const err = new Error("Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.")
+      err.name = "EMPTY_RESPONSE"
+      throw err
+    }
+
     const response: ElianaResponse = {
       text: responseText,
-      suggestions: finalSuggestions,
+      suggestions: pageSuggestions,
     }
     addShortTermMemory(userId, { role: "eliana", text: response.text, page: context.page, timestamp: Date.now() })
     addLongTermFact(userId, { fact: `Usuario preguntó: ${message.slice(0, 80)}`, category: "query", confidence: 0.5 })
     return response
-  } catch {
-    return getFallbackResponse(message, context, userId)
+  } catch (err: unknown) {
+    const e = err as Error
+    if (e.name === "API_ERROR" || e.name === "EMPTY_RESPONSE") {
+      throw err
+    }
+    const netErr = new Error("Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.")
+    netErr.name = "NETWORK_ERROR"
+    throw netErr
   }
 }
 

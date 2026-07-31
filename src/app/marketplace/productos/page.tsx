@@ -18,19 +18,78 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 24
 
+function makeFallbackProduct(p: Partial<ProductWithStore> & Pick<ProductWithStore, "id" | "slug" | "name" | "final_price">): ProductWithStore {
+  const store = p.store ? { ...storeBase, ...p.store } : storeBase
+  return {
+    store_id: "",
+    category_id: null,
+    provider_id: null,
+    description: "",
+    short_description: "",
+    source: "own",
+    sku: "",
+    external_id: "",
+    external_url: "",
+    base_price: p.base_price || p.final_price,
+    currency: "USD",
+    tax_rate: 0,
+    service_fee: 0,
+    margin: 0,
+    estimated_shipping: 0,
+    shipping_from_country: "US",
+    free_shipping: false,
+    stock: 0,
+    low_stock_threshold: 0,
+    track_inventory: false,
+    weight_grams: 0,
+    width_cm: 0,
+    height_cm: 0,
+    depth_cm: 0,
+    estimated_delivery_days: 0,
+    delivery_modes: [],
+    return_policy: "",
+    return_days: 0,
+    countries_deliver_to: [],
+    tags: [],
+    status: "published",
+    rejection_reason: "",
+    sync_status: "",
+    last_synced_at: null,
+    view_count: 0,
+    sales_count: 0,
+    average_rating: 0,
+    review_count: 0,
+    favorite_count: 0,
+    published_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...p,
+    store: store as ProductWithStore["store"],
+  }
+}
+
+const storeBase = {
+  id: "s1",
+  name: "MSM Tech Store",
+  slug: "msm-tech",
+  country: "US",
+  city: "Miami",
+  average_rating: 4.8,
+}
+
 const FALLBACK_PRODUCTS: ProductWithStore[] = [
-  { id: "1", slug: "iphone-15-pro-max", name: "iPhone 15 Pro Max 256GB", final_price: 1199.99, base_price: 1299.99, currency: "USD", average_rating: 4.8, review_count: 124, free_shipping: true, shipping_from_country: "US", sales_count: 342, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Smartphone" } as any } as any,
-  { id: "2", slug: "samsung-galaxy-s24-ultra", name: "Samsung Galaxy S24 Ultra", final_price: 1049.99, base_price: 1199.99, currency: "USD", average_rating: 4.7, review_count: 89, free_shipping: false, shipping_from_country: "US", sales_count: 200, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Smartphone" } as any } as any,
-  { id: "3", slug: "macbook-air-m3-15", name: 'MacBook Air M3 15"', final_price: 1499.00, base_price: 1499.00, currency: "USD", average_rating: 4.9, review_count: 201, free_shipping: true, shipping_from_country: "US", sales_count: 150, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Laptop" } as any } as any,
-  { id: "4", slug: "airpods-pro-2da-gen", name: "AirPods Pro 2da Gen", final_price: 189.99, base_price: 249.99, currency: "USD", average_rating: 4.6, review_count: 567, free_shipping: true, shipping_from_country: "US", sales_count: 800, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Headphones" } as any } as any,
-  { id: "5", slug: "ipad-air-m2-256gb", name: "iPad Air M2 256GB", final_price: 749.00, base_price: 799.00, currency: "USD", average_rating: 4.8, review_count: 156, free_shipping: false, shipping_from_country: "US", sales_count: 300, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Tablet" } as any } as any,
-  { id: "6", slug: "apple-watch-series-9", name: "Apple Watch Series 9", final_price: 349.99, base_price: 399.99, currency: "USD", average_rating: 4.7, review_count: 234, free_shipping: true, shipping_from_country: "US", sales_count: 250, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Watch" } as any } as any,
-  { id: "7", slug: "playstation-5-slim", name: "PlayStation 5 Slim", final_price: 449.99, base_price: 499.99, currency: "USD", average_rating: 4.8, review_count: 312, free_shipping: false, shipping_from_country: "US", sales_count: 500, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c2", name: "Gaming", slug: "gaming", icon: "Gamepad2" } as any } as any,
-  { id: "8", slug: "nintendo-switch-oled", name: "Nintendo Switch OLED", final_price: 329.99, base_price: 349.99, currency: "USD", average_rating: 4.7, review_count: 189, free_shipping: true, shipping_from_country: "US", sales_count: 400, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c2", name: "Gaming", slug: "gaming", icon: "Gamepad2" } as any } as any,
-  { id: "9", slug: "dyson-v15-detect", name: "Dyson V15 Detect", final_price: 649.99, base_price: 749.99, currency: "USD", average_rating: 4.6, review_count: 98, free_shipping: true, shipping_from_country: "US", sales_count: 120, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c3", name: "Hogar", slug: "hogar", icon: "Home" } as any } as any,
-  { id: "10", slug: "sony-wh-1000xm5", name: "Sony WH-1000XM5", final_price: 298.00, base_price: 399.99, currency: "USD", average_rating: 4.9, review_count: 445, free_shipping: true, shipping_from_country: "US", sales_count: 600, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Headphones" } as any } as any,
-  { id: "11", slug: "canon-eos-r50", name: "Canon EOS R50", final_price: 679.00, base_price: 749.00, currency: "USD", average_rating: 4.7, review_count: 67, free_shipping: false, shipping_from_country: "US", sales_count: 80, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c4", name: "Fotografía", slug: "fotografia", icon: "Camera" } as any } as any,
-  { id: "12", slug: "bose-quietcomfort-ultra", name: "Bose QuietComfort Ultra", final_price: 379.00, base_price: 429.00, currency: "USD", average_rating: 4.8, review_count: 201, free_shipping: true, shipping_from_country: "US", sales_count: 180, status: "published", store: { id: "s1", name: "MSM Tech Store", slug: "msm-tech", country: "US", city: "Miami", average_rating: 4.8 } as any, category: { id: "c1", name: "Electrónica", slug: "electronica", icon: "Headphones" } as any } as any,
+  makeFallbackProduct({ id: "1", slug: "iphone-15-pro-max", name: "iPhone 15 Pro Max 256GB", final_price: 1199.99, base_price: 1299.99, average_rating: 4.8, review_count: 124, free_shipping: true, shipping_from_country: "US", sales_count: 342 }),
+  makeFallbackProduct({ id: "2", slug: "samsung-galaxy-s24-ultra", name: "Samsung Galaxy S24 Ultra", final_price: 1049.99, base_price: 1199.99, average_rating: 4.7, review_count: 89, free_shipping: false, sales_count: 200 }),
+  makeFallbackProduct({ id: "3", slug: "macbook-air-m3-15", name: 'MacBook Air M3 15"', final_price: 1499.0, average_rating: 4.9, review_count: 201, free_shipping: true, sales_count: 150 }),
+  makeFallbackProduct({ id: "4", slug: "airpods-pro-2da-gen", name: "AirPods Pro 2da Gen", final_price: 189.99, base_price: 249.99, average_rating: 4.6, review_count: 567, free_shipping: true, sales_count: 800 }),
+  makeFallbackProduct({ id: "5", slug: "ipad-air-m2-256gb", name: "iPad Air M2 256GB", final_price: 749.0, base_price: 799.0, average_rating: 4.8, review_count: 156, free_shipping: false, sales_count: 300 }),
+  makeFallbackProduct({ id: "6", slug: "apple-watch-series-9", name: "Apple Watch Series 9", final_price: 349.99, base_price: 399.99, average_rating: 4.7, review_count: 234, free_shipping: true, sales_count: 250 }),
+  makeFallbackProduct({ id: "7", slug: "playstation-5-slim", name: "PlayStation 5 Slim", final_price: 449.99, base_price: 499.99, average_rating: 4.8, review_count: 312, free_shipping: false, sales_count: 500 }),
+  makeFallbackProduct({ id: "8", slug: "nintendo-switch-oled", name: "Nintendo Switch OLED", final_price: 329.99, base_price: 349.99, average_rating: 4.7, review_count: 189, free_shipping: true, sales_count: 400 }),
+  makeFallbackProduct({ id: "9", slug: "dyson-v15-detect", name: "Dyson V15 Detect", final_price: 649.99, base_price: 749.99, average_rating: 4.6, review_count: 98, free_shipping: true, sales_count: 120 }),
+  makeFallbackProduct({ id: "10", slug: "sony-wh-1000xm5", name: "Sony WH-1000XM5", final_price: 298.0, base_price: 399.99, average_rating: 4.9, review_count: 445, free_shipping: true, sales_count: 600 }),
+  makeFallbackProduct({ id: "11", slug: "canon-eos-r50", name: "Canon EOS R50", final_price: 679.0, base_price: 749.0, average_rating: 4.7, review_count: 67, free_shipping: false, sales_count: 80 }),
+  makeFallbackProduct({ id: "12", slug: "bose-quietcomfort-ultra", name: "Bose QuietComfort Ultra", final_price: 379.0, base_price: 429.0, average_rating: 4.8, review_count: 201, free_shipping: true, sales_count: 180 }),
 ]
 
 function SkeletonCard({ listMode }: { listMode: boolean }) {
@@ -131,7 +190,7 @@ function MarketplaceProductsContent() {
   }
 
   useEffect(() => {
-    loadProducts(true)
+    Promise.resolve().then(() => loadProducts(true))
   }, [sortBy, selectedCountry, freeShipping])
 
   useEffect(() => {

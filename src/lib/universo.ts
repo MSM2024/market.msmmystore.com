@@ -1,6 +1,6 @@
 'use client'
 
-import { getProfileByUsername, getProfile, getAllUsernames as getProfilesUsernames, type UserProfile, seedMiguelProfile } from "./profile"
+import { getProfile, type UserProfile } from "./profile"
 
 export type PlatformType =
   | "youtube" | "instagram" | "tiktok" | "twitter" | "facebook"
@@ -184,47 +184,31 @@ export function getAllConnectedUsers(): { userId: string; name: string; username
   }
 }
 
-export function getCreatorProfile(username: string): {
+export async function getCreatorProfile(username: string): Promise<{
   name: string; username: string; bio: string; image: string;
   joinedAt: string; location: string; title: string;
   points: number; streak: number; achievements: number;
   followers: number; communities: number;
   platforms: ConnectedPlatform[];
-} | null {
-  const profile = getProfileByUsername(username)
-  if (profile) {
-    const platforms: ConnectedPlatform[] = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").filter((p: ConnectedPlatform) => p.userId === profile.userId)
-      : []
-    return {
-      name: profile.publicName || profile.name,
-      username: profile.username,
-      bio: profile.bioShort || profile.bioLong,
-      image: profile.avatar,
-      joinedAt: profile.joinedAt,
-      location: profile.location,
-      title: profile.title,
-      points: profile.points,
-      streak: profile.streak,
-      achievements: profile.achievements,
-      followers: profile.followers,
-      communities: profile.communities,
-      platforms,
-    }
+} | null> {
+  const profile = await getProfile()
+  if (!profile) return null
+  const platforms: ConnectedPlatform[] = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").filter((p: ConnectedPlatform) => p.userId === profile.userId)
+    : []
+  return {
+    name: profile.publicName || profile.name,
+    username: profile.username,
+    bio: profile.bioShort || profile.bioLong,
+    image: profile.avatar,
+    joinedAt: profile.joinedAt,
+    location: profile.location,
+    title: profile.title,
+    points: profile.points,
+    streak: profile.streak,
+    achievements: profile.achievements,
+    followers: profile.followers,
+    communities: profile.communities,
+    platforms,
   }
-  if (username === "msmmystore") {
-    const miguel = seedMiguelProfile()
-    const platforms: ConnectedPlatform[] = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").filter((p: ConnectedPlatform) => p.userId === miguel.userId)
-      : []
-    return {
-      name: miguel.publicName || miguel.name, username: miguel.username,
-      bio: miguel.bioShort, image: miguel.avatar,
-      joinedAt: miguel.joinedAt, location: miguel.location, title: miguel.title,
-      points: miguel.points, streak: miguel.streak, achievements: miguel.achievements,
-      followers: miguel.followers, communities: miguel.communities,
-      platforms,
-    }
-  }
-  return null
 }

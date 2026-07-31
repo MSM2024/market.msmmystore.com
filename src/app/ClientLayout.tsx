@@ -5,6 +5,7 @@ import Footer from "@/components/Footer"
 import ElianaUniversalLauncher from "@/components/ElianaUniversalLauncher"
 import NetworkBackground from "@/components/ui/NetworkBackground"
 import { CartProvider } from "@/contexts/CartContext"
+import { AuthProvider } from "@/lib/AuthContext"
 import { useMemo } from "react"
 
 function useIsMarketplaceDomain(): boolean {
@@ -43,6 +44,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const showLauncher = !isEliana && !pathname.startsWith("/auth/")
 
   return (
+    <AuthProvider>
     <CartProvider>
       <NetworkBackground />
       <div className="relative z-10">
@@ -57,5 +59,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         />
       )}
     </CartProvider>
+    </AuthProvider>
   )
 }

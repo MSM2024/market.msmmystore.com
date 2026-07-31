@@ -38,33 +38,43 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
   if (!hasDb()) return emptyStats
 
   const db = getClient()!
-  const safeCount = async (table: string, query?: (q: any) => any) => {
+  interface QueryBuilder {
+    eq: (col: string, val: string) => QueryBuilder
+    order: (col: string, o: { ascending: boolean }) => QueryBuilder
+  }
+  interface CountResult { count: number | null }
+  type CountQuery = QueryBuilder & PromiseLike<CountResult>
+
+  const safeCount = async (table: string, query?: (q: QueryBuilder) => QueryBuilder) => {
     try {
-      let q = db.from(table).select("id", { count: "exact", head: true })
-      if (query) q = query(q)
-      const res = await q
+      const base = db.from(table).select("id", { count: "exact", head: true }) as unknown as CountQuery
+      const final = (query ? query(base) : base) as CountQuery
+      const res = await final
       return res.count || 0
     } catch { return 0 }
   }
+
+  interface OrderRow { id: string; status: string; total_amount: number | null }
+  interface ReportRow extends AdminReport { reporter_id: string }
 
   const [totalUsers, totalQuestions, totalCommunities, pendingReports, pendingStoreApprovals, pendingProductApprovals, orders] = await Promise.all([
     safeCount("profiles"),
     safeCount("questions"),
     safeCount("communities"),
-    safeCount("reports", (q: any) => q.eq("status", "pending")),
-    safeCount("marketplace_stores", (q: any) => q.eq("status", "pending_review")),
-    safeCount("marketplace_products", (q: any) => q.eq("status", "pending_review")),
+    safeCount("reports", (q: QueryBuilder) => q.eq("status", "pending")),
+    safeCount("marketplace_stores", (q: QueryBuilder) => q.eq("status", "pending_review")),
+    safeCount("marketplace_products", (q: QueryBuilder) => q.eq("status", "pending_review")),
     (async () => {
       try {
         const res = await db.from("marketplace_orders").select("id,status,total_amount")
         return res.data || []
-      } catch { return [] as any[] }
+      } catch { return [] as OrderRow[] }
     })(),
   ])
 
   const completedRevenue = orders
-    .filter((o: any) => ["paid", "completed", "delivered"].includes(o.status))
-    .reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0)
+    .filter((o: OrderRow) => ["paid", "completed", "delivered"].includes(o.status))
+    .reduce((sum: number, o: OrderRow) => sum + (o.total_amount || 0), 0)
 
   return {
     totalUsers, totalQuestions, totalCommunities,

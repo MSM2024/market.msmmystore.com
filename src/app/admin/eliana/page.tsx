@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSession } from '@/lib/auth'
+import { getSession, hasRole, refreshSession } from '@/lib/auth'
 import ElianaAdminDashboard from '@/components/eliana/ElianaAdminDashboard'
 
 export default function ElianaAdminPage() {
@@ -10,19 +10,17 @@ export default function ElianaAdminPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const session = getSession()
-    if (!session) {
-      router.push('/auth/login')
-      return
-    }
-    // Verificar que sea admin o superadmin
-    const role = localStorage.getItem('zafiro_user_role') || 'customer'
-    if (role !== 'admin' && role !== 'superadmin') {
-      router.push('/')
-      return
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAuthorized(true)
+    refreshSession().then(session => {
+      if (!session) {
+        router.push('/auth/login')
+        return
+      }
+      if (!hasRole('owner') && !hasRole('admin') && !hasRole('superadmin')) {
+        router.push('/')
+        return
+      }
+      setAuthorized(true)
+    })
   }, [router])
 
   if (authorized === null) {

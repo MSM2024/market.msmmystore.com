@@ -42,7 +42,10 @@ export async function POST(request: Request) {
       .single()
     if (error) throw error
     return NextResponse.json({ action })
-  } catch { return NextResponse.json({ error: "Failed" }, { status: 500 }) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error al crear acción"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
 
 export async function PUT(request: Request) {
@@ -52,6 +55,7 @@ export async function PUT(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const { id, status, result, action_type, parameters } = await request.json()
+    if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 })
     const update: Record<string, unknown> = {}
     if (status !== undefined) {
       update.status = status
@@ -68,5 +72,8 @@ export async function PUT(request: Request) {
       .single()
     if (error) throw error
     return NextResponse.json({ action })
-  } catch { return NextResponse.json({ error: "Failed" }, { status: 500 }) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error al actualizar acción"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

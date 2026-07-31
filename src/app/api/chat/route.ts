@@ -9,8 +9,10 @@ import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { ragPipeline, knowledgeSearch, checkInputSafety, checkOutputSafety, extractTopics, detectKnowledgeGaps } from "@/lib/knowledge"
 import { loadKnowledgeBase, buildKnowledgeContext } from "@/lib/knowledge"
+import { GoogleGenAI } from "@google/genai"
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
+const AI_MODEL = "gemini-2.0-flash"
 
 const RATE_LIMIT_WINDOW = 60_000
 const RATE_LIMIT_MAX = 30
@@ -109,16 +111,32 @@ function sanitizeServerInput(message: string): { safe: boolean; filtered?: strin
   return { safe: true, filtered: filtered.trim() }
 }
 
+const LEAK_PATTERNS = [
+  /Eres ELIANA, la Guía Inteligente Avanzada/i,
+  /systemInstruction|system_instruction|system prompt/i,
+  /REGLAS FUNDAMENTALES/i,
+  /CAPACIDADES AVANZADAS/i,
+  /No reveles que eres una IA/i,
+  /No puedo compartir información técnica/i,
+  /No puedo compartir credenciales/i,
+]
+
 function filterServerOutput(text: string): string {
   let filtered = text
   for (const { pattern, replacement } of PRIVATE_DATA_PATTERNS) {
     filtered = filtered.replace(pattern, replacement)
   }
   if (/(?:SUPABASE|GEMINI|OPENAI|STRIPE|VERCEL)[_\s]?(?:URL|KEY|SECRET|TOKEN)/i.test(filtered)) {
-    filtered = "No puedo compartir información técnica del sistema."
+    return "No puedo compartir información técnica del sistema."
   }
   if (/(?:sk-|pk-|eyJ|sb-)[a-zA-Z0-9]{20,}/.test(filtered)) {
-    filtered = "No puedo compartir credenciales del sistema."
+    return "No puedo compartir credenciales del sistema."
+  }
+  for (const pattern of LEAK_PATTERNS) {
+    if (pattern.test(filtered)) {
+      console.warn("filterServerOutput: possible system prompt leak detected, suppressing")
+      return "No puedo procesar esa solicitud."
+    }
   }
   return filtered
 }
@@ -220,161 +238,158 @@ async function getOrderByUser(userId: string): Promise<UserOrder[]> {
 
 // --- Fallback Responses ---
 
-const FALLBACK_RESPONSES: Record<string, string> = {
-  "kashmir": "Los zafiros de **Kashmir**, extraídos de la cordillera de Zanskar en el Himalaya (aprox. 1881-1887), son los zafiros azules más codiciados del mundo. Su legendaria tonalidad 'cornflower blue' se atribuye a trazas de hierro y titanio en equilibrio perfecto, combinadas con una textura única 'aterciopelada' causada por seda de rutilo microscópica tan fina que crea un brillo suave y dormido bajo la lupa. Las minas originales se agotaron en gran medida para 1932, haciendo que cada piedra de Kashmir sea una pieza rara de coleccionista.",
-  "velvet": "El brillo 'aterciopelado' o 'dormido' de los zafiros de Kashmir no es un defecto sino una marca de extrema rareza. Surge de la aglomeración densa de inclusiones de agujas de rutilo (TiO₂) ultrafinas, llamadas 'seda', que dispersan la luz dentro del cristal. A diferencia de la seda gruesa que causa asterismo (efectos de estrella), la seda de Kashmir es tan fina que crea una luminosidad suave y brumosa que los refractometros internos describen como una 'translucidez lechosa' sin opacar la saturación azul vívida de la piedra.",
-  "padparadscha": "Un zafiro **Padparadscha** es una variedad extremadamente rara de corindón que muestra un tono rosa-naranja o salmón simultáneo — mejor descrito como un color 'loto al atardecer'. El nombre proviene del sánscrito 'padma ranga' (color del loto). Los estándares del Instituto Gemológico de América requieren que la piedra muestre AMBOS tonos rosa y naranja como colores primarios, sin que un solo tono domine más del 60%. La mayoría de los Padparadscha provienen de Sri Lanka (Ceylon) o Madagascar.",
-  "synthetic": "Para diferenciar corindón natural de sintético, busca estos diagnósticos clave bajo magnificación: (1) **Estrías curvas** — los zafiros sintéticos de Verneuil muestran líneas de crecimiento curvas, mientras que las piedras naturales tienen bandas angulares y rectas; (2) **Burbujas de gas** — las burbujas redondas y esféricas son características de los sintéticos por fusión de llama; (3) **Seda** — los zafiros naturales tienen seda de rutilo fina, los sintéticos carecen de ella; (4) **Fluorescencia UV** — muchos sintéticos brillan con un azul tiza intenso bajo UV de onda larga; (5) **Zonificación de inclusiones** — las piedras naturales tienen patrones de zonificación complejos e irregulares.",
-  "corundum": "El **corindón** (Al₂O₃) es una forma cristalina de óxido de aluminio que ocupa el puesto 9 en la escala de Mohs, solo detrás del diamante. Se forma en sistemas cristalinos hexagonales (trigonales) en rocas metamórficas ricas en aluminio y pobres en sílice bajo alta presión y temperatura. La sustitución de elementos traza es la que crea el color: Cr³⁺ da el rojo (rubí), Fe²⁺+Ti⁴⁺ da el azul (zafiro), y V³⁺ produce el raro efecto de cambio de color que se ve en algunos zafiros de Tanzania.",
-  "pleochroism": "El **pleocroismo** en el zafiro se refiere al fenómeno donde la gema muestra diferentes colores cuando se ve desde diferentes direcciones cristalográficas. El zafiro azul típicamente muestra dicroísmo azul y azul-verdoso — el rayo ordinario es azul profundo mientras que el rayo extraordinario aparece azul verdoso. Esto se detecta usando un dicroscopio y es un diagnóstico crítico para orientar la piedra bruta para la talla: los talladores alinean la mesa perpendicular al eje óptico para maximizar el color azul visto de frente.",
-  "asterism": "El **asterismo** (efecto de 'estrella') en los zafiros ocurre cuando inclusiones densas y orientadas de seda de rutilo (TiO₂) reflejan la luz en un patrón de estrella de seis rayos. Las agujas de rutilo deben alinearse a lo largo de los tres ejes cristalográficos de la estructura hexagonal del corindón en ángulos de 120°. La estrella se ve mejor bajo una fuente de luz directa. La nitidez de la estrella depende de la finura y densidad de la seda — seda más fina crea una estrella más nítida y definida.",
-  "heat": "El **tratamiento térmico** es una práctica aceptada en la industria para mejorar el color y la claridad del zafiro. La piedra se calienta a 1600-1900°C en condiciones controladas: (1) **Disolución de seda** — el calor disuelve las agujas finas de rutilo mejorando la transparencia; (2) **Modificación de color** — las atmósferas oxidantes o reductoras pueden alterar la transferencia de carga hierro-titanio; (3) **Relleno de vidrio** — las piedras de menor calidad pueden rellenarse con vidrio de plomo para mejorar la claridad (no es tratamiento estándar y debe divulgarse). Las piedras sin tratamiento ('unheated') tienen primas significativas en subastas.",
-  "mogok": "El **valle de Mogok** en Myanmar (Burma) ha sido una fuente legendaria de los mejores rubíes y zafiros del mundo por más de 800 años. Conocido como el 'Valle de los Rubíes', la configuración geológica única de Mogok — depósitos metamórficos alojados en mármol con alto cromo y bajo hierro — produce corindón con fluorescencia intensa, dando a los zafiros burmeses un 'brillo' distintivo bajo luz natural y UV que las piedras de Sri Lanka o Madagascar no poseen.",
-  "valuation": "La **valoración del zafiro** sigue una matriz de múltiples factores: (1) **Color** (60% del valor) — cornflower o royal blue vívidos sin zonas oscuras tienen primas; (2) **Pureza** (20%) — piedras limpias a ojo con seda mínima son raras; (3) **Talla** (10%) — proporciones correctas y ángulos de corona adecuados maximizan el brillo; (4) **Peso en quilates** (10%) — los precios saltan exponencialmente sobre 2 quilates, con piedras de 5+ quilates alcanzando $10,000-$50,000/ct en calidad superior; (5) **Origen** — Kashmir comanda la prima más alta, seguido de Burma y Ceylon.",
-  "elestial": "El **Zafiro Estrella Elestial** es un modelo conceptual hipotético que representa un zafiro estrella perfectamente formado con asterismo ideal — una estrella de seis rayos perfectamente centrada con rayos nítidos y definidos que se extienden uniformemente hasta los bordes. En modelos gemológicos teóricos, un zafiro 'Elestial' requeriría una densidad de seda de rutilo de aproximadamente 10,000-50,000 agujas/mm² orientadas dentro de 0.1° de alineación cristalográfica perfecta, una condición raramente alcanzada en la naturaleza.",
+const FALLBACK_RESPONSES: Record<string, string> & { default: string } = {
+  kashmir: "Los zafiros de Kashmir, extraídos de la cordillera de Zanskar en el Himalaya, son los zafiros azules más codiciados del mundo. Su legendaria tonalidad 'cornflower blue' se atribuye a trazas de hierro y titanio en equilibrio perfecto, combinadas con una textura única 'aterciopelada' causada por seda de rutilo microscópica tan fina que crea un brillo suave y dormido bajo la lupa. Las minas originales se agotaron en gran medida para 1932, haciendo que cada piedra de Kashmir sea una pieza rara de coleccionista.",
+  velvet: "El brillo 'aterciopelado' o 'dormido' de los zafiros de Kashmir no es un defecto sino una marca de extrema rareza. Surge de la aglomeración densa de inclusiones de agujas de rutilo ultrafinas, llamadas 'seda', que dispersan la luz dentro del cristal. A diferencia de la seda gruesa que causa asterismo (efectos de estrella), la seda de Kashmir es tan fina que crea una luminosidad suave y brumosa que los refractometros internos describen como una 'translucidez lechosa' sin opacar la saturación azul vívida de la piedra.",
+  padparadscha: "Un zafiro Padparadscha es una variedad extremadamente rara de corindón que muestra un tono rosa-naranja o salmón simultáneo. El nombre proviene del sánscrito 'padma ranga' (color del loto). Los estándares gemológicos requieren que la piedra muestre ambos tonos rosa y naranja como colores primarios, sin que un solo tono domine más del sesenta por ciento. La mayoría de los Padparadscha provienen de Sri Lanka o Madagascar.",
+  synthetic: "Para diferenciar corindón natural de sintético, busca estos diagnósticos clave bajo magnificación: estrías curvas, los zafiros sintéticos de Verneuil muestran líneas de crecimiento curvas mientras que las piedras naturales tienen bandas angulares y rectas; burbujas de gas, las burbujas redondas y esféricas son características de los sintéticos por fusión de llama; seda, los zafiros naturales tienen seda de rutilo fina, los sintéticos carecen de ella; fluorescencia UV, muchos sintéticos brillan con un azul tiza intenso bajo UV de onda larga.",
+  corundum: "El corindón (Al2O3) es una forma cristalina de óxido de aluminio que ocupa el puesto nueve en la escala de Mohs, solo detrás del diamante. Se forma en sistemas cristalinos hexagonales en rocas metamórficas ricas en aluminio y pobres en sílice bajo alta presión y temperatura. La sustitución de elementos traza crea el color: cromo da el rojo (rubí), hierro y titanio da el azul (zafiro), y vanadio produce el raro efecto de cambio de color.",
+  pleochroism: "El pleocroismo en el zafiro se refiere al fenómeno donde la gema muestra diferentes colores cuando se ve desde diferentes direcciones cristalográficas. El zafiro azul típicamente muestra dicroísmo azul y azul-verdoso. Esto se detecta usando un dicroscopio y es un diagnóstico crítico para orientar la piedra bruta para la talla.",
+  asterism: "El asterismo (efecto de estrella) en los zafiros ocurre cuando inclusiones densas y orientadas de seda de rutilo reflejan la luz en un patrón de estrella de seis rayos. Las agujas de rutilo deben alinearse a lo largo de los tres ejes cristalográficos de la estructura hexagonal del corindón en ángulos de ciento veinte grados. La nitidez de la estrella depende de la finura y densidad de la seda.",
+  heat: "El tratamiento térmico es una práctica aceptada en la industria para mejorar el color y la claridad del zafiro. La piedra se calienta a mil seiscientos grados centígrados en condiciones controladas. El calor disuelve las agujas finas de rutilo mejorando la transparencia. Las atmósferas oxidantes o reductoras pueden alterar la transferencia de carga hierro-titanio. Las piedras sin tratamiento ('unheated') tienen primas significativas en subastas.",
+  mogok: "El valle de Mogok en Myanmar ha sido una fuente legendaria de los mejores rubíes y zafiros del mundo por más de ochocientos años. Conocido como el 'Valle de los Rubíes', la configuración geológica única de Mogok produce corindón con fluorescencia intensa, dando a los zafiros burmeses un brillo distintivo bajo luz natural.",
+  valuation: "La valoración del zafiro sigue una matriz de múltiples factores. El color representa el sesenta por ciento del valor, la pureza el veinte por ciento, la talla el diez por ciento, el peso en quilates el diez por ciento, y el origen es un factor adicional. Kashmir comanda la prima más alta, seguido de Burma y Ceylon.",
+  elestial: "El Zafiro Estrella Elestial es un modelo conceptual hipotético que representa un zafiro estrella perfectamente formado con asterismo ideal, una estrella de seis rayos perfectamente centrada con rayos nítidos y definidos que se extienden uniformemente hasta los bordes.",
+
+  default: "Puedo ayudarte con información sobre el ecosistema MSM: productos, precios, pedidos, servicios digitales, marketplace, cursos, álbum de la vida, consejo invisible, referidos, gemología y más. ¿Qué necesitas?"
 }
 
 async function getFallbackResponse(message: string, history: Array<{ role: string; text?: string; content?: string }> = []): Promise<string> {
   const lower = message.toLowerCase().trim()
 
-  // Saludos — siempre primero, con contexto de conversación
+  const prevTopics = (history || [])
+    .filter(h => h.role === "user")
+    .map(h => (h.text || h.content || "").toLowerCase())
+    .join(" ")
+  const hasContext = prevTopics.length > 10
+
   if (/^(hola|buenos|buenas|saludos|hey|hello|hi\b|bendiciones|que tal|como estas)/.test(lower)) {
-    const name = "sintonizador"
-    // Check if there's conversation context
-    const prevTopics = (history || [])
-      .filter(h => h.role === "user")
-      .map(h => (h.text || h.content || "").toLowerCase())
-      .join(" ")
-    const hasContext = prevTopics.length > 10
     if (hasContext) {
-      return `**Bendiciones**, ${name}. ¿En qué puedo ayudarte ahora? Estoy lista para continuar.`
+      return "Bendiciones. ¿En qué puedo ayudarte ahora? Estoy lista para continuar."
     }
-    return `**Bendiciones**, ${name}. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**. Puedo orientarte sobre productos, servicios, pedidos, vender en el marketplace, cursos, servicios digitales y todo el ecosistema MSM. ¿En qué puedo ayudarte hoy?`
+    return "Bendiciones. Soy ELIANA, la Guía Inteligente de MSM y ZAFIRO. Puedo orientarte sobre productos, servicios, pedidos, vender en el marketplace, cursos, servicios digitales y todo el ecosistema MSM. ¿En qué puedo ayudarte hoy?"
   }
 
-  // Agradecimientos
   if (/(gracias|thank|agradezco)/.test(lower)) {
-    return "¡Con gusto! Recuerda que siempre estoy aquí para ayudarte. ¿Hay algo más en lo que pueda orientarte?"
+    return "Con gusto. Recuerda que siempre estoy aquí para ayudarte. ¿Hay algo más en lo que pueda orientarte?"
   }
 
-  // Despedidas
   if (/(adios|bye|nos vemos|hasta luego|chao)/.test(lower)) {
-    return "¡Hasta pronto! Que el conocimiento te acompañe. Vuelve cuando necesites orientación."
+    return "Hasta pronto. Que el conocimiento te acompañe. Vuelve cuando necesites orientación."
   }
 
-  // Complaints → escalate
   if (/(reembolso|queja|disputa|reclamo|estafa|no llegó|dañado|defectuoso)/.test(lower)) {
     return "Voy a conectar con soporte humano.\n\n[ESCALAR_A_HUMANO]"
   }
 
-  // --- ADVANCED INTELLIGENT ENGINE ---
   const engine = processMessage(message, history)
 
   if (engine.response && engine.confidence > 0.4) {
     let fullResponse = engine.response
-
-    // Add cross-references for exploration
     if (engine.crossReferences.length > 0) {
       const refText = formatCrossReferences(engine.crossReferences)
       if (refText) fullResponse += "\n\n" + refText
     }
-
-    // Add proactive follow-up suggestions
     if (engine.suggestedFollowUps.length > 0) {
       fullResponse = formatResponseWithSuggestions(fullResponse, engine.suggestedFollowUps)
     }
-
     return fullResponse
   }
 
-  // Gemología (hardcoded fallback for specific gemology terms)
   for (const [keyword, response] of Object.entries(FALLBACK_RESPONSES)) {
-    if (lower.includes(keyword)) {
+    if (keyword !== "default" && lower.includes(keyword)) {
       return response
     }
   }
 
-  // NEW: Hybrid knowledge search (58 docs + DB when available)
-  const hybridResult = await searchKnowledgeHybrid(message)
-  if (hybridResult) {
-    return hybridResult
-  }
-
-  // Legacy: Intelligent knowledge search (searches all 58 docs)
-  const { searchKnowledgeIntelligent } = await import("@/lib/eliana/core/intelligent-search")
-  const intelligentResult = searchKnowledgeIntelligent(message, 3, 1500)
-  if (intelligentResult) {
-    return intelligentResult
-  }
-
-  // Legacy: Fallback: old knowledge base search
-  const kbContext = buildKnowledgeContext(message)
-  if (kbContext) {
-    const lines = kbContext.split("\n").filter(l => l.startsWith("[") || l.trim().length > 0).slice(0, 20)
-    const snippet = lines.map(l => l.replace(/^\[.*?\]\s*/, "")).join("\n\n").slice(0, 1500)
-    return snippet
-  }
-
-  // Intent patterns MSM (last resort)
   if (/(producto|nevera|panel|tv|articulo|equipo)/.test(lower)) {
-    return "Puedo orientarte sobre nuestros productos. ¿Buscas electrónica, hogar, moda u otra categoría? También puedes visitar nuestro **Marketplace** en marketplace.msmmystore.com."
+    return "Puedo orientarte sobre nuestros productos. Buscas electrónica, hogar, moda u otra categoría. También puedes visitar nuestro Marketplace en marketplace.msmmystore.com."
   }
   if (/(precio|cuanto|cuesta|costo)/.test(lower)) {
-    return "Te ayudo con información de precios. Nuestros servicios digitales incluyen:\n• **Marca Personal** — $99.50\n• **Kit Esencial** — $249.50\n• **Rebranding** — desde $299.50\n• **Página Web** — $349.50\n• **Premium** — $580\n• **E-commerce** — $999\n• **Marketplace** — desde $2,999.50\n\n¿Sobre cuál necesitas más detalles?"
+    return "Te ayudo con información de precios. Nuestros servicios digitales incluyen: Marca Personal por 99.50, Kit Esencial por 249.50, Rebranding desde 299.50, Página Web por 349.50, Premium por 580, E-commerce por 999, y Marketplace desde 2,999.50 dolares. Sobre cual necesitas mas detalles?"
   }
   if (/(vender|tienda|vendedor|proveedor|marketplace)/.test(lower)) {
-    return "Para vender en el Marketplace MSM:\n1. Crea tu cuenta en zafiro.msmmystore.com\n2. Ve a **Marketplace → Crear Mi Tienda**\n3. Publica tus productos con fotos y precios\n4. Configura envíos y pagos\n\n¿Necesitas ayuda con algún paso específico?"
+    return "Para vender en el Marketplace MSM: crea tu cuenta en zafiro.msmmystore.com, ve a Marketplace, Crear Mi Tienda, publica tus productos con fotos y precios, y configura envios y pagos. Necesitas ayuda con algun paso especifico?"
   }
   if (/(pedido|orden|comprar|carrito)/.test(lower)) {
-    return "Para hacer un pedido:\n1. Explora productos en **Marketplace**\n2. Agrégalos al carrito\n3. Procede al checkout\n4. Elige método de pago y envío\n\n¿Ya tienes algo en mente que quieras comprar?"
+    return "Para hacer un pedido: explora productos en Marketplace, agregalos al carrito, procede al checkout, y elige metodo de pago y envio. Ya tienes algo en mente que quieras comprar?"
   }
   if (/(curso|escuela|aprender|estudiar|mentor)/.test(lower)) {
-    return "La **Escuela MSM** ofrece formación en:\n• Emprendimiento digital\n• Programación y desarrollo\n• Marketing y ventas\n• Gestión de negocios\n\nPróximamente abriremos inscripciones. ¿Te interesa algún tema en particular?"
+    return "La Escuela MSM ofrece formacion en emprendimiento digital, programacion y desarrollo, marketing y ventas, y gestion de negocios. Proximamente abriremos inscripciones. Te interesa algun tema en particular?"
   }
   if (/(servicio|digital|marca|web|app|diseño|branding)/.test(lower)) {
-    return "Nuestros **Servicios Digitales MSM** incluyen:\n• Marca personal — $99.50\n• Kit esencial completo — $249.50\n• Página web profesional — $349.50\n• E-commerce — $999\n• Marketplace multivendedor — $2,999.50\n\n¿Quieres que te oriente sobre algún servicio específico?"
+    return "Nuestros Servicios Digitales MSM incluyen: Marca personal por 99.50, Kit esencial completo por 249.50, Pagina web profesional por 349.50, E-commerce por 999, y Marketplace multivendedor por 2,999.50 dolares. Quieres que te oriente sobre algun servicio especifico?"
   }
   if (/(pago|wallet|billetera|saldo)/.test(lower)) {
-    return "**MSM Payments** está en desarrollo. Pronto ofrecerá:\n• Cartera digital\n• Transferencias\n• Pagos entre usuarios\n• Historial de movimientos\n\n¿Te gustaría saber más sobre el ecosistema de pagos?"
+    return "MSM Payments esta en desarrollo. Pronto ofrecera cartera digital, transferencias, pagos entre usuarios, e historial de movimientos. Te gustaria saber mas sobre el ecosistema de pagos?"
   }
   if (/(envio|entrega|delivery|transporte)/.test(lower)) {
-    return "**MSM Delivery** ofrecerá:\n• Envíos a Cuba y Estados Unidos\n• Seguimiento en tiempo real\n• Múltiples transportistas\n• Entrega express y estándar\n\nEstamos trabajando en integrarlo al Marketplace."
+    return "MSM Delivery ofrecera envios a Cuba y Estados Unidos, seguimiento en tiempo real, multiples transportistas, y entrega express y estandar. Estamos trabajando en integrarlo al Marketplace."
   }
   if (/(zafiro|ecosistema|plataforma)/.test(lower)) {
-    return "**ZAFIRO** es la primera Red Social del Conocimiento impulsada por Inteligencia Artificial.\n\nEl ecosistema MSM incluye:\n• **Marketplace** — Compra y venta\n• **ELIANA** — Guía inteligente (yo)\n• **Escuela MSM** — Formación\n• **Servicios Digitales** — Construcción de negocios\n• **Álbum de la Vida** — Legado familiar\n• **Consejo Invisible** — Gobernanza\n• **Mente Maestra** — Inteligencia colectiva\n• **Sistema de Referidos** — Crecimiento\n\n¿Qué parte del ecosistema te interesa?"
+    return "ZAFIRO es la primera Red Social del Conocimiento impulsada por Inteligencia Artificial. El ecosistema MSM incluye: Marketplace (compra y venta), ELIANA (guia inteligente), Escuela MSM (formacion), Servicios Digitales (construccion de negocios), Album de la Vida (legado familiar), Consejo Invisible (gobernanza), Mente Maestra (inteligencia colectiva), y Sistema de Referidos (crecimiento). Que parte del ecosistema te interesa?"
   }
   if (/(album|vida|familia|legado|genealogia|arbol)/.test(lower)) {
-    return "**Álbum de la Vida** es tu espacio para preservar el legado familiar:\n• Árbol genealógico interactivo\n• Línea de tiempo familiar\n• Fotos, videos y documentos\n• Tradiciones y recetas\n• Heredero digital\n\n**Planes**: Gratis (50 fotos), Pro ($9.99/mes), Familia ($19.99/mes)\n\n¿Te gustaría crear tu álbum familiar?"
+    return "Album de la Vida es tu espacio para preservar el legado familiar. Incluye arbol genealogico interactivo, linea de tiempo familiar, fotos, videos y documentos, tradiciones y recetas, y heredero digital. Planes: Gratis (50 fotos), Pro por 9.99 al mes, y Familia por 19.99 al mes. Te gustaria crear tu album familiar?"
   }
   if (/(consejo|invisible|gobernanza|votar|votacion)/.test(lower)) {
-    return "**El Consejo Invisible** es el órgano de gobernanza de MSM:\n• Miembros con rango Maestro o superior\n• Votación ponderada por rango\n• Gestiona presupuesto y estrategia\n• Aprueba propuestas de la comunidad\n• Máximo 12 consejeros, mandato 6 meses\n\n¿Quieres presentar una propuesta o saber cómo participar?"
+    return "El Consejo Invisible es el organo de gobernanza de MSM. Participan miembros con rango Maestro o superior, con votacion ponderada por rango. Gestiona presupuesto y estrategia, aprueba propuestas de la comunidad. Maximo doce consejeros con mandato de seis meses. Quieres presentar una propuesta o saber como participar?"
   }
   if (/(mente|maestra|conocimiento|colectivo|expert)/.test(lower)) {
-    return "**Mente Maestra** es el motor de inteligencia colectiva:\n• Contribuye con tu conocimiento\n• La IA organiza y conecta temas\n• Sistema de expertos: Aprendiz → Maestro\n• Mapa vivo del conocimiento\n• Colaboración en tiempo real\n\n¿Te gustaría contribuir o aprender de la comunidad?"
+    return "Mente Maestra es el motor de inteligencia colectiva. Puedes contribuir con tu conocimiento, la IA organiza y conecta temas, hay un sistema de expertos desde Aprendiz hasta Maestro, y un mapa vivo del conocimiento. Te gustaria contribuir o aprender de la comunidad?"
   }
   if (/(referir|referido|invitar|codigo|comision)/.test(lower)) {
-    return "**Sistema de Referidos MSM**:\n• Gana **+200 PTS** por cada referido registrado\n• **+10% comisión** en sus primeras 3 compras\n• Tu referido gana **+100 PTS** y **10% descuento**\n• Comparte tu código único personalizado\n\n¿Quieres conocer tu código de referido?"
+    return "Sistema de Referidos MSM: ganas 200 PTS por cada referido registrado, mas un diez por ciento de comision en sus primeras tres compras. Tu referido gana 100 PTS y un diez por ciento de descuento. Comparte tu codigo unico personalizado. Quieres conocer tu codigo de referido?"
   }
   if (/(seguridad|contraseña|2fa|privacidad|cuenta)/.test(lower)) {
-    return "**Seguridad de tu cuenta MSM**:\n• Contraseña fuerte (8+ caracteres, mayúsculas, minúsculas, números, símbolos)\n• Activa **2FA** con Google Authenticator o Authy\n• No compartas tus credenciales\n• Reporta actividad sospechosa\n\n¿Necesitas ayuda con la seguridad de tu cuenta?"
+    return "Seguridad de tu cuenta MSM: usa contrasena fuerte con ocho o mas caracteres, mayusculas, minusculas, numeros y simbolos. Activa 2FA con Google Authenticator o Authy. No compartas tus credenciales. Reporta actividad sospechosa. Necesitas ayuda con la seguridad de tu cuenta?"
   }
   if (/(comunidad|social|grupo|circle|conectar)/.test(lower)) {
-    return "**Comunidad ZAFIRO**:\n• Publica en tu muro y conecta con otros\n• Únete a Círculos: Gemología, IA, Marketing, Emprendimiento\n• Mensajería directa con otros miembros\n• Eventos semanales y webinars\n\n¿Quieres unirte a algún círculo de interés?"
+    return "Comunidad ZAFIRO: publica en tu muro y conecta con otros, unite a Circulos de Gemologia, IA, Marketing o Emprendimiento, usa mensajeria directa con otros miembros, y participa en eventos semanales y webinars. Quieres unirte a algun circulo de interes?"
   }
   if (/(rangos|nivel|pts|puntos|recompensa|reconocimiento)/.test(lower)) {
-    return "**Rangos del Ecosistema MSM**:\n• Miembro (0 PTS)\n• Colaborador (500 PTS)\n• Contribuidor (2,000 PTS)\n• Mentor (5,000 PTS)\n• Expert (10,000 PTS)\n• Maestro (25,000 PTS)\n• Líder (50,000 PTS)\n\nGana PTS participando: publicar, comentar, vender, invitar.\n\n¿Cuántos PTS tienes actualmente?"
+    return "Rangos del Ecosistema MSM: Miembro (0 PTS), Colaborador (500 PTS), Contribuidor (2,000 PTS), Mentor (5,000 PTS), Expert (10,000 PTS), Maestro (25,000 PTS), y Lider (50,000 PTS). Ganas PTS participando: publicar, comentar, vender e invitar. Cuantos PTS tienes actualmente?"
   }
   if (/(don miguel|soria|fundador|ceo|miguel)/.test(lower)) {
-    return "**Don Miguel Soria Martínez** es el fundador y CEO de MSM MY STORE LLC.\n\nValores: conocimiento compartido, empoderamiento digital, legado familiar, excelencia y comunidad.\n\nWhatsApp: +1 772 301 5523\n\n¿Te gustaría enviarle un mensaje?"
+    return "Don Miguel Soria Martinez es el fundador y CEO de MSM MY STORE LLC. Sus valores son conocimiento compartido, empoderamiento digital, legado familiar, excelencia y comunidad. WhatsApp: mas uno 772 301 5523. Te gustaria enviarle un mensaje?"
   }
   if (/(zafiro|rubies|corindon|gema|piedra|diamante|esmeralda|amatista)/.test(lower)) {
-    return "**Guía de Gemología MSM**:\n• **Zafiros**: Cornflower blue, Kashmir, Ceylon, Madagascar\n• **Rubíes**: Pigeon blood, Burma, Vietnam\n• **Diamantes**: 4 C (Color, Claridad, Corte, Quilates)\n• **Esmeraldas**: Colombia, Zambia, Brasil\n\nTratamientos: Térmico (estándar), Difusión (debe divulgarse)\n¿Qué piedra te interesa?"
+    return "Guia de Gemologia MSM: Zafiros (Cornflower blue, Kashmir, Ceylon, Madagascar), Rubies (Pigeon blood, Burma, Vietnam), Diamantes (4 C: Color, Claridad, Corte, Quilates), y Esmeraldas (Colombia, Zambia, Brasil). Tratamientos: Termico (estandar) y Difusion (debe divulgarse). Que piedra te interesa?"
   }
 
-  return "Puedo ayudarte con productos, precios, pedidos, servicios digitales, el marketplace, cursos, álbum de la vida, consejo invisible, referidos, gemología y todo el ecosistema MSM. ¿Qué necesitas?"
+  return FALLBACK_RESPONSES.default
 }
 
 // --- Gemini API ---
+
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function callGeminiWithRetry(
+  message: string,
+  history: Array<{ role: string; text?: string; content?: string }>,
+  userId?: string,
+  maxRetries = 2
+): Promise<string | null> {
+  let lastError: Error | null = null
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000)
+      await sleep(delay)
+    }
+    try {
+      const result = await callGeminiAPI(message, history, userId)
+      if (result) return result
+      lastError = new Error("Gemini returned empty response")
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown Gemini error")
+      const msg = lastError.message.toLowerCase()
+      if (msg.includes("not found") || msg.includes("not supported") || msg.includes("not enabled")) break
+    }
+  }
+  return null
+}
 
 async function callGeminiAPI(
   message: string,
@@ -460,8 +475,9 @@ REGLAS FUNDAMENTALES:
 6. Cuando el usuario necesite intervención humana (reembolsos, disputas, quejas, problemas con pedidos), responde: "Voy a conectar con soporte humano" y añade el marcador [ESCALAR_A_HUMANO] al final de tu respuesta.
 7. Mantén un tono cálido, profesional y servicial. Usa "Bendiciones" como saludo.
 8. Responde en el mismo idioma del usuario.
-9. Sé detallada y completa en tus respuestas. Incluye precios, pasos, requisitos cuando sea relevante.
+  9. Sé detallada y completa en tus respuestas. Incluye precios, pasos, requisitos cuando sea relevante.
 10. No reveles que eres una IA si no te lo preguntan directamente. Si te lo preguntan, responde con honestidad.
+11. Responde en lenguaje natural y conversacional. NO USES markdown, negritas, asteriscos ni formato especial en tu respuesta. Escribe como una persona hablando.
 
 CAPACIDADES AVANZADAS:
 • Búsqueda y recomendación de productos del catálogo MSM con precios exactos
@@ -487,47 +503,32 @@ CAPACIDADES AVANZADAS:
     ...geminiHistory,
     { role: "user", parts: [{ text: message }] },
   ]
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+  const requestId = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)
+
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY!,
-        },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: {
-            parts: [{
-              text: systemPrompt
-            }]
-          },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 800,
-          },
-        }),
-        signal: controller.signal,
-      }
-    )
-    clearTimeout(timeoutId)
-    if (!response.ok) {
-      console.error("Gemini API error:", response.status)
-      return null
-    }
-    const data = await response.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-    return text || null
+    const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY })
+    const response = await ai.models.generateContent({
+      model: AI_MODEL,
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.7,
+        maxOutputTokens: 800,
+        httpOptions: { timeout: TIMEOUT_MS },
+      },
+    })
+
+    const text = response?.candidates?.[0]?.content?.parts?.[0]?.text
+    if (text) return text
+
+    console.error(`Gemini: no content [model=${AI_MODEL}, requestId=${requestId}]`)
+    return null
   } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === "AbortError") {
-      console.error("Gemini API timeout")
-    } else {
-      console.error("Gemini API error:", error)
-    }
+    const errInfo = error instanceof Error
+      ? `name=${error.name}, msg=${error.message}`
+      : "unknown"
+    console.error(`Gemini: error [model=${AI_MODEL}, requestId=${requestId}, err=${errInfo}]`)
     return null
   }
 }
@@ -545,31 +546,29 @@ export async function POST(request: NextRequest) {
     const rateLimitKey = getRateLimitKey(request)
     const { allowed } = checkRateLimit(rateLimitKey)
     if (!allowed) {
-      return NextResponse.json(
-        { text: "Demasiadas solicitudes. Intenta de nuevo en un minuto." },
-        { status: 429 }
-      )
+      return NextResponse.json({
+        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.",
+        error: "rate_limited",
+      })
     }
 
     let body: unknown
     try {
       body = await request.json()
     } catch {
-      return NextResponse.json(
-        { text: "Solicitud inválida. Envía un JSON con el campo 'message'." },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        text: "Bendiciones. No recibí tu mensaje correctamente. Por favor, escríbelo de nuevo.",
+        error: "invalid_body",
+      })
     }
 
     // Zod validation
     const parsed = ChatRequestSchema.safeParse(body)
     if (!parsed.success) {
-      const issues = parsed.error.issues
-      const firstError = issues[0]?.message || "Datos inválidos"
-      return NextResponse.json(
-        { text: firstError },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        text: "Bendiciones. No recibí tu mensaje correctamente. Por favor, escríbelo de nuevo.",
+        error: "validation_error",
+      })
     }
 
     const { message: trimmedMessage, history: validHistory } = parsed.data
@@ -581,45 +580,48 @@ export async function POST(request: NextRequest) {
     // Server-side input security
     const inputCheck = sanitizeServerInput(trimmedMessage)
     if (!inputCheck.safe) {
-      return NextResponse.json(
-        { text: "No puedo procesar ese mensaje. Por favor, reformula tu consulta." },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        text: "Bendiciones. No puedo procesar ese mensaje. Por favor, reformula tu consulta."
+      })
     }
     const safeMessage = inputCheck.filtered || trimmedMessage
 
-    if (GEMINI_API_KEY) {
+    if (GOOGLE_API_KEY) {
       try {
-        const geminiText = await callGeminiAPI(safeMessage, validHistory, effectiveUserId)
+        const geminiText = await callGeminiWithRetry(safeMessage, validHistory, effectiveUserId)
         if (geminiText) {
           const filteredResponse = filterServerOutput(geminiText)
 
-          // Detect knowledge gaps for low-confidence responses
           detectKnowledgeGaps(safeMessage, filteredResponse, 0.5).catch(() => {})
-
-          // Log query for analytics
           knowledgeSearch.search({ query: safeMessage, limit: 1 }).catch(() => {})
 
-          return NextResponse.json({ text: filteredResponse })
+          return NextResponse.json({
+            text: filteredResponse,
+            source: "ai_provider",
+            model: AI_MODEL,
+          })
         }
-      } catch (err) {
-        console.error("Gemini call failed, using fallback:", err)
+      } catch {
+        console.error("Gemini temporarily unavailable")
       }
-      const fallbackText = await getFallbackResponse(safeMessage, validHistory)
-      const filteredFallback = filterServerOutput(fallbackText)
       return NextResponse.json({
-        text: `${filteredFallback}\n\n*(Nota: El servicio de IA experimentó una interrupción temporal. Respuesta proporcionada por la base de conocimiento local de ZAFIRO.)*`
-      })
+        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.",
+        error: "ai_provider_unavailable",
+      }, { status: 503 })
     }
 
     const fallbackText = await getFallbackResponse(safeMessage, validHistory)
     const filteredFallback = filterServerOutput(fallbackText)
-    return NextResponse.json({ text: filteredFallback })
+    return NextResponse.json({
+      text: filteredFallback,
+      source: "knowledge_base",
+      model: "engine-v2.0",
+    })
   } catch (err) {
     console.error("Chat API error:", err)
-    return NextResponse.json(
-      { text: "Error interno del servidor. El equipo de ZAFIRO ha sido notificado." },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado. Inténtalo nuevamente en unos segundos.",
+      error: "server_error",
+    }, { status: 500 })
   }
 }

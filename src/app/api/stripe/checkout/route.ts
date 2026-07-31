@@ -12,13 +12,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { type, items, planId, userId, orderId, source } = body as {
+    const { type, items, planId, userId, orderId, source, successUrl, cancelUrl } = body as {
       type: "membership" | "marketplace"
       items?: Array<{ name: string; price: number; quantity: number; image?: string }>
       planId?: string
       userId?: string
       orderId?: string
       source?: string
+      successUrl?: string
+      cancelUrl?: string
     }
 
     const stripe = getStripe()
@@ -46,8 +48,8 @@ export async function POST(request: NextRequest) {
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: plan.priceId, quantity: 1 }],
-        success_url: STRIPE_CONFIG.checkout.successUrl,
-        cancel_url: STRIPE_CONFIG.checkout.cancelUrl,
+        success_url: successUrl || STRIPE_CONFIG.checkout.successUrl,
+        cancel_url: cancelUrl || STRIPE_CONFIG.checkout.cancelUrl,
         metadata,
         subscription_data: {
           metadata,
@@ -74,11 +76,13 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
       }))
 
+      const defaultSuccess = `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/marketplace/pedidos?success=true&session_id={CHECKOUT_SESSION_ID}`
+      const defaultCancel = `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/marketplace/pedidos?canceled=true`
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: lineItems,
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/marketplace/pedidos?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/marketplace/pedidos?canceled=true`,
+        success_url: successUrl || defaultSuccess,
+        cancel_url: cancelUrl || defaultCancel,
         metadata,
       })
 

@@ -45,11 +45,14 @@ export default function CrearProductoPage() {
 
   useEffect(() => {
     if (!isSupabaseAvailable() || !session?.id) {
-      setLoadingStore(false)
+      Promise.resolve().then(() => setLoadingStore(false))
       return
     }
     const supabase = getSupabaseClient()
-    if (!supabase) { setLoadingStore(false); return }
+    if (!supabase) {
+      Promise.resolve().then(() => setLoadingStore(false))
+      return
+    }
 
     async function load() {
       const { data: store } = await supabase!

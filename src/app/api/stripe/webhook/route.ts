@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getStripe, getWebhookSecret, isStripeAvailable } from "@/lib/stripe/server"
 import { isEventProcessed, markEventProcessed } from "@/lib/stripe/idempotency"
-import { getPlanByPriceId } from "@/lib/stripe/config"
+import { getPlanByPriceId, getPlanById } from "@/lib/stripe/config"
+import { getSupabaseAdminClient } from "@/lib/supabase-admin"
+import { getSupabaseServerClient } from "@/lib/supabase-server"
 import type Stripe from "stripe"
 
 export const runtime = "nodejs"
@@ -40,9 +42,30 @@ export async function POST(request: NextRequest) {
     await handleEvent(event)
   } catch (err) {
     console.error(`Error handling webhook event ${event.type}:`, err)
+    return NextResponse.json({ error: "Event processing failed" }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })
+}
+
+async function getDb() {
+  const admin = getSupabaseAdminClient()
+  if (admin) return admin
+  return await getSupabaseServerClient()
+}
+
+async function updateProfilePlan(userId: string, planId: string, subscriptionId?: string, status?: string) {
+  const db = await getDb()
+  if (!db) return
+
+  const updates: Record<string, string | null> = {
+    plan: planId,
+    updated_at: new Date().toISOString(),
+  }
+  if (subscriptionId) updates.stripe_subscription_id = subscriptionId
+  if (status) updates.stripe_subscription_status = status
+
+  await db.from("profiles").update(updates).eq("id", userId)
 }
 
 async function handleEvent(event: Stripe.Event): Promise<void> {
@@ -55,15 +78,6 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
       await handleCheckoutExpired(event.data.object as Stripe.Checkout.Session)
       break
 
-    case "payment_intent.succeeded":
-      await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent)
-      break
-
-    case "payment_intent.payment_failed":
-      await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent)
-      break
-
-    case "customer.subscription.created":
     case "customer.subscription.updated":
       await handleSubscriptionChange(event.data.object as Stripe.Subscription)
       break
@@ -80,10 +94,6 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
       await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice)
       break
 
-    case "invoice.payment_action_required":
-      await handleInvoiceActionRequired(event.data.object as Stripe.Invoice)
-      break
-
     case "charge.refunded":
       await handleChargeRefunded(event.data.object as Stripe.Charge)
       break
@@ -97,94 +107,94 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
   const source = session.metadata?.source || "marketplace"
   const userId = session.metadata?.userId
 
-  console.log(`✅ Checkout completed: ${session.id} | source: ${source} | amount: ${session.amount_total}`)
+  if (!userId) return
 
-  if (source === "membership" && session.metadata?.planId && userId) {
-    const plan = getPlanByPriceId(
-      (session.subscription as unknown as Stripe.Subscription)?.items?.data?.[0]?.price?.id || ""
-    )
+  if (source === "membership") {
+    const priceId = session.metadata?.priceId || session.metadata?.planId
+    const plan = priceId ? getPlanByPriceId(priceId) || getPlanById(priceId) : null
+
     if (plan) {
-      console.log(`📦 Membership activated: ${plan.name} for user ${userId}`)
+      await updateProfilePlan(userId, plan.id, session.subscription as string, "active")
+      console.log(`Membership activated: ${plan.id} for user ${userId}`)
     }
   }
 
   if (source === "marketplace" && session.metadata?.orderId) {
-    console.log(`🛒 Marketplace order paid: ${session.metadata.orderId}`)
-  }
-
-  if (source === "academia") {
-    console.log(`🎓 Academy enrollment paid for user ${userId}`)
-  }
-
-  if (source === "inventa") {
-    console.log(`💡 Inventa submission paid for user ${userId}`)
-  }
-
-  if (source === "cultura") {
-    console.log(`🎭 Cultura event paid for user ${userId}`)
-  }
-
-  if (source === "solver") {
-    console.log(`🔧 Solver Link service paid for user ${userId}`)
+    const db = await getDb()
+    if (db) {
+      await db.from("orders").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", session.metadata.orderId)
+      console.log(`Marketplace order paid: ${session.metadata.orderId}`)
+    }
   }
 }
 
 async function handleCheckoutExpired(session: Stripe.Checkout.Session): Promise<void> {
-  console.log(`⏰ Checkout expired: ${session.id} | source: ${session.metadata?.source}`)
-}
-
-async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent): Promise<void> {
-  console.log(`💰 Payment succeeded: ${intent.id} | amount: ${intent.amount} | currency: ${intent.currency}`)
-}
-
-async function handlePaymentIntentFailed(intent: Stripe.PaymentIntent): Promise<void> {
-  console.log(`❌ Payment failed: ${intent.id} | error: ${intent.last_payment_error?.message}`)
+  console.log(`Checkout expired: ${session.id}`)
 }
 
 async function handleSubscriptionChange(subscription: Stripe.Subscription): Promise<void> {
   const userId = subscription.metadata?.userId
-  const planId = subscription.metadata?.planId
-  const status = subscription.status
+  if (!userId) return
 
-  console.log(`🔄 Subscription ${subscription.id}: status=${status} | user=${userId} | plan=${planId}`)
+  const priceId = subscription.items?.data?.[0]?.price?.id
+  const plan = priceId ? getPlanByPriceId(priceId) : null
+  const planId = plan?.id || subscription.metadata?.planId || "unknown"
 
-  if (status === "active" && userId && planId) {
-    console.log(`✅ Subscription active for user ${userId}: plan ${planId}`)
-  }
-
-  if (status === "past_due" && userId) {
-    console.log(`⚠️ Subscription past due for user ${userId}`)
-  }
-
-  if (status === "incomplete_expired" && userId) {
-    console.log(`⏰ Subscription expired incomplete for user ${userId}`)
-  }
+  await updateProfilePlan(userId, planId, subscription.id, subscription.status)
+  console.log(`Subscription ${subscription.id}: status=${subscription.status} user=${userId} plan=${planId}`)
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
   const userId = subscription.metadata?.userId
-  console.log(`❌ Subscription deleted: ${subscription.id} | user=${userId}`)
+  if (!userId) return
 
-  if (userId) {
-    console.log(`🔄 Membership deactivated for user ${userId}`)
-  }
+  await updateProfilePlan(userId, "free", subscription.id, "canceled")
+  console.log(`Subscription deleted: ${subscription.id} user=${userId} → plan reset to free`)
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
-  const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string | null
-  console.log(`💰 Invoice paid: ${invoice.id} | subscription: ${subscriptionId} | amount: ${invoice.amount_paid}`)
+  const raw = invoice as unknown as Record<string, unknown>
+  const subscriptionId = typeof raw.subscription === "string" ? raw.subscription : null
+  const userId = typeof raw.metadata === "object" && raw.metadata ? (raw.metadata as Record<string, string>).userId : null
+  console.log(`Invoice paid: ${invoice.id} subscription=${subscriptionId} amount=${invoice.amount_paid}`)
+
+  if (subscriptionId && userId) {
+    const db = await getDb()
+    if (db) {
+      await db.from("payments").insert({
+        user_id: userId,
+        stripe_invoice_id: invoice.id,
+        stripe_subscription_id: subscriptionId,
+        amount: invoice.amount_paid,
+        currency: invoice.currency,
+        status: "paid",
+        created_at: new Date().toISOString(),
+      })
+    }
+  }
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-  const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string | null
-  console.log(`❌ Invoice payment failed: ${invoice.id} | subscription: ${subscriptionId}`)
-}
+  const userId = invoice.metadata?.userId
+  if (!userId) return
 
-async function handleInvoiceActionRequired(invoice: Stripe.Invoice): Promise<void> {
-  const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string | null
-  console.log(`⚠️ Invoice payment action required: ${invoice.id} | subscription: ${subscriptionId}`)
+  const db = await getDb()
+  if (db) {
+    await db.from("profiles").update({
+      stripe_subscription_status: "past_due",
+      updated_at: new Date().toISOString(),
+    }).eq("id", userId)
+  }
+  console.log(`Invoice payment failed: ${invoice.id} user=${userId} → past_due`)
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge): Promise<void> {
-  console.log(`💸 Charge refunded: ${charge.id} | amount: ${charge.amount_refunded} | reason: ${charge.refunds?.data?.[0]?.reason}`)
+  console.log(`Charge refunded: ${charge.id} amount=${charge.amount_refunded}`)
+  const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null
+  if (paymentIntentId) {
+    const db = await getDb()
+    if (db) {
+      await db.from("payments").update({ status: "refunded" }).eq("stripe_payment_intent_id", paymentIntentId)
+    }
+  }
 }

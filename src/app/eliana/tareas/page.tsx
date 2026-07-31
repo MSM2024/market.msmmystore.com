@@ -40,7 +40,7 @@ export default function TareasPage() {
     fetch("/api/eliana/actions")
       .then(r => r.json())
       .then(data => setActions(data.actions || []))
-      .catch(() => {})
+      .catch(() => console.warn("ELIANA: Failed to load actions"))
       .finally(() => setLoading(false))
   }, [session])
 

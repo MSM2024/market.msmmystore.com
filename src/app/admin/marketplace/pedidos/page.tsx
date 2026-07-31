@@ -43,8 +43,6 @@ export default function AdminMarketplacePedidosPage() {
   const [search, setSearch] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => { loadOrders() }, [])
-
   async function loadOrders() {
     if (!isSupabaseAvailable()) { setLoading(false); return }
     const supabase = getSupabaseClient()
@@ -53,6 +51,8 @@ export default function AdminMarketplacePedidosPage() {
     setOrders((data || []) as OrderWithItems[])
     setLoading(false)
   }
+
+  useEffect(() => { Promise.resolve().then(() => loadOrders()) }, [])
 
   const filtered = orders.filter(o => {
     if (activeTab !== "all") {

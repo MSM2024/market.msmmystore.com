@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import {
@@ -42,7 +42,8 @@ function formatNumber(n: number): string {
 export default function PublicCreatorProfile() {
   const params = useParams()
   const username = params.username as string
-  const [profile, setProfile] = useState<ReturnType<typeof getCreatorProfile>>(() => getCreatorProfile(username))
+  const [profile, setProfile] = useState<Awaited<ReturnType<typeof getCreatorProfile>>>(null)
+  useEffect(() => { getCreatorProfile(username).then(setProfile) }, [username])
   const [following, setFollowing] = useState(() => {
     if (typeof window === "undefined") return false
     const stored = JSON.parse(localStorage.getItem("zafiro_following") || "[]")

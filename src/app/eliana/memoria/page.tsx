@@ -34,7 +34,7 @@ export default function MemoriaPage() {
     fetch("/api/eliana/intakes")
       .then(r => r.json())
       .then(data => setIntakes(data.intakes || []))
-      .catch(() => {})
+      .catch(() => console.warn("ELIANA: Failed to load intakes"))
       .finally(() => setLoading(false))
   }, [session])
 

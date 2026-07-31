@@ -104,6 +104,7 @@ function extractEntities(text: string): string[] {
     { pattern: /envio|delivery|transporte|logistica/i, entity: "envios" },
     { pattern: /eliana|guia.*inteligente/i, entity: "eliana" },
     { pattern: /don.*miguel|miguel.*soria|fundador|ceo/i, entity: "don_miguel" },
+    { pattern: /biblioteca|libro.*don|obra.*miguel|soria.*martinez.*obra|yo soy|sueños.*realidad|maquina.*futuro|lenguaje.*positivo|telefono.*yo.soy/i, entity: "biblioteca_viva" },
     { pattern: /zafiro.*plataforma|red.*social.*conocimiento/i, entity: "plataforma_zafiro" },
     { pattern: /comunidad|social|grupo|circulo/i, entity: "comunidad" },
     { pattern: /rango|nivel|pts|puntos/i, entity: "rangos" },
@@ -289,6 +290,7 @@ function extractTopics(text: string, entities: string[]): string[] {
     comunidad: "Comunidad ZAFIRO",
     rangos: "Rangos MSM",
     seguridad: "Seguridad",
+    biblioteca_viva: "Biblioteca Viva de Don Miguel",
     servicios_digitales: "Servicios Digitales",
     nevera: "Productos",
     televisor: "Productos",
@@ -307,6 +309,7 @@ function extractTopics(text: string, entities: string[]): string[] {
 
   // Also extract from keywords
   if (/gemologia|piedra|gema|corindon/.test(lower)) topics.push("Gemologia")
+  if (/biblioteca|libro|obra|lectura|literatura.*don/.test(lower)) topics.push("Biblioteca Viva de Don Miguel")
   if (/servicio|digital|marca|web|app/.test(lower)) topics.push("Servicios Digitales")
   if (/producto|comprar|equipo/.test(lower)) topics.push("Marketplace MSM")
 
@@ -331,6 +334,7 @@ const CROSS_REF_MAP: Record<string, string[]> = {
   "Rangos MSM": ["Sistema de Referidos", "Escuela MSM", "Comunidad ZAFIRO"],
   "Seguridad": ["MSM Payments", "Comunidad ZAFIRO"],
   "Servicios Digitales": ["Escuela MSM", "Marketplace MSM"],
+  "Biblioteca Viva de Don Miguel": ["Don Miguel Soria", "Album de la Vida", "ELIANA", "ZAFIRO"],
   "Gemologia": ["ELIANA", "Marketplace MSM"],
   "Productos": ["Marketplace MSM", "MSM Payments", "MSM Delivery"],
 }
@@ -474,9 +478,15 @@ function generateFollowUps(
         suggestions.push("¿Te gustaría ver el paquete completo de servicios?")
         suggestions.push("¿Quieres que te oriente sobre el servicio ideal para ti?")
         break
+      case "Biblioteca Viva de Don Miguel":
+        suggestions.push("¿Quieres explorar los libros de Don Miguel en la Biblioteca Viva?")
+        suggestions.push("¿Te interesa el poder del Yo Soy o los Sueños que Crean Realidades?")
+        suggestions.push("Puedo hablarte de la Máquina del Futuro o el Teléfono del Yo Soy")
+        break
       case "Gemologia":
         suggestions.push("¿Te gustaría aprender sobre algún tipo de gema específico?")
         suggestions.push("¿Conoces el Valle de Mogok y sus zafiros legendarios?")
+        suggestions.push("¿Quieres visitar la Biblioteca Viva de Don Miguel?")
         break
       case "Seguridad":
         suggestions.push("¿Ya tienes activada la autenticación de dos factores?")
