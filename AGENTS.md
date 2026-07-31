@@ -1,5 +1,14 @@
 # ZAFIRO Project — Workflow & Commands
 
+## ⚖️ REGLAS DE GOBIERNO DEL PROYECTO (vigentes)
+1. **NO desarrollar ninguna función nueva** hasta que las existentes estén completamente terminadas, probadas e integradas.
+2. Un módulo se considera **finalizado SOLO** cuando funciona de extremo a extremo con datos reales y queda **validado por Don Miguel** en una prueba real (ver `docs/status/PLAN_REORGANIZACION_FASES.md` → "CRITERIO DE TERMINADO").
+3. "Existe la UI" ≠ "terminado". Una función con UI pero sin flujo real completo se reporta con su % real (ver `docs/status/AUDITORIA_REAL_2026-07-30.md`).
+4. Orden de trabajo por fases (FASE 0 → 4). No se salta una fase. Una tarea a la vez.
+5. Solo se toca Marketplace con autorización expresa. No hacer cambios destructivos sin confirmar.
+6. Cada cierre de fase: pruebas verdes (eslint 0, build, vitest), commit, merge a main, despliegue, validación de Don Miguel.
+7. Documentar siempre en `docs/status/` archivos cambiados, motivos y evidencias de prueba.
+
 ## Server
 - **Start server**: `Start-Process -FilePath "cmd.exe" -ArgumentList "/c npx next dev -p 3001" -NoNewWindow`
 - **Kill server**: `Get-Process -Name node | Stop-Process -Force`
