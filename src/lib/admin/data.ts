@@ -15,6 +15,12 @@ function hasDb(): boolean {
   return isSupabaseAvailable() && !!getClient()
 }
 
+const emptyStats: PlatformStats = {
+  totalUsers: 0, totalQuestions: 0, totalCommunities: 0,
+  ptsCirculating: 0, pendingReports: 0, pendingStoreApprovals: 0,
+  pendingProductApprovals: 0, totalOrders: 0, totalRevenue: 0,
+}
+
 // --- Platform Stats ---
 export interface PlatformStats {
   totalUsers: number
@@ -29,40 +35,42 @@ export interface PlatformStats {
 }
 
 export async function fetchPlatformStats(): Promise<PlatformStats> {
-  if (!hasDb()) {
-    return {
-      totalUsers: 0, totalQuestions: 0, totalCommunities: 0,
-      ptsCirculating: 0, pendingReports: 0, pendingStoreApprovals: 0,
-      pendingProductApprovals: 0, totalOrders: 0, totalRevenue: 0,
-    }
-  }
+  if (!hasDb()) return emptyStats
 
   const db = getClient()!
+  const safeCount = async (table: string, query?: (q: any) => any) => {
+    try {
+      let q = db.from(table).select("id", { count: "exact", head: true })
+      if (query) q = query(q)
+      const res = await q
+      return res.count || 0
+    } catch { return 0 }
+  }
 
-  const [users, questions, communities, reports, pendingStores, pendingProducts, orders] = await Promise.all([
-    db.from("profiles").select("id", { count: "exact", head: true }),
-    db.from("questions").select("id", { count: "exact", head: true }),
-    db.from("communities").select("id", { count: "exact", head: true }),
-    db.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    db.from("marketplace_stores").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
-    db.from("marketplace_products").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
-    db.from("marketplace_orders").select("id,status,total_amount"),
+  const [totalUsers, totalQuestions, totalCommunities, pendingReports, pendingStoreApprovals, pendingProductApprovals, orders] = await Promise.all([
+    safeCount("profiles"),
+    safeCount("questions"),
+    safeCount("communities"),
+    safeCount("reports", (q: any) => q.eq("status", "pending")),
+    safeCount("marketplace_stores", (q: any) => q.eq("status", "pending_review")),
+    safeCount("marketplace_products", (q: any) => q.eq("status", "pending_review")),
+    (async () => {
+      try {
+        const res = await db.from("marketplace_orders").select("id,status,total_amount")
+        return res.data || []
+      } catch { return [] as any[] }
+    })(),
   ])
 
-  const orderData = orders.data || []
-  const completedRevenue = orderData
-    .filter((o: { status: string }) => ["paid", "completed", "delivered"].includes(o.status))
-    .reduce((sum: number, o: { total_amount: number }) => sum + (o.total_amount || 0), 0)
+  const completedRevenue = orders
+    .filter((o: any) => ["paid", "completed", "delivered"].includes(o.status))
+    .reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0)
 
   return {
-    totalUsers: users.count || 0,
-    totalQuestions: questions.count || 0,
-    totalCommunities: communities.count || 0,
+    totalUsers, totalQuestions, totalCommunities,
     ptsCirculating: 0,
-    pendingReports: reports.count || 0,
-    pendingStoreApprovals: pendingStores.count || 0,
-    pendingProductApprovals: pendingProducts.count || 0,
-    totalOrders: orderData.length,
+    pendingReports, pendingStoreApprovals, pendingProductApprovals,
+    totalOrders: orders.length,
     totalRevenue: completedRevenue,
   }
 }
@@ -78,31 +86,31 @@ export interface AdminReport {
 
 export async function fetchRecentReports(limit = 20): Promise<AdminReport[]> {
   if (!hasDb()) return []
-  const db = getClient()!
+  try {
+    const db = getClient()!
+    const { data, error } = await db
+      .from("reports")
+      .select("id, reason, status, created_at, reporter_id")
+      .order("created_at", { ascending: false })
+      .limit(limit)
 
-  const { data, error } = await db
-    .from("reports")
-    .select("id, reason, status, created_at, reporter_id")
-    .order("created_at", { ascending: false })
-    .limit(limit)
+    if (error || !data) return []
 
-  if (error || !data) return []
+    const userIds = [...new Set(data.map((r: { reporter_id: string }) => r.reporter_id).filter(Boolean))]
+    if (userIds.length === 0) return data.map((r: AdminReport) => ({ ...r, user: "unknown" }))
 
-  // Fetch usernames for reporters
-  const userIds = [...new Set(data.map((r: { reporter_id: string }) => r.reporter_id).filter(Boolean))]
-  if (userIds.length === 0) return data.map((r: AdminReport) => ({ ...r, user: "unknown" }))
+    const { data: profiles } = await db
+      .from("profiles")
+      .select("id, username")
+      .in("id", userIds)
 
-  const { data: profiles } = await db
-    .from("profiles")
-    .select("id, username")
-    .in("id", userIds)
+    const profileMap = new Map((profiles || []).map((p: { id: string; username: string }) => [p.id, p.username]))
 
-  const profileMap = new Map((profiles || []).map((p: { id: string; username: string }) => [p.id, p.username]))
-
-  return data.map((r: AdminReport & { reporter_id: string }) => ({
-    ...r,
-    user: profileMap.get(r.reporter_id) || "unknown",
-  }))
+    return data.map((r: AdminReport & { reporter_id: string }) => ({
+      ...r,
+      user: profileMap.get(r.reporter_id) || "unknown",
+    }))
+  } catch { return [] }
 }
 
 // --- Audit Logs ---
@@ -171,6 +179,27 @@ export async function fetchUsers(limit = 50, offset = 0): Promise<AdminUser[]> {
 
   if (error || !data) return []
   return data as AdminUser[]
+}
+
+// --- Report Actions ---
+export async function resolveReport(id: string): Promise<boolean> {
+  if (!hasDb()) return false
+  const { error } = await getClient()!
+    .from("reports")
+    .update({ status: "resolved", resolved_at: new Date().toISOString() })
+    .eq("id", id)
+  if (error) { console.error("resolveReport:", error); return false }
+  return true
+}
+
+export async function dismissReport(id: string): Promise<boolean> {
+  if (!hasDb()) return false
+  const { error } = await getClient()!
+    .from("reports")
+    .update({ status: "dismissed", dismissed_at: new Date().toISOString() })
+    .eq("id", id)
+  if (error) { console.error("dismissReport:", error); return false }
+  return true
 }
 
 // --- Marketplace Orders (Admin) ---

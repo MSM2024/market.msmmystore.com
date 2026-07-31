@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
-const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/recover", "/auth/verify", "/auth/update-password", "/eliana", "/eliana/chat", "/eliana/conversaciones", "/eliana/memoria", "/eliana/tareas", "/eliana/configuracion"]
+const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/recover", "/auth/verify", "/auth/update-password", "/auth/reset-password", "/auth/callback", "/eliana", "/eliana/chat", "/eliana/conversaciones", "/eliana/memoria", "/eliana/tareas", "/eliana/configuracion"]
 const marketplacePublicRoutes = ["/marketplace", "/marketplace/productos", "/marketplace/tiendas"]
 const sellerRoutes = ["/marketplace/vender", "/marketplace/crear-tienda", "/dashboard"]
 const adminRoutes = ["/admin"]
@@ -14,7 +14,7 @@ function isPublicRoute(pathname: string): boolean {
   return false
 }
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   const host = (request.headers.get("host") || "").split(":")[0].toLowerCase()
 
@@ -94,9 +94,13 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicRoute(pathname)) return NextResponse.next()
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const hasSupabase = supabaseUrl && supabaseUrl !== "https://your-project.supabase.co" && supabaseAnonKey && supabaseAnonKey !== "your-anon-key-here"
+  const isInvalid = (v?: string) => !v || (v.startsWith("[") && v.endsWith("]")) || v === "your-anon-key-here" || v === "https://your-project.supabase.co"
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const rawAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const rawPub = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  const supabaseUrl = isInvalid(rawUrl) ? undefined : rawUrl
+  const supabaseAnonKey = isInvalid(rawAnon) ? (isInvalid(rawPub) ? undefined : rawPub) : rawAnon
+  const hasSupabase = !!(supabaseUrl && supabaseAnonKey)
 
   if (!hasSupabase) return NextResponse.next()
 
