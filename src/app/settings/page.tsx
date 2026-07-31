@@ -1,12 +1,14 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Bell, Eye, Globe, Shield, Palette, Moon, Volume2, User, ChevronRight, LogOut, Trash2, Monitor, Sun, Type, Check, AlertTriangle, Lock, Camera, EyeOff, Languages, Clock, Mic, Accessibility, Loader2, RefreshCw, Home } from "lucide-react"
+import { ArrowLeft, Bell, Eye, Globe, Shield, Palette, Moon, Volume2, User, ChevronRight, LogOut, Trash2, Monitor, Sun, Type, Check, AlertTriangle, Lock, Camera, EyeOff, Languages, Clock, Mic, Accessibility, Loader2, RefreshCw, Home, Building2 } from "lucide-react"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession, logout as authLogout } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import MfaSection from "@/components/ui/MfaSection"
+import SessionsSection from "@/components/ui/SessionsSection"
 
 const SETTINGS_TIMEOUT_MS = 10000
 
@@ -297,6 +299,10 @@ export default function SettingsPage() {
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#00D9FF] hover:bg-[#00D9FF]/10 transition-all">
               <Eye className="w-4 h-4" /> Perfil Público
             </Link>
+            <Link href="/organizacion"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#00D9FF] hover:bg-[#00D9FF]/10 transition-all">
+              <Building2 className="w-4 h-4" /> Organización
+            </Link>
             <button onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer">
               <LogOut className="w-4 h-4" /> Cerrar Sesión {sessionName && <span className="opacity-60">({sessionName})</span>}
@@ -495,6 +501,16 @@ export default function SettingsPage() {
                   </button>
                   {passwordMsg === "ok" && <span className="text-[10px] text-emerald-400 font-bold"><Check className="w-3 h-3 inline" /> Contraseña actualizada</span>}
                   {passwordMsg === "error" && <span className="text-[10px] text-red-400 font-bold"><AlertTriangle className="w-3 h-3 inline" /> Error</span>}
+                </div>
+                <hr className="border-slate-800" />
+                <div className="space-y-3">
+                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Verificación en dos pasos</p>
+                  <MfaSection />
+                </div>
+                <hr className="border-slate-800" />
+                <div className="space-y-3">
+                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Dispositivos y sesiones</p>
+                  <SessionsSection />
                 </div>
               </div>
             )}

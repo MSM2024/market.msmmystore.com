@@ -48,13 +48,13 @@ test.describe("ZAFIRO — Static Pages", () => {
     await expect(page.getByRole("heading", { name: "Cuba Plus" })).toBeVisible()
   })
 
-  test("escuela placeholder page shows en desarrollo", async ({ page }) => {
+  test("escuela redirects to ecosystem school page", async ({ page }) => {
     await page.goto("/escuela")
-    await expect(page.locator("text=En Desarrollo")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Escuela MSM", exact: true })).toBeVisible()
   })
 
-  test("album placeholder page shows en desarrollo", async ({ page }) => {
+  test("album page shows Álbum de la Vida", async ({ page }) => {
     await page.goto("/album")
-    await expect(page.locator("text=En Desarrollo")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Álbum de la Vida" })).toBeVisible()
   })
 })

@@ -48,6 +48,7 @@ function getZafiroVariant(pathname: string): ZafiroVariant {
   if (
     pathname.startsWith("/profile-page") ||
     pathname.startsWith("/settings") ||
+    pathname.startsWith("/organizacion") ||
     pathname.startsWith("/memberships") ||
     pathname.startsWith("/referidos") ||
     pathname.startsWith("/rewards") ||

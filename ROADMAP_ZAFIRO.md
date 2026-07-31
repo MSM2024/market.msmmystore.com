@@ -4,7 +4,7 @@
 
 ## 0. Resumen ejecutivo
 
-- **Compila y verifica**: tsc 0 errores · eslint 0 errores (323 warnings) · vitest 9/9 · build 127 páginas OK.
+- **Compila y verifica**: tsc 0 errores · eslint 0 errores (323 warnings) · vitest 9/9 · build 129 páginas OK.
 - **Lo real y sólido**: autenticación server-side, perfiles, ELIANA con Gemini, Knowledge Core (RAG), Biblioteca (owner-only), historias, Marketplace sobre Supabase, Stripe con idempotencia durable, RLS endurecida (00035/00048/00049/00051), 53 migraciones.
 - **Lo pendiente de verdad**: migrar a datos reales lo que hoy vive en localStorage (PTS/referidos/mensajes/sponsors/carrito/memoria ELIANA), conectar pagos de marketplace, activar proveedores reales, panel de auditoría, pruebas e2e, aplicar migraciones en la nube y desplegar.
 - **Bloqueo externo principal**: claves reales de Supabase/Stripe y CLI de Supabase no disponibles aún para la fase de validación en producción.
@@ -17,10 +17,10 @@
 
 | Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio de finalización |
 |---|---|---|---|---|---|---|---|---|
-| Auth server (Supabase) | REAL | 90 | `api/auth/*`, `src/proxy.ts`, `src/lib/api-auth.ts` | `auth.users`, `profiles` | RLS por `user_id` | vitest (auth) | Validación e2e con claves; MFA; sesiones/dispositivos | Login/registro/recovery/reset funcionan e2e con validación de Don Miguel |
-| Roles/perfiles | PARCIAL | 70 | `src/lib/auth.ts`, `profile-page/*`, `00037` | `profiles`, `user_roles`, `council_user_roles` | `is_owner/admin` | vitest (roles) | Roles en localStorage para UI → leer del servidor | Matriz de 7 roles aplicada y probada por rol |
-| Organizaciones/membresías | PARCIAL | 50 | `00036` | `organizations`, `memberships` | RLS | — | Flujo de membresías completo; entitlements | Suscripción ↔ perfil ↔ acceso coherentes |
-| Auditoría | PARCIAL | 40 | `00001`, `00033` | `audit_logs`, `eliana_audit_logs`, `marketplace_audit_logs` | owner/admin | — | APIs y panel de auditoría | Acciones sensibles registradas con quién/cuándo/resultado |
+| Auth server (Supabase) | REAL | 95 | `api/auth/*`, `src/proxy.ts`, `src/lib/api-auth.ts` | `auth.users`, `profiles` | RLS por `user_id` | vitest (auth) | Validación e2e con claves; MFA (TOTP) y gestión de sesiones implementados en UI | Login/registro/recovery/reset funcionan e2e con validación de Don Miguel |
+| Roles/perfiles | REAL | 85 | `src/lib/auth.ts`, `api/auth/me`, `profile-page/*`, `00037` | `profiles`, `user_roles`, `council_user_roles` | `is_owner/admin` | vitest (roles) | Roles leídos del servidor (ok); validación e2e por rol | Matriz de roles aplicada y probada por rol |
+| Organizaciones/membresías | PARCIAL | 65 | `api/organizations*`, `organizacion/*`, `00036`, `00054` | `organizations`, `memberships` | RLS + service role | — | Flujo de membresías (Stripe) y entitlements | Suscripción ↔ perfil ↔ acceso coherentes |
+| Auditoría | PARCIAL | 65 | `00001`, `00033`, `lib/admin/data.ts`, `admin/auditoria` | `audit_logs`, `eliana_audit_logs`, `marketplace_audit_logs` | owner/admin | — | Registro proactivo en rutas sensibles; e2e con claves | Acciones sensibles registradas con quién/cuándo/resultado |
 
 ### 1.2 ELIANA (IA)
 
@@ -103,7 +103,7 @@ Todo ──► C11 Seguridad/calidad/privacidad ──► C12 Terminación/despl
 
 ## 3. Orden recomendado de implementación
 
-1. **C2 Núcleo** (ya ~70%: migrar roles/estado a servidor, auditoría, estados vacíos/error/offline, accesibilidad, modo oscuro).
+1. **C2 Núcleo** (implementado: roles desde el servidor, panel de auditoría, estados vacíos/error/offline, accesibilidad, MFA TOTP, gestión de sesiones, organizaciones/membresías; falta validación e2e con claves y flujo de membresías pagado).
 2. **C3 Marketplace** (carrito→Supabase, proveedor msm-inventory corregido o desactivado, pedidos con trazabilidad).
 3. **C4 Economía** (convertir ledger a doble partida, motor de comisiones, panel económico real; marcar/retirar `ecosystem/payments`).
 4. **C5 ELIANA** (unificar motores, memoria→Supabase, voz, transferencia humana).
@@ -141,7 +141,7 @@ Todo ──► C11 Seguridad/calidad/privacidad ──► C12 Terminación/despl
 | Capítulo | Estado | % verificado |
 |---|---|---|
 | C1 Diagnóstico y Mapa | EN CURSO | 100 (este documento) |
-| C2 Núcleo | Base sólida, pendientes reales | ~70 |
+| C2 Núcleo | Implementado (código); validación e2e pendiente | ~80 |
 | C3 Marketplace | Parcial con huecos reales | ~55 |
 | C4 Economía | Base DB, falta motor contable | ~25 |
 | C5 ELIANA | Chat real, memoria simulada | ~55 |

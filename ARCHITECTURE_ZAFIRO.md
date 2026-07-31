@@ -1,14 +1,14 @@
 # ARCHITECTURE_ZAFIRO.md — Arquitectura técnica de ZAFIRO
 
-> Diagnóstico del CAPÍTULO 1 (Parte B) · 2026-07-31 · Basado en evidencia del repositorio (rama `finish-zafiro-eliana`, HEAD `695f241`). No inventa porcentajes; toda cifra proviene de la exploración real.
+> Diagnóstico del CAPÍTULO 1 (Parte B) · 2026-07-31 · Basado en evidencia del repositorio (rama `finish-zafiro-eliana`, HEAD `695f241`). No inventa porcentajes; toda cifra proviene de la exploración real. Actualizado con avances del C2 (roles desde servidor, auditoría, MFA, sesiones, organizaciones).
 
 ## 1. Vista general
 
 ZAFIRO es una aplicación web Next.js (App Router) de una sola base de código que integra: autenticación y perfiles, el asistente ELIANA (IA), Marketplace, economía/ledger, Biblioteca Viva, Consejo Invisible, historias, membresías/pagos (Stripe), y páginas institucionales. Se despliega en Vercel y usa Supabase como backend (Postgres + Auth + Storage).
 
 - **Stack real**: Next.js `16.2.10` (Turbopack), React `19.2.4`, TypeScript `5`, Tailwind CSS `4`, `@supabase/ssr` + `@supabase/supabase-js`, `@google/genai` (Gemini), `stripe` + `@stripe/stripe-js`, `lucide-react`, `motion`, `react-markdown`, `zod`, `vitest`, `@playwright/test`.
-- **Rutas**: 127 páginas estáticas generadas en build + ~65 Route Handlers (`ƒ`) + Proxy (middleware `src/proxy.ts`).
-- **Base de datos**: 53 migraciones SQL, ~85 tablas, ~40 enums, RLS activa.
+- **Rutas**: 129 páginas estáticas generadas en build + ~65 Route Handlers (`ƒ`) + Proxy (middleware `src/proxy.ts`).
+- **Base de datos**: 54 migraciones SQL, ~85 tablas, ~40 enums, RLS activa.
 - **Variables de entorno**: documentadas en `.env.example` (Supabase, Stripe, Gemini, `NEXT_PUBLIC_APP_URL`, `ZAFIRO_ADMIN_EMAIL=msmmystore@gmail.com`).
 
 ## 2. Frontend
@@ -18,7 +18,7 @@ ZAFIRO es una aplicación web Next.js (App Router) de una sola base de código q
 - **Estado del cliente**: se mezclan tres fuentes: (a) **Supabase** vía API/servidor para datos transaccionales, (b) **localStorage** para muchas funciones (mensajes, PTS, referidos, universo, comentarios, sponsors, campañas, carrito), (c) **datos estáticos hardcodeados** en `src/lib/*-data.ts` y `src/lib/zafiro-data.ts`.
 - **Componentes compartidos**: `src/components/ui/*` (GlassCard, Skeleton, StatCard, NetworkBackground, GradientText), `BottomNav`, `Footer`, componentes ELIANA (`ElianaAdvancedChat`, `ElianaStandaloneChat`, `ElianaMarketplaceChat`, `ElianaAdminDashboard`, launchers), gemología, sponsors, consejo invisible.
 - **Seguridad HTTP**: headers en `next.config.ts` (`X-Frame-Options: DENY`, CSP, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `Referrer-Policy`, `X-Content-Type-Options`).
-- **Imágenes**: `next/image` con `remotePatterns` abierto (`https **`); varias páginas usan `<img>` directo (warnings de lint).
+- **Imágenes**: `next/image` con `remotePatterns` restringido a `msmmystore.com`, `*.supabase.co`, `*.gravatar.com` (C2); varias páginas usan `<img>` directo (warnings de lint).
 
 ## 3. Backend (API)
 
@@ -41,7 +41,7 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 
 ## 4. Base de datos (Supabase Postgres)
 
-- **Esquema**: `public`, 53 migraciones secuenciales (`supabase/migrations/00001…00053`), tablas principales:
+- **Esquema**: `public`, 54 migraciones secuenciales (`supabase/migrations/00001…00054`), tablas principales:
   - **Identidad/Auth**: `profiles`, `user_roles`, `organizations`, `memberships`, `app_sessions`, `login_events`, `sso_tickets`, `user_settings`, `audit_logs`.
   - **ELIANA**: `eliana_conversations`, `eliana_messages`, `eliana_memory`, `eliana_tasks`, `eliana_tickets`, `eliana_intakes`, `eliana_handoffs`, `eliana_actions`, `eliana_audit_logs`, `eliana_settings`, `eliana_feedback`, `eliana_knowledge`, `eliana_channels`, `eliana_contacts`, `eliana_identities`.
   - **Knowledge Core**: `knowledge_sources`, `knowledge_documents`, `knowledge_chunks`, `knowledge_tags`, `knowledge_document_tags`, `knowledge_versions`, `knowledge_permissions`, `knowledge_queries`, `knowledge_answers`, `knowledge_feedback`, `knowledge_ingestion_jobs`, `knowledge_approvals`, `knowledge_gaps`, `knowledge_settings`, `knowledge_audit_logs`.
@@ -51,6 +51,8 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
   - **Contenido**: `mis_historias` (stories), `referrals`, `rewards_log`, `contact_messages`, `stripe_events`, `library_*` (Biblioteca Viva).
 - **RLS**: política activa endurecida en `00035`, `00048`, `00049`, `00051` (owner/admin sobre acciones sensibles; insert autenticado; datos por `user_id`). `knowledge` con `is_knowledge_admin()`.
 - **Recovery**: RPCs `generate_recovery_code` / `validate_recovery_code` (`00043`) — no hay SMTP propio; recuperación vía código en Supabase Auth.
+- **Gestión de sesiones**: RPCs `list_my_sessions` / `revoke_my_session` / `revoke_other_sessions` (`00054`, `SECURITY DEFINER` sobre `auth.sessions`) expuestos vía `api/auth/sessions`; la sesión actual se identifica por el claim `session_id` del access token.
+- **MFA (TOTP)**: enroll/challenge/verify/desenroll vía GoTrue (`MfaSection`) + UI de sesiones en `/settings`; pendiente validación e2e con claves reales.
 
 ## 5. Almacenamiento
 
@@ -59,7 +61,7 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 
 ## 6. Autenticación, roles y permisos
 
-- **Dual en la práctica**: auth real (Supabase Auth + sesión SSR + `api-auth`) para APIs y rutas protegidas; roles/estado en localStorage para parte del cliente (`src/lib/auth.ts`). Riesgo identificado: no usar datos del servidor en el cliente para roles.
+- **Dual en la práctica**: auth real (Supabase Auth + sesión SSR + `api-auth`) para APIs y rutas protegidas. **C2**: `fetchServerMe`/`api/auth/me` exponen roles y perfil desde el servidor y el cliente los consume para permisos de UI (dashboard, biblioteca, historias, auditoría, organización); queda uso de localStorage para datos de funcionalidades, no para roles.
 - **Matriz de roles**: `cliente, seller, vip, operator, admin, economy, superadmin/owner` (`00003`, `00016`/`council_user_roles`, `00037` taxonomía unificada). `is_owner()`/`is_admin()`/`is_knowledge_admin()` en políticas.
 - **Correo único**: `00053_correo_unico.sql` consolida OWNER + LIFETIME_UNLIMITED en `msmmystore@gmail.com` (idempotente, con auditoría).
 
@@ -85,7 +87,7 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 ## 9. Despliegue
 
 - `vercel.json` + `.vercel/` (proyecto `zafiro`). Dominio `https://zafiro.msmmystore.com`.
-- Build: `prebuild` regenera `knowledge-data.ts` → `next build` (127 páginas OK).
+- Build: `prebuild` regenera `knowledge-data.ts` → `next build` (129 páginas OK).
 - Producción (`origin/main` = `83eb0b9`) está **desactualizada** respecto a `finish-zafiro-eliana` (3 commits de retraso: `50cc964`, `651b96c`, `695f241`).
 - Respaldos: rama `backup/pre-operacion-2026-07-31`.
 
@@ -96,7 +98,7 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 | `npx tsc --noEmit` | 0 errores |
 | `npm run lint` | 0 errores · 323 warnings (imports sin usar, exhaustive-deps, `<img>`) |
 | `npm test` (vitest) | 9/9 en 1 archivo (`src/__tests__/auth.test.ts`) |
-| `npm run build` | OK · 127 páginas · 65 rutas `ƒ` · Proxy activo |
+| `npm run build` | OK · 129 páginas · 65 rutas `ƒ` · Proxy activo |
 | Playwright | Config presente (`playwright.config.ts`, `e2e/auth.spec.ts`); no ejecutado en esta línea base |
 
 ## 11. Riesgos de arquitectura identificados
@@ -105,8 +107,8 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 2. **Dos motores de conocimiento** que no se comunican (`lib/eliana/core/*` vs `lib/knowledge/*` + `api/eliana/*`).
 3. **Datos ficticios embebidos** en producción (`zafiro-data.ts`, `ecosistema.ts`, `gemology-data.ts`, `ecosystem/payments` promete cartera no implementada, `sponsors-page` marca campañas como "simulada").
 4. **Provider `msm-inventory` activo sin datos** → marketplace puede verse vacío; placeholders de Amazon/Walmart/etc deshabilitados por diseño (sin autorización/keys).
-5. **Roles en localStorage para UI** (el servidor valida aparte) → riesgo de inconsistencia de permisos percibidos.
-6. **`remotePatterns` de imágenes abierto** a cualquier hostname.
+5. **Roles en localStorage para UI** (el servidor valida aparte) → riesgo de inconsistencia de permisos percibidos. **C2**: mitigado — roles leídos del servidor (`api/auth/me`) para la UI; queda validación e2e con claves reales.
+6. **`remotePatterns` de imágenes abierto** a cualquier hostname. **C2**: restringido a `msmmystore.com`, `*.supabase.co`, `*.gravatar.com`.
 7. **Pagos del marketplace no conectados** (provider manual genera `MANUAL-<timestamp>`, sin transacción real).
 8. **Sin pruebas de integración/e2e completas** (solo 9 unitarias de auth + spec de playwright estático).
 9. **CLI Supabase no instalada**; migraciones 00045-00053 aún no aplicadas en la nube.
