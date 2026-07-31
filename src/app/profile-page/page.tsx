@@ -1,18 +1,52 @@
 'use client'
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  ArrowLeft, Settings, MessageSquare, User, Award, Flame, Gem, Calendar, MapPin, Globe, Users, Star, BookOpen, Share2, Mail, ExternalLink, Plus, Shield, Heart, MessageCircle, Trophy, Layers, Eye, TrendingUp, Sparkles, Zap, Cpu, Target, Clock, Gift, DollarSign, Bot, Edit3, Camera, ChevronRight, Activity, CheckCircle, X, Send
+  ArrowLeft, Settings, MessageSquare, User, Award, Flame, Gem, Calendar, MapPin, Globe, Users, Star, BookOpen, Share2, Mail, ExternalLink, Plus, Shield, Heart, MessageCircle, Trophy, Layers, Eye, TrendingUp, Sparkles, Zap, Cpu, Target, Clock, Gift, DollarSign, Bot, Edit3, Camera, ChevronRight, Activity, CheckCircle, X, Send, RefreshCw
 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
-import { getSession } from "@/lib/auth"
-import { getProfile, getProfileByUsername, updateProfile, seedMiguelProfile, type UserProject, type SocialLink, type UserProfile } from "@/lib/profile"
+import { refreshSession } from "@/lib/auth"
+import { getProfile, updateProfile, type UserProject, type SocialLink, type UserProfile } from "@/lib/profile"
 import { type ConnectedPlatform, getPlatforms, PLATFORM_META } from "@/lib/universo"
 import { getPTSAccount, getStreak } from "@/lib/rewards"
 import { DEFAULT_ECOSYSTEM } from "@/lib/ecosistema"
 import ElianaDiamond from "@/components/ElianaDiamond"
+
+const PROFILE_TIMEOUT_MS = 10000
+
+async function fetchProfileWithTimeout(signal: AbortSignal): Promise<UserProfile | null> {
+  const res = await fetch("/api/user-profile", {
+    method: "GET",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal,
+  })
+
+  if (res.status === 401 || res.status === 403) {
+    const err = new Error("UNAUTHORIZED") as Error & { code: string }
+    err.code = "UNAUTHORIZED"
+    throw err
+  }
+
+  if (!res.ok) {
+    throw new Error(`PROFILE_REQUEST_FAILED_${res.status}`)
+  }
+
+  const contentType = res.headers.get("content-type") || ""
+  if (!contentType.includes("application/json")) {
+    throw new Error("INVALID_PROFILE_RESPONSE")
+  }
+
+  const data = await res.json()
+  if (!data || !data.profile) {
+    throw new Error("EMPTY_PROFILE_RESPONSE")
+  }
+
+  return data.profile as UserProfile
+}
 
 function renderSafeMessage(msg: string) {
   if (msg.startsWith("ELIANA:")) {
@@ -33,55 +67,78 @@ function formatNumber(n: number): string {
 export default function ProfileFullPage() {
   usePageTitle("Mi Perfil")
   const router = useRouter()
-  const [profileInit] = useState(() => {
-    if (typeof window === "undefined") return { profile: null, platforms: [], ptsAccount: { balance: 0, level: 1, levelProgress: 0 }, currentStreak: 0, following: false }
-    const session = getSession()
-    if (session) {
-      let p = getProfile(session.id)
-      if (!p) {
-        p = getProfileByUsername(session.name.toLowerCase().replace(/\s+/g, ""))
-      }
-      if (!p) {
-        const seeded = seedMiguelProfile()
-        if (seeded.userId === session.id || session.email === "msmmystore@gmail.com") {
-          p = seeded
-        } else {
-          p = getProfile(session.id) || null
-        }
-      }
-      if (p) {
-        const pts = getPTSAccount(p.userId)
-        const stored = JSON.parse(localStorage.getItem("zafiro_following") || "[]")
-        return {
-          profile: p,
-          platforms: getPlatforms(p.userId),
-          ptsAccount: { balance: pts.balance, level: pts.level, levelProgress: pts.levelProgress } as { balance: number; level: number; levelProgress: number },
-          currentStreak: getStreak(p.userId),
-          following: stored.includes(p.username),
-        }
-      }
-    }
-    const seeded = seedMiguelProfile()
-    const pts = getPTSAccount(seeded.userId)
-    return {
-      profile: seeded,
-      platforms: getPlatforms(seeded.userId),
-      ptsAccount: { balance: pts.balance, level: pts.level, levelProgress: pts.levelProgress } as { balance: number; level: number; levelProgress: number },
-      currentStreak: getStreak(seeded.userId),
-      following: false,
-    }
-  })
-  const [profile, setProfile] = useState<UserProfile | null>(profileInit.profile)
-  const [platforms, setPlatforms] = useState<ConnectedPlatform[]>(profileInit.platforms)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [platforms, setPlatforms] = useState<ConnectedPlatform[]>([])
   const [activeSection, setActiveSection] = useState("resumen")
-  const [following, setFollowing] = useState(profileInit.following)
+  const [following, setFollowing] = useState(false)
   const [showEliana, setShowEliana] = useState(false)
   const [elianaChat, setElianaChat] = useState<string[]>([])
   const [elianaInput, setElianaInput] = useState("")
-  const [ptsAccount, setPtsAccount] = useState<{ balance: number; level: number; levelProgress: number } | null>(profileInit.ptsAccount)
-  const [currentStreak, setCurrentStreak] = useState(profileInit.currentStreak)
+  const [ptsAccount, setPtsAccount] = useState<{ balance: number; level: number; levelProgress: number } | null>(null)
+  const [currentStreak, setCurrentStreak] = useState(0)
   const [showAvatarUpload, setShowAvatarUpload] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const requestRef = useRef<AbortController | null>(null)
+
+  const loadProfile = useCallback(async () => {
+    requestRef.current?.abort()
+
+    const controller = new AbortController()
+    requestRef.current = controller
+
+    const timeoutId = setTimeout(() => {
+      controller.abort(new DOMException("PROFILE_TIMEOUT", "AbortError"))
+    }, PROFILE_TIMEOUT_MS)
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const session = await refreshSession()
+      if (!session) {
+        router.replace("/auth/login")
+        return
+      }
+
+      const p = await fetchProfileWithTimeout(controller.signal)
+      if (controller.signal.aborted && (controller.signal.reason as Error)?.message !== "PROFILE_TIMEOUT") return
+      if (!p) {
+        setError("No pudimos cargar tu perfil. Revisa tu conexión e intenta de nuevo.")
+        return
+      }
+
+      setProfile(p)
+      setPlatforms(getPlatforms(p.userId))
+      const pts = getPTSAccount(p.userId)
+      setPtsAccount({ balance: pts.balance, level: pts.level, levelProgress: pts.levelProgress })
+      setCurrentStreak(getStreak(p.userId))
+      const stored = JSON.parse(localStorage.getItem("zafiro_following") || "[]")
+      setFollowing(stored.includes(p.username))
+    } catch (err: unknown) {
+      const e = err as Error & { code?: string }
+      if (e?.code === "UNAUTHORIZED") {
+        router.replace("/auth/login")
+        return
+      }
+      if (e?.name === "AbortError") {
+        setError("La carga del perfil superó el tiempo máximo")
+      } else {
+        setError("No pudimos cargar tu perfil. Revisa tu conexión e intenta de nuevo.")
+      }
+    } finally {
+      clearTimeout(timeoutId)
+      setLoading(false)
+    }
+  }, [router])
+
+  useEffect(() => {
+    Promise.resolve().then(() => loadProfile())
+    return () => {
+      requestRef.current?.abort()
+    }
+  }, [loadProfile])
 
   const toggleFollow = () => {
     if (!profile) return
@@ -92,14 +149,14 @@ export default function ProfileFullPage() {
     localStorage.setItem("zafiro_following", JSON.stringify(stored))
   }
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !profile) return
+    if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string
-      const updated = updateProfile(profile.userId, { avatar: dataUrl })
-      if (updated) setProfile(updated)
+      const ok = await updateProfile({ avatar: dataUrl })
+      if (ok) setProfile(prev => prev ? { ...prev, avatar: dataUrl } : null)
       setShowAvatarUpload(false)
     }
     reader.readAsDataURL(file)
@@ -124,12 +181,47 @@ export default function ProfileFullPage() {
     setElianaInput("")
   }
 
-  if (!profile) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
         <div className="text-center">
           <Gem className="w-12 h-12 text-slate-700 mx-auto mb-4 animate-pulse" />
           <p className="text-sm text-slate-400">Cargando perfil...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+        <div className="text-center max-w-xs">
+          <Gem className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+          <p className="text-sm text-slate-300 mb-4">{error}</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <button onClick={loadProfile}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+            </button>
+            <button onClick={() => router.replace("/auth/login")}
+              className="px-4 py-2 rounded-xl bg-slate-800/60 text-slate-300 text-xs font-bold hover:bg-slate-700/60 transition-all cursor-pointer border border-slate-700/50">
+              Iniciar Sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm text-slate-400">No se encontró el perfil.</p>
+          <button onClick={loadProfile}
+            className="mt-4 px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 mx-auto">
+            <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+          </button>
         </div>
       </div>
     )
@@ -243,9 +335,11 @@ export default function ProfileFullPage() {
                 <div className="flex flex-wrap items-center gap-2 text-[9px] sm:text-[10px] text-slate-500 mb-3">
                   <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {profile.location}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Miembro desde {new Date(profile.joinedAt).getFullYear()}</span>
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#00D9FF] hover:underline">
-                    <Globe className="w-3 h-3" /> {new URL(profile.website).hostname}
-                  </a>
+                  {profile.website && (() => { try { return new URL(profile.website); } catch { return null; } })() && (
+                    <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#00D9FF] hover:underline">
+                      <Globe className="w-3 h-3" /> {new URL(profile.website).hostname}
+                    </a>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <button className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-[9px] font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1">

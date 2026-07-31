@@ -33,6 +33,8 @@ yarn-error.log*
 # env files
 .env
 .env.local
+.env.msm
+.env.zafiro
 .env.*.local
 !.env.example
 
@@ -58,3 +60,16 @@ server-out.txt
 .vercel
 
 .vercel
+.env*
+
+# local dev artifacts
+dev*.log
+*.log
+
+# eslint / test diagnostics
+eslint-*.json
+eslint-output.txt
+
+# playwright
+/playwright-report/
+/test-results/

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { Send, RotateCcw, Shield, Mic, MicOff, Volume2, VolumeX, AlertTriangle } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import ElianaDiamond from "@/components/ElianaDiamond"
+import MarkdownRenderer from "@/components/MarkdownRenderer"
 import { processElianaRequest, getElianaContext } from "@/lib/eliana/engine"
 import { getSession } from "@/lib/auth"
 import { CHANNEL_CONFIGS } from "@/lib/eliana/core/types"
@@ -282,7 +283,7 @@ export default function ElianaStandaloneChat() {
       const errorMsg: ChatMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         role: "eliana",
-        text: "Lo siento, tengo problemas de conexión. Por favor, intenta de nuevo.",
+        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado; inténtalo nuevamente en unos segundos.",
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, errorMsg])
@@ -440,9 +441,7 @@ export default function ElianaStandaloneChat() {
                   ? "bg-[#197BD2]/15 text-[#00D9FF] border border-[#197BD2]/20 rounded-br-md"
                   : "bg-[#14171A] text-slate-200 border border-slate-800/50 rounded-bl-md"
               }`}>
-                {msg.text.split("\n").map((line, j) => (
-                  <p key={j} className={j > 0 ? "mt-1.5" : ""}>{line}</p>
-                ))}
+                <MarkdownRenderer content={msg.text} />
               </div>
             </motion.div>
           ))}

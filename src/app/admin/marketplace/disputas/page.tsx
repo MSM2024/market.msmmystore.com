@@ -44,8 +44,6 @@ export default function AdminMarketplaceDisputasPage() {
   const [refundModal, setRefundModal] = useState<{ disputeId: string; maxAmount: number } | null>(null)
   const [refundAmount, setRefundAmount] = useState("")
 
-  useEffect(() => { loadDisputes() }, [])
-
   async function loadDisputes() {
     if (!isSupabaseAvailable()) { setLoading(false); return }
     const supabase = getSupabaseClient()
@@ -59,6 +57,8 @@ export default function AdminMarketplaceDisputasPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => { Promise.resolve().then(() => loadDisputes()) }, [])
 
   function showToast(msg: string) {
     setToast(msg)

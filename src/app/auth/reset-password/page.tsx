@@ -37,16 +37,20 @@ export default function ResetPasswordPage() {
     const params = new URLSearchParams(window.location.search)
     const codeFromUrl = params.get("code")
     if (codeFromUrl) {
-      setRecoveryCode(codeFromUrl)
-      setUseRecoveryCode(true)
-      setStatus("form")
+      Promise.resolve().then(() => {
+        setRecoveryCode(codeFromUrl)
+        setUseRecoveryCode(true)
+        setStatus("form")
+      })
       return
     }
 
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) {
-      setStatus("error")
-      setErrorMsg("El servicio de recuperación no está disponible temporalmente.")
+      Promise.resolve().then(() => {
+        setStatus("error")
+        setErrorMsg("El servicio de recuperación no está disponible temporalmente.")
+      })
       return
     }
 

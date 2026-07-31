@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Globe, ExternalLink, Plus, Trash2, Save, Edit3, X, Shield, Camera, MessageSquare, Video, Music2, Send, Store, Briefcase, Code2, MessageCircle, Music, BookOpen } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
-import { getSession } from "@/lib/auth"
-import { getProfile, updateProfile, seedMiguelProfile, type SocialLink, type UserProfile } from "@/lib/profile"
+import { getProfile, updateProfile, type SocialLink, type UserProfile } from "@/lib/profile"
 import { getPlatforms, PLATFORM_META, addPlatform, removePlatform, importFromLinktree, type ConnectedPlatform, type PlatformType } from "@/lib/universo"
 
 const PLATFORM_ICONS: Record<string, typeof Globe> = {
@@ -17,23 +16,25 @@ const PLATFORM_ICONS: Record<string, typeof Globe> = {
 
 export default function ConnectionsPage() {
   usePageTitle("Conexiones")
-  const [initialConnData] = useState(() => {
-    if (typeof window === "undefined") return null
-    const session = getSession()
-    let p: UserProfile | null = null
-    if (session) p = getProfile(session.id)
-    if (!p) p = seedMiguelProfile()
-    return p
-  })
-  const [profile] = useState<UserProfile | null>(initialConnData)
-  const [platforms, setPlatforms] = useState<ConnectedPlatform[]>(() => initialConnData ? getPlatforms(initialConnData.userId) : [])
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [platforms, setPlatforms] = useState<ConnectedPlatform[]>([])
   const [showAddPlatform, setShowAddPlatform] = useState(false)
   const [showAddLink, setShowAddLink] = useState(false)
   const [saved, setSaved] = useState(false)
   const [newPlatform, setNewPlatform] = useState({ type: "website" as PlatformType, url: "", title: "", description: "" })
   const [newLink, setNewLink] = useState({ platform: "", url: "", label: "" })
-  const [editingLinks, setEditingLinks] = useState<SocialLink[]>(() => initialConnData ? [...initialConnData.socialLinks] : [])
+  const [editingLinks, setEditingLinks] = useState<SocialLink[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
+
+  useEffect(() => {
+    getProfile().then(p => {
+      if (p) {
+        setProfile(p)
+        setPlatforms(getPlatforms(p.userId))
+        setEditingLinks([...p.socialLinks])
+      }
+    })
+  }, [])
 
   const handleImportLinktree = () => {
     if (!profile) return
@@ -74,11 +75,13 @@ export default function ConnectionsPage() {
     setDeleting(null)
   }
 
-  const handleSaveLinks = () => {
+  const handleSaveLinks = async () => {
     if (!profile) return
-    updateProfile(profile.userId, { socialLinks: editingLinks })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    const ok = await updateProfile({ socialLinks: editingLinks })
+    if (ok) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    }
   }
 
   const addLink = () => {

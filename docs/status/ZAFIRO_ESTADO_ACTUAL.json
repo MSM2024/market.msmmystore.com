@@ -1,0 +1,150 @@
+{
+  "aplicacion": "ZAFIRO",
+  "version": "0.1.0",
+  "fecha_auditoria": "2026-07-29",
+  "rama": "finish-zafiro-eliana",
+  "commit": "b305296",
+  "dominio": "https://zafiro.msmmystore.com",
+  "proyecto_vercel": "msmmystore/zafiro",
+  "proyecto_supabase": "vcfevlpoqwnsvkwfoprv",
+  "modulos": {
+    "autenticacion": {
+      "estado": "PARCIAL",
+      "tipo": "localStorage + Supabase dual",
+      "tablas": ["profiles", "user_roles", "organizations", "memberships"],
+      "api": ["/api/user-profile"],
+      "paginas": ["/auth/login", "/auth/register", "/auth/recover", "/auth/update-password", "/auth/verify"],
+      "trabajo_pendiente": "Migrar a Supabase-only. Implementar MFA. Sesiones/dispositivos."
+    },
+    "propietario_OWNER_SUPERADMIN": {
+      "estado": "PARCIAL",
+      "tablas": ["council_user_roles"],
+      "trabajo_pendiente": "Resolver cuenta real de Don Miguel. Asignar OWNER_SUPERADMIN + LIFETIME_UNLIMITED sin hardcodeos."
+    },
+    "membresias": {
+      "estado": "SOLO INTERFAZ",
+      "paginas": ["/memberships"],
+      "api": ["/api/stripe/checkout", "/api/stripe/portal", "/api/stripe/webhook", "/api/stripe/billing"],
+      "tablas": ["memberships"],
+      "trabajo_pendiente": "Price IDs reales. Webhook secret. EntitlementService. LIFETIME_UNLIMITED persistida."
+    },
+    "dashboard": {
+      "estado": "FUNCIONAL",
+      "paginas": ["/dashboard"],
+      "api": ["/api/eliana/conversations", "/api/user-profile"],
+      "trabajo_pendiente": "Conectar a datos reales de membresía."
+    },
+    "configuracion": {
+      "estado": "PARCIAL",
+      "paginas": ["/settings"],
+      "api": ["/api/user-settings", "/api/user-profile"],
+      "tablas": ["user_settings"],
+      "trabajo_pendiente": "Migrar de localStorage a Supabase completamente."
+    },
+    "eliana_chat": {
+      "estado": "FUNCIONAL",
+      "paginas": ["/eliana/chat"],
+      "api": ["/api/chat", "/api/eliana/messages", "/api/eliana/conversations"],
+      "tablas": ["eliana_conversations", "eliana_messages"],
+      "trabajo_pendiente": "Mejorar calidad de respuestas."
+    },
+    "eliana_conversaciones": {
+      "estado": "FUNCIONAL",
+      "paginas": ["/eliana/conversaciones"],
+      "api": ["/api/eliana/conversations"],
+      "tablas": ["eliana_conversations", "eliana_messages"]
+    },
+    "eliana_memoria": {
+      "estado": "FUNCIONAL",
+      "paginas": ["/eliana/memoria"],
+      "api": ["/api/eliana/intakes"],
+      "tablas": ["eliana_intakes"]
+    },
+    "eliana_tareas": {
+      "estado": "FUNCIONAL",
+      "paginas": ["/eliana/tareas"],
+      "api": ["/api/eliana/actions"],
+      "tablas": ["eliana_actions"]
+    },
+    "eliana_voz": {
+      "estado": "FUNCIONAL",
+      "paginas": ["/eliana/configuracion/voz"],
+      "dependencias": ["Web Speech API"]
+    },
+    "knowledge_core": {
+      "estado": "FUNCIONAL",
+      "api": ["/api/knowledge/search", "/api/knowledge/documents", "/api/knowledge/ingest", "/api/knowledge/gaps", "/api/knowledge/approvals", "/api/knowledge/ask", "/api/knowledge/audit", "/api/knowledge/feedback", "/api/knowledge/settings", "/api/knowledge/stats", "/api/knowledge/seed"],
+      "tablas": ["knowledge_documents", "knowledge_chunks", "knowledge_queries", "knowledge_feedback", "knowledge_tags", "knowledge_document_tags", "knowledge_sources", "knowledge_approvals", "knowledge_ingestion_jobs", "knowledge_gaps", "knowledge_versions", "knowledge_relations", "knowledge_permissions", "knowledge_audit_log", "knowledge_spaces"],
+      "admin_panel": "/admin/knowledge"
+    },
+    "consejo_invisible": {
+      "estado": "FUNCIONAL (DB) / SIN API",
+      "tablas": ["council_user_roles", "invisible_council_guides", "invisible_council_sources", "invisible_council_audio_files", "invisible_council_transcripts", "invisible_council_transcript_segments", "invisible_council_teachings", "invisible_council_sessions", "invisible_council_session_guides", "invisible_council_session_teachings", "invisible_council_books", "invisible_council_book_chapters", "invisible_council_book_sections", "invisible_council_goals", "invisible_council_goal_updates", "invisible_council_journal_entries", "invisible_council_prayers", "invisible_council_tags", "invisible_council_content_tags", "invisible_council_files", "invisible_council_versions", "invisible_council_permissions", "invisible_council_ai_interactions"],
+      "trabajo_pendiente": "Crear APIs para acceder a datos del Consejo desde la app."
+    },
+    "economia_ledger": {
+      "estado": "PARCIAL",
+      "tablas": ["economia_operaciones", "economia_caja", "economia_inventario", "frequency_origin_nodes", "frequency_channels", "guardian_actions", "frequency_events"],
+      "trabajo_pendiente": "NO es double-entry ledger. Sin SHA-256. Sin débitos/créditos. Convertir a sistema completo."
+    },
+    "documentos_firmas": {
+      "estado": "NO ENCONTRADO",
+      "trabajo_pendiente": "Crear sistema completo: documentos, versiones, firmas, SHA-256, QR, certificados."
+    },
+    "inventa": {
+      "estado": "NO ENCONTRADO",
+      "trabajo_pendiente": "Crear sistema completo: ideas, expedientes, proyectos, equipos, roadmaps."
+    },
+    "cultura": {
+      "estado": "NO ENCONTRADO",
+      "trabajo_pendiente": "Crear sistema completo: países, guías, costumbres, simulaciones, cursos."
+    },
+    "solver_link": {
+      "estado": "NO ENCONTRADO",
+      "trabajo_pendiente": "Crear sistema completo: problemas, soluciones, expertos, reputación."
+    },
+    "stripe": {
+      "estado": "BLOQUEADO",
+      "api": ["/api/stripe/checkout", "/api/stripe/portal", "/api/stripe/webhook", "/api/stripe/billing"],
+      "bloqueos": ["Price IDs placeholder", "Webhook secret vacío"]
+    },
+    "auditoria": {
+      "estado": "PARCIAL",
+      "tablas": ["audit_logs", "eliana_audit_logs", "marketplace_audit_logs"],
+      "trabajo_pendiente": "Crear APIs y panel de auditoría."
+    },
+    "pwa": {
+      "estado": "PARCIAL",
+      "archivos": ["manifest.json", "sw.js"],
+      "trabajo_pendiente": "Iconos PWA."
+    }
+  },
+  "estadisticas": {
+    "migraciones": 37,
+    "tablas": 81,
+    "enums": 40,
+    "politicas_rls": "~326 creadas, ~150-170 activas",
+    "apis": "~30",
+    "rutas": 97,
+    "errores_lint": 46,
+    "errores_build": 0,
+    "pruebas": 0,
+    "componentes_server": 0,
+    "componentes_client": "~100%"
+  },
+  "bloqueos": [
+    "service_role key PENDIENTE",
+    "Stripe Price IDs placeholder",
+    "Stripe Webhook Secret vacío",
+    "Gemini API key expuesta en chat"
+  ],
+  "riesgos": [
+    "Dual auth (localStorage + Supabase)",
+    "Sin service_role para RLS",
+    "Sin pruebas automatizadas",
+    "100% client components",
+    "Context handoff in-memory",
+    "ELIANA independiente sin migraciones",
+    "Inventa/Cultura/Solver/Docs/Ledger no existen"
+  ]
+}

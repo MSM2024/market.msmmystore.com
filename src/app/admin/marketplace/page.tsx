@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Store, Package, ShoppingCart, DollarSign, AlertTriangle, Check, X, TrendingUp, Loader2 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { formatPrice } from "@/lib/marketplace/constants"
+import { hasRole, refreshSession } from "@/lib/auth"
 import { fetchAdminMarketplaceStats, adminFetchPendingStores, adminFetchPendingProducts, adminApproveStore, adminRejectStore, adminApproveProduct, adminRejectProduct } from "@/lib/marketplace/client"
 import type { StoreWithStats, ProductWithStore } from "@/lib/marketplace/types"
 
@@ -19,7 +21,16 @@ interface Stats {
 }
 
 export default function AdminMarketplacePage() {
+  const router = useRouter()
   usePageTitle("Marketplace Admin — ZAFIRO")
+
+  useEffect(() => {
+    refreshSession().then(session => {
+      if (!session || (!hasRole("owner") && !hasRole("admin") && !hasRole("superadmin"))) {
+        router.replace("/")
+      }
+    })
+  }, [router])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")

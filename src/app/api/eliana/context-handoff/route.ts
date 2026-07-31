@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
 const RETURN_URL_ALLOWLIST = [
   "https://msmmystore.com",
@@ -6,7 +8,6 @@ const RETURN_URL_ALLOWLIST = [
   "https://market.msmmystore.com",
   "https://marketplace.msmmystore.com",
   "https://beta.msmmystore.com",
-  "https://eliana.msmmystore.com",
 ]
 
 interface HandoffPayload {
@@ -18,8 +19,23 @@ interface HandoffPayload {
   return_url?: string
 }
 
-// In-memory store for demo. In production, use Supabase or Redis.
-const handoffStore = new Map<string, { payload: HandoffPayload; expiresAt: number }>()
+async function getSupabase() {
+  const cookieStore = await cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options)
+          }
+        },
+      },
+    }
+  )
+}
 
 function generateHandoffId(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -64,24 +80,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid return_url" }, { status: 400 })
     }
 
-    // Verify session (basic check - in production use Supabase)
-    // For now, allow unauthenticated handoffs with limited context
-
     const handoffId = generateHandoffId()
-    const expiresAt = Date.now() + 5 * 60 * 1000 // 5 minutes
 
-    handoffStore.set(handoffId, { payload, expiresAt })
+    try {
+      const supabase = await getSupabase()
+      const { data: { user } } = await supabase.auth.getUser()
 
-    // Cleanup expired entries periodically
-    for (const [key, value] of handoffStore.entries()) {
-      if (value.expiresAt < Date.now()) {
-        handoffStore.delete(key)
-      }
+      await supabase.from("eliana_tickets").insert({
+        id: handoffId,
+        source_app: payload.source_app,
+        target_app: "eliana",
+        status: "active",
+        payload,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        created_by: user?.id || null,
+      })
+    } catch {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     }
 
     return NextResponse.json({
       handoff_id: handoffId,
-      eliana_url: `https://eliana.msmmystore.com/chat?handoff=${handoffId}`,
+      eliana_url: `/eliana/chat?handoff=${handoffId}`,
       expires_in: 300,
     })
   } catch {
@@ -89,7 +109,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Consume a handoff (called by ELIANA's chat page)
 export async function GET(request: NextRequest) {
   const handoffId = request.nextUrl.searchParams.get("id")
 
@@ -97,22 +116,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "handoff id is required" }, { status: 400 })
   }
 
-  const entry = handoffStore.get(handoffId)
+  try {
+    const supabase = await getSupabase()
+    const { data, error } = await supabase
+      .from("eliana_tickets")
+      .select("*")
+      .eq("id", handoffId)
+      .eq("status", "active")
+      .single()
 
-  if (!entry) {
-    return NextResponse.json({ error: "Handoff not found or expired" }, { status: 404 })
+    if (error || !data) {
+      return NextResponse.json({ error: "Handoff not found or expired" }, { status: 404 })
+    }
+
+    if (new Date(data.expires_at) < new Date()) {
+      await supabase.from("eliana_tickets").update({ status: "expired" }).eq("id", handoffId)
+      return NextResponse.json({ error: "Handoff expired" }, { status: 410 })
+    }
+
+    await supabase.from("eliana_tickets").update({ status: "consumed", consumed_at: new Date().toISOString() }).eq("id", handoffId)
+
+    return NextResponse.json({
+      context: data.payload,
+      consumed: true,
+    })
+  } catch {
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
   }
-
-  if (entry.expiresAt < Date.now()) {
-    handoffStore.delete(handoffId)
-    return NextResponse.json({ error: "Handoff expired" }, { status: 410 })
-  }
-
-  // Consume (one-time use)
-  handoffStore.delete(handoffId)
-
-  return NextResponse.json({
-    context: entry.payload,
-    consumed: true,
-  })
 }

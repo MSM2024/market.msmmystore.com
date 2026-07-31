@@ -1,0 +1,112 @@
+{
+  "aplicacion": "ELIANA",
+  "version": "1.0.0",
+  "fecha_auditoria": "2026-07-29",
+  "repositorio": "MSM2024/msm-eliana-app",
+  "rama": "master",
+  "commits": 1,
+  "ultimo_commit": "7153d9e test",
+  "dominio_asignado": "https://eliana.msmmystore.com",
+  "dominio_real": "eliana.msmmystore.com → msmmystore/zafiro (INCORRECTO)",
+  "proyecto_vercel": "msm-eliana-app",
+  "proyecto_supabase": "vcfevlpoqwnsvkwfoprv (compartido con ZAFIRO)",
+  "modulos": {
+    "pagina_principal": {
+      "estado": "FUNCIONAL",
+      "ruta": "/",
+      "descripcion": "Redirige a /chat o /auth/login según sesión"
+    },
+    "autenticacion": {
+      "estado": "FUNCIONAL (con riesgo)",
+      "rutas": ["/auth/login", "/auth/register", "/auth/update-password", "/auth/callback"],
+      "librerias": ["src/lib/supabase/client.ts", "src/lib/supabase/server.ts", "src/lib/supabase/middleware.ts"],
+      "riesgo": "Middleware (proxy.ts) puede no estar activo — no se llama middleware.ts"
+    },
+    "chat": {
+      "estado": "FUNCIONAL",
+      "ruta": "/chat",
+      "api": "/api/chat",
+      "motor": "Gemini 2.0 Flash"
+    },
+    "tareas": {
+      "estado": "PARCIAL",
+      "ruta": "/tareas",
+      "api": "/api/tasks",
+      "riesgo": "Tabla eliana_tasks puede no existir en Supabase (sin migraciones)"
+    },
+    "memoria": {
+      "estado": "PARCIAL",
+      "ruta": "/memoria",
+      "api": "/api/memory",
+      "riesgo": "Tabla eliana_memories puede no existir en Supabase (sin migraciones)"
+    },
+    "configuracion": {
+      "estado": "FUNCIONAL",
+      "ruta": "/configuracion",
+      "subpaginas": ["/configuracion/voz", "/configuracion/privacidad"]
+    },
+    "voz": {
+      "estado": "FUNCIONAL",
+      "ruta": "/configuracion/voz",
+      "dependencias": ["Web Speech API"]
+    },
+    "context_handoff": {
+      "estado": "IN-MEMORY (no production-ready)",
+      "api": "/api/context/consume",
+      "riesgo": "Usa Map en memoria con TTL 5 min. No persiste. No escala."
+    },
+    "knowledge": {
+      "estado": "FUNCIONAL",
+      "api": "/api/knowledge",
+      "descripcion": "In-memory knowledge base con búsqueda simple"
+    },
+    "salud": {
+      "estado": "FUNCIONAL",
+      "api": "/api/health"
+    },
+    "feedback": {
+      "estado": "FUNCIONAL",
+      "api": "/api/feedback"
+    },
+    "escalamiento_humano": {
+      "estado": "FUNCIONAL",
+      "api": "/api/eliana/escalate"
+    },
+    "pwa": {
+      "estado": "PARCIAL",
+      "archivos": ["public/manifest.json", "public/sw.js"],
+      "riesgo": "public/icons/ está vacío — no hay iconos PWA"
+    }
+  },
+  "estadisticas": {
+    "rutas_pagina": 10,
+    "apis": 9,
+    "migraciones_supabase": 0,
+    "commits_git": 1,
+    "pruebas": 0,
+    "build": "No verificado"
+  },
+  "env_vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "CONFIGURADA",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "PLACEHOLDER",
+    "SUPABASE_SERVICE_ROLE_KEY": "PLACEHOLDER",
+    "GEMINI_API_KEY": "PLACEHOLDER",
+    "NEXT_PUBLIC_APP_NAME": "CONFIGURADO (ELIANA)",
+    "NEXT_PUBLIC_APP_DOMAIN": "CONFIGURADO",
+    "NEXT_PUBLIC_ZAFIRO_DOMAIN": "CONFIGURADO",
+    "NEXT_PUBLIC_MARKET_DOMAIN": "CONFIGURADO"
+  },
+  "bloqueos": [
+    "Dominio eliana.msmmystore.com apunta a ZAFIRO, no a ELIANA independiente",
+    "Migraciones Supabase vacías — tablas no versionadas",
+    "GEMINI_API_KEY, SUPABASE keys en placeholder",
+    "Middleware puede no estar activo (proxy.ts != middleware.ts)",
+    "Solo 1 commit git — sin historial"
+  ],
+  "riesgos": [
+    "ELIANA actualmente FUNCIONA DENTRO DE ZAFIRO — crear app independiente requiere duplicar y configurar todo desde cero",
+    "Context handoff in-memory se pierde en cada deploy",
+    "Sin migraciones = schema no reproducible",
+    "Sin pruebas = cambios peligrosos"
+  ]
+}

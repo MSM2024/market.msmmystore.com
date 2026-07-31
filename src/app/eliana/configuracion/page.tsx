@@ -10,7 +10,7 @@ export default function ConfiguracionPage() {
   const sections = [
     { icon: Volume2, label: "Audio y Voz", desc: "Configurar voz, velocidad y volumen", href: "/eliana/configuracion/voz" },
     { icon: Shield, label: "Privacidad", desc: "Controlar qué recuerda ELIANA", href: "/eliana/configuracion/privacidad" },
-    { icon: Bell, label: "Notificaciones", desc: "Preferencias de alertas", href: "/eliana/configuracion/notificaciones" },
+    { icon: Bell, label: "Notificaciones", desc: "Preferencias de alertas", href: "/settings" },
     { icon: Globe, label: "Idioma", desc: "Idioma de respuestas", href: "#" },
     { icon: Palette, label: "Tema", desc: "Apariencia de ELIANA", href: "#" },
     { icon: User, label: "Perfil compartido", desc: "Sincronizar con ZAFIRO", href: "/settings" },

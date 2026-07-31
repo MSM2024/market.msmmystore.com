@@ -1,76 +1,127 @@
 'use client'
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save, Camera, Plus, Trash2, Globe } from "lucide-react"
+import { ArrowLeft, Save, Camera, Plus, Trash2, Globe, AlertCircle, RefreshCw } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
-import { getSession } from "@/lib/auth"
-import { getProfile, updateProfile, seedMiguelProfile, type UserProfile, type SocialLink } from "@/lib/profile"
+import { refreshSession } from "@/lib/auth"
+import { getProfile, updateProfile, type UserProfile, type SocialLink } from "@/lib/profile"
 
 export default function EditProfilePage() {
   usePageTitle("Editar Perfil")
   const router = useRouter()
-  const [initialEditData] = useState(() => {
-    if (typeof window === "undefined") return null
-    const session = getSession()
-    let p: UserProfile | null = null
-    if (session) p = getProfile(session.id)
-    if (!p) p = seedMiguelProfile()
-    return p
-  })
-  const [profile, setProfile] = useState<UserProfile | null>(initialEditData)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [saved, setSaved] = useState(false)
-  const [form, setForm] = useState(() => initialEditData ? {
-    name: initialEditData.name, publicName: initialEditData.publicName, username: initialEditData.username,
-    title: initialEditData.title, company: initialEditData.company, location: initialEditData.location,
-    website: initialEditData.website, linktree: initialEditData.linktree,
-    bioShort: initialEditData.bioShort, bioLong: initialEditData.bioLong,
-  } : {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [form, setForm] = useState({
     name: "", publicName: "", username: "", title: "", company: "",
     location: "", website: "", linktree: "", bioShort: "", bioLong: "",
   })
-  const [rolesText, setRolesText] = useState(() => initialEditData ? initialEditData.roles.join(", ") : "")
-  const [editingLinks, setEditingLinks] = useState<SocialLink[]>(() => initialEditData ? [...initialEditData.socialLinks] : [])
+  const [rolesText, setRolesText] = useState("")
+  const [editingLinks, setEditingLinks] = useState<SocialLink[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const abortRef = useRef<AbortController | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    abortRef.current = new AbortController()
+    const signal = abortRef.current.signal
+
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 10000)
+
+    ;(async () => {
+      try {
+        const session = await refreshSession()
+        if (!mountedRef.current) return
+        if (!session) { router.replace("/auth/login"); return }
+        const p = await getProfile()
+        if (!mountedRef.current) return
+        if (signal.aborted) return
+        if (p) {
+          setProfile(p)
+          setForm({
+            name: p.name, publicName: p.publicName, username: p.username,
+            title: p.title, company: p.company, location: p.location,
+            website: p.website, linktree: p.linktree,
+            bioShort: p.bioShort, bioLong: p.bioLong,
+          })
+          setRolesText(p.roles.join(", "))
+          setEditingLinks([...p.socialLinks])
+        }
+      } catch {
+        if (mountedRef.current) setError("No pudimos cargar tu perfil.")
+      } finally {
+        if (mountedRef.current) { setLoaded(true); setLoading(false) }
+        clearTimeout(timeoutId)
+      }
+    })()
+
+    return () => { mountedRef.current = false; abortRef.current?.abort() }
+  }, [router])
   const [newLink, setNewLink] = useState({ platform: "", url: "", label: "" })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
-  const handleSave = () => {
-    if (!profile) return
-    const roles = rolesText.split(",").map(r => r.trim()).filter(Boolean)
-    const updated = updateProfile(profile.userId, {
-      ...form,
-      roles,
-      socialLinks: editingLinks,
-    })
-    if (updated) {
-      setProfile(updated)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    if (!profile || saving) return
+    setSaving(true)
+    setSaveError("")
+    try {
+      const roles = rolesText.split(",").map(r => r.trim()).filter(Boolean)
+      const ok = await updateProfile({
+        ...form,
+        roles,
+        socialLinks: editingLinks,
+      })
+      if (!mountedRef.current) return
+      if (ok) {
+        setSaved(true)
+        setTimeout(() => { if (mountedRef.current) setSaved(false) }, 2000)
+      } else {
+        setSaveError("No pudimos guardar los cambios.")
+      }
+    } catch {
+      if (mountedRef.current) setSaveError("Error de conexión. Intenta de nuevo.")
+    } finally {
+      if (mountedRef.current) setSaving(false)
     }
   }
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !profile) return
+    if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string
-      const updated = updateProfile(profile.userId, { avatar: dataUrl })
-      if (updated) setProfile(updated)
+      if (!dataUrl) return
+      try {
+        const ok = await updateProfile({ avatar: dataUrl })
+        if (ok && mountedRef.current) setProfile(prev => prev ? { ...prev, avatar: dataUrl } : null)
+      } catch {
+        if (mountedRef.current) setSaveError("No pudimos actualizar la foto.")
+      }
     }
     reader.readAsDataURL(file)
   }
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !profile) return
+    if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string
-      const updated = updateProfile(profile.userId, { coverImage: dataUrl })
-      if (updated) setProfile(updated)
+      if (!dataUrl) return
+      try {
+        const ok = await updateProfile({ coverImage: dataUrl })
+        if (ok && mountedRef.current) setProfile(prev => prev ? { ...prev, coverImage: dataUrl } : null)
+      } catch {
+        if (mountedRef.current) setSaveError("No pudimos actualizar la portada.")
+      }
     }
     reader.readAsDataURL(file)
   }
@@ -91,10 +142,41 @@ export default function EditProfilePage() {
     setEditingLinks(editingLinks.filter(l => l.id !== id))
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 rounded-full border-2 border-[#00D9FF] border-t-transparent animate-spin mx-auto mb-3" />
+          <p className="text-sm text-slate-400">Cargando perfil...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+        <div className="text-center max-w-xs">
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+          <p className="text-sm text-slate-300 mb-4">{error}</p>
+          <button onClick={() => { setError(null); setLoading(true); window.location.reload() }}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 mx-auto">
+            <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (!profile) {
     return (
       <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
-        <p className="text-sm text-slate-400">Cargando...</p>
+        <div className="text-center">
+          <p className="text-sm text-slate-400">Debes iniciar sesión para editar tu perfil.</p>
+          <Link href="/auth/login" className="mt-4 inline-block px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all">
+            Iniciar Sesión
+          </Link>
+        </div>
       </div>
     )
   }
@@ -106,13 +188,20 @@ export default function EditProfilePage() {
           <Link href="/profile-page" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
             <ArrowLeft className="w-4 h-4" /> Volver al perfil
           </Link>
-          <button onClick={handleSave}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-[10px] font-bold hover:opacity-90 transition-all cursor-pointer">
-            <Save className="w-3.5 h-3.5" /> {saved ? "✓ Guardado" : "Guardar cambios"}
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-[10px] font-bold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer">
+            <Save className="w-3.5 h-3.5" /> {saving ? "Guardando..." : saved ? "✓ Guardado" : "Guardar cambios"}
           </button>
         </div>
 
         <h1 className="text-xl font-black mb-6">Editar Perfil</h1>
+
+        {saveError && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 mb-4">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            <p className="text-[10px] text-red-300">{saveError}</p>
+          </div>
+        )}
 
         <div className="space-y-6">
           {/* Fotos */}
@@ -234,9 +323,9 @@ export default function EditProfilePage() {
           </div>
 
           {/* Save button at bottom */}
-          <button onClick={handleSave}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-2">
-            <Save className="w-4 h-4" /> {saved ? "✓ Cambios guardados" : "Guardar cambios"}
+          <button onClick={handleSave} disabled={saving}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
+            <Save className="w-4 h-4" /> {saving ? "Guardando..." : saved ? "✓ Cambios guardados" : "Guardar cambios"}
           </button>
         </div>
       </div>

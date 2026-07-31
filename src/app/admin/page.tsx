@@ -121,13 +121,11 @@ export default function AdminPage() {
         return
       }
     })
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    Promise.resolve().then(() => loadData())
   }, [router])
 
   useEffect(() => {
-    if (tab === "usuarios") { loadUsers() }
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (tab === "usuarios") { Promise.resolve().then(() => loadUsers()) }
   }, [tab, userPage])
 
   const automationStats = [
@@ -384,7 +382,7 @@ export default function AdminPage() {
                       <div key={s.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/20 border border-slate-700/30">
                         <div className="flex-1 min-w-0">
                           <p className="text-[9px] font-bold text-white truncate">{s.name}</p>
-                          <p className="text-[7px] text-slate-500">{(s as any).country} — {new Date(s.created_at).toLocaleDateString()}</p>
+                          <p className="text-[7px] text-slate-500">{s.country} — {new Date(s.created_at).toLocaleDateString()}</p>
                         </div>
                         <button onClick={() => handleApproveStore(s.id)} className="p-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer" title="Aprobar">
                           <Check className="w-3 h-3 text-emerald-400" />
@@ -411,7 +409,7 @@ export default function AdminPage() {
                       <div key={p.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/20 border border-slate-700/30">
                         <div className="flex-1 min-w-0">
                           <p className="text-[9px] font-bold text-white truncate">{p.name}</p>
-                          <p className="text-[7px] text-slate-500">${(p as any).base_price} — {new Date(p.created_at).toLocaleDateString()}</p>
+                          <p className="text-[7px] text-slate-500">${p.base_price} — {new Date(p.created_at).toLocaleDateString()}</p>
                         </div>
                         <button onClick={() => handleApproveProduct(p.id)} className="p-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer" title="Aprobar">
                           <Check className="w-3 h-3 text-emerald-400" />

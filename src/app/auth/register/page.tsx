@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import { Gem, Mail, Lock, User, Eye, EyeOff, CheckCircle, AlertCircle, Gift } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { registerUser } from "@/lib/auth"
@@ -20,19 +20,53 @@ function RegisterForm() {
   const [agree, setAgree] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const REGISTER_TIMEOUT_MS = 10000
+  const abortRef = useRef<AbortController | null>(null)
+  const mountedRef = useRef(true)
+  const submittingRef = useRef(false)
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; abortRef.current?.abort() }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submittingRef.current) return
+
     setError("")
     if (!agree) { setError("Debes aceptar los términos y condiciones"); return }
     if (password.length < 8) { setError("La contraseña debe tener al menos 8 caracteres"); return }
+    if (!/[A-Z]/.test(password)) { setError("La contraseña debe incluir al menos una mayúscula"); return }
+    if (!/\d/.test(password)) { setError("La contraseña debe incluir al menos un número"); return }
+
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    const timeoutId = window.setTimeout(() => {
+      controller.abort(new DOMException("REGISTER_TIMEOUT", "AbortError"))
+    }, REGISTER_TIMEOUT_MS)
+
+    submittingRef.current = true
     setLoading(true)
-    const result = await registerUser(name, email, password, refCode)
-    setLoading(false)
-    if (result.ok) {
-      router.push("/")
-    } else {
-      setError(result.error || "Error al crear cuenta")
+    try {
+      const result = await registerUser(name, email, password, refCode, controller.signal)
+      if (!mountedRef.current) return
+      if (result.ok) {
+        if (result.autoConfirmed) {
+          router.push("/dashboard")
+        } else {
+          router.push(`/auth/verify?email=${encodeURIComponent(email)}`)
+        }
+      } else {
+        setError(result.error || "No pudimos crear tu cuenta. Inténtalo nuevamente.")
+      }
+    } catch {
+      if (mountedRef.current) setError("Error de conexión. Verifica tu internet e intenta de nuevo.")
+    } finally {
+      window.clearTimeout(timeoutId)
+      submittingRef.current = false
+      if (mountedRef.current) setLoading(false)
     }
   }
 

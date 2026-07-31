@@ -37,13 +37,13 @@ export default function AdminMarketplaceProveedoresPage() {
   const [search, setSearch] = useState("")
   const [toast, setToast] = useState("")
 
-  useEffect(() => { loadProviders() }, [])
-
   async function loadProviders() {
     const data = await fetchProviders()
     setProviders(data)
     setLoading(false)
   }
+
+  useEffect(() => { Promise.resolve().then(() => loadProviders()) }, [])
 
   function showToast(msg: string) {
     setToast(msg)
