@@ -355,7 +355,7 @@ export default function ElianaPage() {
             {[
               { href: "/", label: "ZAFIRO", desc: "Plataforma principal", color: "#00D9FF" },
               { href: "https://marketplace.msmmystore.com", label: "Marketplace", desc: "Tiendas y productos", color: "#7c3aed", external: true },
-              { href: "/escuela", label: "Escuela", desc: "Cursos y mentores", color: "#10b981" },
+              { href: "/ecosystem/escuela", label: "Escuela", desc: "Cursos y mentores", color: "#10b981" },
               { href: "/album", label: "Álbum", desc: "Legado familiar", color: "#f59e0b" },
               { href: "/marketplace/pedidos", label: "Mis Pedidos", desc: "Sigue tus compras", color: "#22d3ee" },
               { href: "/referidos", label: "Referidos", desc: "Invita y gana", color: "#22c55e" },

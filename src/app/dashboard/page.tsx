@@ -84,7 +84,7 @@ export default function DashboardPage() {
           <ArrowRight className="w-3 h-3 text-[#00D9FF] mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
         </Link>
 
-        <Link href="/knowledge/admin" className="p-5 rounded-2xl bg-gradient-to-br from-[#DAA520]/10 to-[#050A1A] border border-[#DAA520]/20 hover:border-[#DAA520]/40 transition-all group">
+        <Link href="/admin/knowledge" className="p-5 rounded-2xl bg-gradient-to-br from-[#DAA520]/10 to-[#050A1A] border border-[#DAA520]/20 hover:border-[#DAA520]/40 transition-all group">
           <BookOpen className="w-6 h-6 text-[#DAA520] mb-3" />
           <h3 className="text-sm font-black text-white mb-1">Base de Conocimiento</h3>
           <p className="text-[10px] text-slate-400">Documentos y reglas</p>

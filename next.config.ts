@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**" },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/escuela", destination: "/ecosystem/escuela", permanent: true },
+    ]
+  },
   async headers() {
     return [
       {

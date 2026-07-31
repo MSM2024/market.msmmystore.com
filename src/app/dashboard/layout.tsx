@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Store, Package, ShoppingCart, Users, DollarSign, Megaphone, Settings, LayoutDashboard } from "lucide-react"
+import { Store, Package, ShoppingCart, Users, DollarSign, Settings, LayoutDashboard } from "lucide-react"
 
 const DASHBOARD_LINKS = [
   { href: "/dashboard/tienda", label: "Mi Tienda", icon: Store },
@@ -10,7 +10,6 @@ const DASHBOARD_LINKS = [
   { href: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingCart },
   { href: "/dashboard/clientes", label: "Clientes", icon: Users },
   { href: "/dashboard/ganancias", label: "Ganancias", icon: DollarSign },
-  { href: "/dashboard/publicidad", label: "Publicidad", icon: Megaphone },
   { href: "/dashboard/configuracion", label: "Config", icon: Settings },
 ]
 
