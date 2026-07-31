@@ -1,0 +1,156 @@
+# ROADMAP_ZAFIRO.md — Diagnóstico, inventario y orden de implementación
+
+> CAPÍTULO 1 del "Método Autor + IA" · 2026-07-31 · Basado en evidencia del repositorio (HEAD `695f241`). Los porcentajes expresan avance real por módulo según la clasificación de fuentes de datos (REAL / PARCIAL / SIMULADO / ESTÁTICO / ROTO / DUPLICADO / AUSENTE), no estimaciones de esfuerzo.
+
+## 0. Resumen ejecutivo
+
+- **Compila y verifica**: tsc 0 errores · eslint 0 errores (323 warnings) · vitest 9/9 · build 127 páginas OK.
+- **Lo real y sólido**: autenticación server-side, perfiles, ELIANA con Gemini, Knowledge Core (RAG), Biblioteca (owner-only), historias, Marketplace sobre Supabase, Stripe con idempotencia durable, RLS endurecida (00035/00048/00049/00051), 53 migraciones.
+- **Lo pendiente de verdad**: migrar a datos reales lo que hoy vive en localStorage (PTS/referidos/mensajes/sponsors/carrito/memoria ELIANA), conectar pagos de marketplace, activar proveedores reales, panel de auditoría, pruebas e2e, aplicar migraciones en la nube y desplegar.
+- **Bloqueo externo principal**: claves reales de Supabase/Stripe y CLI de Supabase no disponibles aún para la fase de validación en producción.
+
+## 1. Matriz de módulos (responsable, estado, archivos, tablas, permisos, pruebas, pendiente)
+
+> Responsable tecnológico: **Don Miguel** = autor/director (visión y validación) · **IA (opencode)** = desarrollo ejecutivo. Solo se reporta estado con evidencia.
+
+### 1.1 Núcleo / Identidad
+
+| Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio de finalización |
+|---|---|---|---|---|---|---|---|---|
+| Auth server (Supabase) | REAL | 90 | `api/auth/*`, `src/proxy.ts`, `src/lib/api-auth.ts` | `auth.users`, `profiles` | RLS por `user_id` | vitest (auth) | Validación e2e con claves; MFA; sesiones/dispositivos | Login/registro/recovery/reset funcionan e2e con validación de Don Miguel |
+| Roles/perfiles | PARCIAL | 70 | `src/lib/auth.ts`, `profile-page/*`, `00037` | `profiles`, `user_roles`, `council_user_roles` | `is_owner/admin` | vitest (roles) | Roles en localStorage para UI → leer del servidor | Matriz de 7 roles aplicada y probada por rol |
+| Organizaciones/membresías | PARCIAL | 50 | `00036` | `organizations`, `memberships` | RLS | — | Flujo de membresías completo; entitlements | Suscripción ↔ perfil ↔ acceso coherentes |
+| Auditoría | PARCIAL | 40 | `00001`, `00033` | `audit_logs`, `eliana_audit_logs`, `marketplace_audit_logs` | owner/admin | — | APIs y panel de auditoría | Acciones sensibles registradas con quién/cuándo/resultado |
+
+### 1.2 ELIANA (IA)
+
+| Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio |
+|---|---|---|---|---|---|---|---|---|
+| Chat Gemini | REAL | 85 | `api/chat`, `lib/eliana/engine.ts`, `eliana/chat` | `eliana_conversations`, `eliana_messages` | RLS por `user_id` (00049) | — | Calidad de respuestas; voz en tiempo real | Conversación cercana/segura e2e |
+| Memoria/tareas | PARCIAL | 50 | `lib/eliana/core/*`, `eliana/memoria`, `eliana/tareas` | `eliana_memory`, `eliana_tasks`, `eliana_tickets` | RLS | — | **Migrar de localStorage a Supabase**; aprobación/corrección/olvido | Memoria autorizada, exportable, borrable |
+| Knowledge integración | PARCIAL | 60 | `lib/knowledge/*`, `api/knowledge/*` | `knowledge_*` (15 tablas) | `is_knowledge_admin` | — | Unificar con motor `eliana/core`; fuentes/referencias | ELIANA cita documento/página/fragmento |
+| Canales (voz/web) | PARCIAL | 40 | `eliana/configuracion/voz` | — | — | — | Voz real, interruptibilidad, adaptadores | Capítulo 10 cumple sus pruebas |
+
+### 1.3 Marketplace
+
+| Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio |
+|---|---|---|---|---|---|---|---|---|
+| Catálogo/productos/tiendas | REAL | 80 | `marketplace/*`, `lib/marketplace/client.ts` | `marketplace_products/stores/categories/...` | RLS autenticado | — | Datos semilla; aprobación de publicaciones | Publicar/buscar/filtrar e2e |
+| Carrito/favoritos | PARCIAL | 60 | `lib/marketplace/client.ts`, `contexts/CartContext.tsx` | `marketplace_carts/_items`, `marketplace_favorites` | RLS | — | **Migrar carrito de localStorage a Supabase** | Carrito persistente por usuario |
+| Pedidos/estados | REAL | 70 | `marketplace/pedidos`, `dashboard/pedidos` | `marketplace_orders`, `_order_items`, `_status_history` | vendedor/owner | — | Trazabilidad completa; cancelación/insuficiencia | Pedido creado→seguimiento→estados con auditoría |
+| Pagos marketplace | ROTO/SIMULADO | 10 | `lib/marketplace/providers/manual.ts` | `marketplace_payments`, `_refunds` | — | — | Conectar pasarela autorizada; comisión 10% referidos | Pago real + liquidación verificable |
+| Proveedores externos | NO IMPLEMENTADO | 5 | `lib/marketplace/providers/placeholder.ts` | `marketplace_providers`, `_provider_*` | — | — | Autorización + API keys (decisión de Don Miguel) | Proveedor activo con datos reales |
+| Provider msm-inventory | ROTO | 10 | `lib/marketplace/providers/msm-inventory.ts` | — | — | — | Devuelve vacío pese a `isEnabled=true` | Devuelve datos o se desactiva |
+
+### 1.4 Economía y operaciones
+
+| Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio |
+|---|---|---|---|---|---|---|---|---|
+| Ledger/caja | PARCIAL | 30 | `lib/EconomiaService.ts` | `economia_operaciones`, `economia_caja`, `economia_inventario` | RLS (00051) | — | **No es double-entry**: faltan débitos/créditos, asientos compensatorios, inmutabilidad, SHA-256 | Saldo reconstruible desde ledger |
+| Comisiones/liquidaciones | AUSENTE | 5 | `lib/marketplace/pricing-engine.ts` | `marketplace_commissions` | — | — | Motor de comisiones (10% referidos según regla) + liquidación | Comisión solo tras pago confirmado |
+| Panel económico | PARCIAL | 20 | `dashboard/ganancias`, `ecosystem/payments` | — | owner/admin | — | **`ecosystem/payments` es marketing** (cartera prometida no existe); datos reales | Cada cifra con origen verificable |
+
+### 1.5 Biblioteca Viva / Conocimiento
+
+| Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio |
+|---|---|---|---|---|---|---|---|---|
+| Knowledge Core (RAG) | REAL | 75 | `api/knowledge/*`, `lib/knowledge/*` | `knowledge_*` | `is_knowledge_admin` | — | Ingest de archivos real; pgvector; híbrido DB | Búsqueda con referencias y permisos |
+| Biblioteca Viva | PARCIAL | 55 | `api/biblioteca/*`, `biblioteca/*`, `lib/biblioteca/*` | `library_*` | `requireOwner()` (retirada del público) | — | Ingesta PDF/DOCX/TXT/OCR; panel aprobación | Importar→revisar→aprobar→consultar→citar |
+| Datos embebidos | ESTÁTICO | — | `lib/knowledge-data.ts` (81 docs autogenerados) | — | — | — | Decidir: semilla demo vs fuente real | Documentado como demo, separado de producción |
+
+### 1.6 Contenido y comunidades
+
+| Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio |
+|---|---|---|---|---|---|---|---|---|
+| Consejo Invisible | PARCIAL | 40 | `consejo-invisible`, `lib/consejo-invisible/*` | `invisible_council_*` (23), `council_user_roles` | RLS (00031) | — | **APIs ausentes** (DB sin puente a UI) | Acceso completo con permisos y versiones |
+| Historias / Mis historias | REAL | 80 | `historias/*`, `mis-historias/*`, `api/stories` | `mis_historias` | RLS | — | — | CRUD e2e con datos reales |
+| Gemología | ESTÁTICO | 40 | `gemologia`, `lib/gemology-data.ts` | — | — | — | Datos reales o marcar demo | Contenido con fuente |
+| Mensajes | SIMULADO | 20 | `messages` | — | — | — | **localStorage** → conversaciones reales | Mensajería persistente con permisos |
+| Sponsors/campañas | SIMULADO | 15 | `sponsors-page`, `lib/zafiro-data.ts` | — | — | — | **localStorage + alert "simulada"** → real | Campañas reales con auditoría |
+| PTS/recompensas/referidos | SIMULADO | 20 | `rewards`, `referidos`, `lib/rewards.ts`, `lib/referidos.ts` | `rewards_log`, `referrals` | RLS | — | **localStorage** → Supabase | Puntos/racha/refs persistentes |
+| Universo/ecosistema/perfil público | SIMULADO | 30 | `universo`, `ecosystem`, `perfil/[username]` | — | — | — | Datos ficticios (`zafiro.com`, etc.) → reales | Conexiones reales con isActive |
+| Voz Viva | REAL | 80 | `voz-viva`, `api/voz-viva` | `stories` | owner | — | — | CRUD e2e |
+
+### 1.7 Páginas institucionales
+
+| Módulo | Estado real | % | Archivos | Notas |
+|---|---|---|---|---|
+| `/about, /what-we-do, /how-it-works, /vision, /mission, /values, /terms, /privacy, /rules, /help, /contact` | REAL (contenido) | 90 | `src/app/*` | Contacto persiste en Supabase (sin SMTP) |
+| `/memberships` | INTERFAZ | 40 | `memberships` | Requiere price IDs reales + webhook secret |
+
+### 1.8 Infraestructura
+
+| Módulo | Estado real | % | Archivos | Pendiente |
+|---|---|---|---|---|
+| Migraciones | REAL | 53/53 | `supabase/migrations/00001-00053` | Aplicar 00045-00053 en la nube (`supabase db push`) |
+| RLS | REAL | 85 | 00035, 00048, 00049, 00051 | Auditoría por rol en e2e |
+| Stripe idempotencia | REAL | 90 | `lib/stripe/idempotency.ts`, `00052` | Webhook secret real |
+| PWA | PARCIAL | 40 | `public/manifest.json` | Iconos y SW |
+
+## 2. Dependencias entre capítulos (del "ORDEN MAESTRA")
+
+```
+C1 Diagnóstico/Mapa ──► C2 Núcleo (identidad, roles, RLS, auditoría, UI estados)
+C2 ──► C3 Marketplace ──► C4 Economía y operaciones
+C2 ──► C5 ELIANA ──► C6 Biblioteca Viva ──► C7 Autor de libros con IA
+C2 ──► C8 Álbum de la Vida y legado
+C4 ──► C9 ZAFIRO Rutas (requiere decisión de ubicación autorizada — anotada, NO iniciar)
+C5 ──► C10 Canales y acciones
+Todo ──► C11 Seguridad/calidad/privacidad ──► C12 Terminación/despliegue/entrega
+```
+
+**Regla permanente**: no iniciar una integración dependiente mientras su base esté rota. Bloqueo: C9 (Rutas/mapas) requiere autorización de Don Miguel para mapas y GPS — **no implementar todavía** (deseo anotado).
+
+## 3. Orden recomendado de implementación
+
+1. **C2 Núcleo** (ya ~70%: migrar roles/estado a servidor, auditoría, estados vacíos/error/offline, accesibilidad, modo oscuro).
+2. **C3 Marketplace** (carrito→Supabase, proveedor msm-inventory corregido o desactivado, pedidos con trazabilidad).
+3. **C4 Economía** (convertir ledger a doble partida, motor de comisiones, panel económico real; marcar/retirar `ecosystem/payments`).
+4. **C5 ELIANA** (unificar motores, memoria→Supabase, voz, transferencia humana).
+5. **C6 Biblioteca Viva** (ingesta de archivos, panel aprobación, permisos PÚBLICO/INTERNO/PRIVADO/CONFIDENCIAL).
+6. **C7 Autor de libros** (estudio editorial + Biblia de la Obra + capítulos + exportación).
+7. **C8 Álbum de la Vida** (biografías, árbol, línea de tiempo, privacidad familiar).
+8. **C10 Canales** (adaptadores web/WhatsApp/Telegram/voz/correo/tareas).
+9. **C11 Seguridad/calidad/privacidad** (transversal; amenazas, Zod, rate limiting, sanitización).
+10. **C12 Terminación/despliegue/entrega** (build final, README, INFORME_FINAL_ZAFIRO.md, entrega controlada sin subir contenido privado).
+
+## 4. Riesgos y decisiones pendientes
+
+| Riesgo | Impacto | Mitigación / decisión requerida |
+|---|---|---|
+| Funciones en localStorage (PTS, referidos, mensajes, sponsors, carrito, memoria ELIANA) | Pérdida de datos, permisos inexistentes | Migrar a Supabase en C2/C3/C5 |
+| Datos ficticios embebidos en producción | Confusión usuario / incumplimiento "no inventar" | Marcar demo o reemplazar con fuentes reales |
+| Provider msm-inventory activo vacío | Marketplace vacío | Corregir o desactivar (default off) |
+| Pagos marketplace no conectados | Pedidos sin pago real | Esperar pasarela autorizada; mantener "manual" claramente como prueba |
+| `ecosystem/payments` promete cartera inexistente | Engaño a usuarios | Retirar o convertir en página informativa real |
+| Migraciones 00045-00053 sin aplicar en nube | Producción no refleja RLS/knowledge/stripe | Requiere claves + CLI Supabase |
+| Roles en localStorage para la UI | Permisos percibidos ≠ reales | Leer roles del servidor (proxy/api-auth) |
+| Two engines de conocimiento desconectados | Respuestas inconsistentes | Unificar en C5 |
+| Imágenes `remotePatterns` abierto | Riesgo de abuso | Restringir hostnames |
+| CLI Supabase no instalada / claves PENDIENTES | Bloqueo de validación e2e y deploy | Pasar 5 claves (ver bloqueos) |
+
+## 5. Bloqueos externos (requieren a Don Miguel)
+
+1. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_APP_URL` reales → Fase de validación e2e + `supabase db push` + deploy.
+2. Instalación de CLI de Supabase (o autorización de comandos).
+3. Decisión: pasarela de pago autorizada para Marketplace y proveedores externos (Amazon/Walmart/etc.) con API keys.
+4. Decisión: sistema de mapas/rutas con ubicación autorizada (C9) — anotado, NO iniciar.
+
+## 6. Estado global (por capítulo del ORDEN MAESTRA)
+
+| Capítulo | Estado | % verificado |
+|---|---|---|
+| C1 Diagnóstico y Mapa | EN CURSO | 100 (este documento) |
+| C2 Núcleo | Base sólida, pendientes reales | ~70 |
+| C3 Marketplace | Parcial con huecos reales | ~55 |
+| C4 Economía | Base DB, falta motor contable | ~25 |
+| C5 ELIANA | Chat real, memoria simulada | ~55 |
+| C6 Biblioteca Viva | Knowledge real, ingesta pendiente | ~45 |
+| C7 Autor de libros | AUSENTE (parte de Consejo/council_books existe) | ~5 |
+| C8 Álbum de la Vida | AUSENTE (album = legado) | ~5 |
+| C9 Rutas | NO INICIAR (sin autorización) | 0 |
+| C10 Canales | AUSENTE (estructura council/eliana_channels existe) | ~5 |
+| C11 Seguridad | RLS + headers, faltan pruebas | ~40 |
+| C12 Terminación | Documentación y deploy pendiente | ~20 |
+
+**Avance global ponderado: ~40%** (compila y tiene base real fuerte, pero la mayoría de las funciones "visibles" siguen en localStorage o datos estáticos hasta C2-C5).
