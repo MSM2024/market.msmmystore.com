@@ -80,6 +80,8 @@ export async function POST(request: NextRequest) {
       metadata: body.metadata || {},
       priority: body.priority || 0,
       source_id: body.source_id,
+      created_by: user.id,
+      updated_by: user.id,
     })
 
     if (!doc) {
@@ -119,7 +121,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    const doc = await knowledgeRepo.updateDocument(id, updates)
+    const doc = await knowledgeRepo.updateDocument(id, {
+      ...updates,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
     if (!doc) {
       return NextResponse.json({ error: "Failed to update document" }, { status: 500 })
     }

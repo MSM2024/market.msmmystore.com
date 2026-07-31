@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeIngestion, knowledgeRepo, checkInputSafety } from "@/lib/knowledge"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { requireAdmin } from "@/lib/api-auth"
 import type { KnowledgeIngestionJob } from "@/lib/knowledge/types"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient()
-    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
 
     const body = await request.json()
     const { documents, source_id, options } = body
@@ -44,10 +42,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient()
-    if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
 
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get("job_id")

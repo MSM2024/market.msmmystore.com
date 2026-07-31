@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       .from("eliana_messages")
       .insert({
         conversation_id,
+        user_id: user.id,
         role,
         content,
         channel: "web",

@@ -357,7 +357,7 @@ export default function ElianaPage() {
               { href: "https://marketplace.msmmystore.com", label: "Marketplace", desc: "Tiendas y productos", color: "#7c3aed", external: true },
               { href: "/escuela", label: "Escuela", desc: "Cursos y mentores", color: "#10b981" },
               { href: "/album", label: "Álbum", desc: "Legado familiar", color: "#f59e0b" },
-              { href: "/biblioteca", label: "Biblioteca Viva", desc: "Obras de Don Miguel", color: "#22d3ee" },
+              { href: "/marketplace/pedidos", label: "Mis Pedidos", desc: "Sigue tus compras", color: "#22d3ee" },
               { href: "/referidos", label: "Referidos", desc: "Invita y gana", color: "#22c55e" },
               { href: "/admin/eliana", label: "Admin", desc: "Panel de control", color: "#ef4444" },
             ].map((link, i) => (

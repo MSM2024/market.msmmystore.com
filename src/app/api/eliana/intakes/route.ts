@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const { conversation_id, intake_type, data, completed } = await request.json()
     const { data: intake, error } = await supabase
       .from("eliana_intakes")
-      .insert({ conversation_id, intake_type, data: data || {}, completed: completed || false })
+      .insert({ conversation_id, user_id: user.id, intake_type, data: data || {}, completed: completed || false })
       .select("*")
       .single()
     if (error) throw error

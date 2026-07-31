@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   Sparkles, Gem, Sun, Moon, Wifi, Battery, Search, Flame, MessageSquare, Users, Award,
   Plus, Send, X, Eye, MessageCircle, Signal, Globe, User, Heart,
-  CheckCircle, BookOpen, CreditCard, Sliders, Activity, Library,
+  CheckCircle, BookOpen, CreditCard, Sliders, Activity, ShoppingBag,
   Home as HomeIcon, FlaskConical, ScrollText, Settings
 } from "lucide-react"
 import Link from "next/link"
@@ -377,7 +377,7 @@ export default function Home() {
             { id: "Gemología", label: "Gemología", icon: Gem },
             { id: "Sponsors", label: "Sponsors", icon: Award },
             { id: "Historias", label: "Mis Historias", icon: BookOpen, href: "/mis-historias" },
-            { id: "Biblioteca", label: "Biblioteca", icon: Library, href: "/biblioteca" },
+            { id: "Mis Pedidos", label: "Mis Pedidos", icon: ShoppingBag, href: "/marketplace/pedidos" },
             { id: "Universo", label: "Universo", icon: Activity, href: "/universo" },
             { id: "Perfil", label: "Mi Perfil", icon: User },
           ].map(item => {

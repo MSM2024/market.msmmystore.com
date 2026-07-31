@@ -3,7 +3,6 @@ import { getStripe, getWebhookSecret, isStripeAvailable } from "@/lib/stripe/ser
 import { isEventProcessed, markEventProcessed } from "@/lib/stripe/idempotency"
 import { getPlanByPriceId, getPlanById } from "@/lib/stripe/config"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
 import type Stripe from "stripe"
 
 export const runtime = "nodejs"
@@ -32,11 +31,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 })
   }
 
-  if (isEventProcessed(event.id)) {
+  if (await isEventProcessed(event.id)) {
     return NextResponse.json({ received: true, duplicate: true })
   }
-
-  markEventProcessed(event.id)
 
   try {
     await handleEvent(event)
@@ -45,13 +42,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Event processing failed" }, { status: 500 })
   }
 
+  await markEventProcessed(event.id, event.type)
+
   return NextResponse.json({ received: true })
 }
 
 async function getDb() {
-  const admin = getSupabaseAdminClient()
-  if (admin) return admin
-  return await getSupabaseServerClient()
+  return getSupabaseAdminClient()
 }
 
 async function updateProfilePlan(userId: string, planId: string, subscriptionId?: string, status?: string) {
@@ -122,7 +119,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
   if (source === "marketplace" && session.metadata?.orderId) {
     const db = await getDb()
     if (db) {
-      await db.from("orders").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", session.metadata.orderId)
+      await db.from("marketplace_orders").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", session.metadata.orderId)
       console.log(`Marketplace order paid: ${session.metadata.orderId}`)
     }
   }
@@ -155,36 +152,58 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
 async function handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   const raw = invoice as unknown as Record<string, unknown>
   const subscriptionId = typeof raw.subscription === "string" ? raw.subscription : null
-  const userId = typeof raw.metadata === "object" && raw.metadata ? (raw.metadata as Record<string, string>).userId : null
+  let userId = typeof raw.metadata === "object" && raw.metadata ? (raw.metadata as Record<string, string>).userId : null
+
+  const db = await getDb()
+  if (!db) return
+
+  if (!userId && subscriptionId) {
+    const { data } = await db
+      .from("profiles")
+      .select("id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle()
+    userId = data?.id || null
+  }
+
   console.log(`Invoice paid: ${invoice.id} subscription=${subscriptionId} amount=${invoice.amount_paid}`)
 
   if (subscriptionId && userId) {
-    const db = await getDb()
-    if (db) {
-      await db.from("payments").insert({
-        user_id: userId,
-        stripe_invoice_id: invoice.id,
-        stripe_subscription_id: subscriptionId,
-        amount: invoice.amount_paid,
-        currency: invoice.currency,
-        status: "paid",
-        created_at: new Date().toISOString(),
-      })
-    }
+    await db.from("payments").upsert({
+      user_id: userId,
+      stripe_invoice_id: invoice.id,
+      stripe_subscription_id: subscriptionId,
+      amount: invoice.amount_paid / 100,
+      currency: invoice.currency,
+      status: "paid",
+      created_at: new Date().toISOString(),
+    }, { onConflict: "stripe_invoice_id" })
   }
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-  const userId = invoice.metadata?.userId
-  if (!userId) return
+  const raw = invoice as unknown as Record<string, unknown>
+  const subscriptionId = typeof raw.subscription === "string" ? raw.subscription : null
+  let userId = typeof raw.metadata === "object" && raw.metadata ? (raw.metadata as Record<string, string>).userId : null
 
   const db = await getDb()
-  if (db) {
-    await db.from("profiles").update({
-      stripe_subscription_status: "past_due",
-      updated_at: new Date().toISOString(),
-    }).eq("id", userId)
+  if (!db) return
+
+  if (!userId && subscriptionId) {
+    const { data } = await db
+      .from("profiles")
+      .select("id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle()
+    userId = data?.id || null
   }
+
+  if (!userId) return
+
+  await db.from("profiles").update({
+    stripe_subscription_status: "past_due",
+    updated_at: new Date().toISOString(),
+  }).eq("id", userId)
   console.log(`Invoice payment failed: ${invoice.id} user=${userId} → past_due`)
 }
 

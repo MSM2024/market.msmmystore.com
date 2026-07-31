@@ -10,6 +10,8 @@ const RETURN_URL_ALLOWLIST = [
   "https://beta.msmmystore.com",
 ]
 
+const SOURCE_APPS = new Set(["zafiro", "marketplace", "whatsapp", "eliana"])
+
 interface HandoffPayload {
   source_app: string
   source_module?: string
@@ -58,7 +60,7 @@ function isValidReturnUrl(url: string | undefined): boolean {
 
 function sanitizePayload(payload: HandoffPayload): HandoffPayload {
   return {
-    source_app: String(payload.source_app || "").slice(0, 50),
+    source_app: SOURCE_APPS.has(String(payload.source_app || "")) ? String(payload.source_app) : "zafiro",
     source_module: payload.source_module ? String(payload.source_module).slice(0, 50) : undefined,
     resource_type: payload.resource_type ? String(payload.resource_type).slice(0, 50) : undefined,
     resource_id: payload.resource_id ? String(payload.resource_id).slice(0, 36) : undefined,
@@ -86,8 +88,7 @@ export async function POST(request: NextRequest) {
       const supabase = await getSupabase()
       const { data: { user } } = await supabase.auth.getUser()
 
-      await supabase.from("eliana_tickets").insert({
-        id: handoffId,
+      const { data: ticket, error } = await supabase.from("eliana_tickets").insert({
         source_app: payload.source_app,
         target_app: "eliana",
         status: "active",
@@ -95,15 +96,22 @@ export async function POST(request: NextRequest) {
         expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
         created_by: user?.id || null,
       })
+        .select("id")
+        .single()
+
+      if (error) {
+        console.error("HANDOFF_INSERT_ERROR", error)
+        return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+      }
+
+      return NextResponse.json({
+        handoff_id: ticket?.id || handoffId,
+        eliana_url: `/eliana/chat?handoff=${ticket?.id || handoffId}`,
+        expires_in: 300,
+      })
     } catch {
       return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     }
-
-    return NextResponse.json({
-      handoff_id: handoffId,
-      eliana_url: `/eliana/chat?handoff=${handoffId}`,
-      expires_in: 300,
-    })
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }

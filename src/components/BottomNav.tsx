@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Globe, Users, User, Plus, Gem, Award, BookOpen } from 'lucide-react'
+import { Home, Globe, Users, User, Plus, Gem, Award, BookOpen, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
 interface BottomNavProps {
@@ -20,7 +20,7 @@ const navItems = [
 
 const linkItems = [
   { key: 'Historias', label: 'Historia', icon: BookOpen, href: '/mis-historias' },
-  { key: 'Biblioteca', label: 'Biblioteca', icon: BookOpen, href: '/biblioteca' },
+  { key: 'Mis Pedidos', label: 'Pedidos', icon: ShoppingBag, href: '/marketplace/pedidos' },
 ]
 
 export default function BottomNav({ activeNav, onNavChange, onAddQuestion }: BottomNavProps) {

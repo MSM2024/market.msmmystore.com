@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getStripe, isStripeAvailable } from "@/lib/stripe/server"
 import { STRIPE_CONFIG, getPlanById } from "@/lib/stripe/config"
+import { requireAuth } from "@/lib/api-auth"
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.response
+
   if (!isStripeAvailable()) {
     return NextResponse.json(
       { error: "Stripe no está configurado. Contacta al administrador." },
@@ -12,11 +16,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { type, items, planId, userId, orderId, source, successUrl, cancelUrl } = body as {
+    const { type, items, planId, orderId, source, successUrl, cancelUrl } = body as {
       type: "membership" | "marketplace"
       items?: Array<{ name: string; price: number; quantity: number; image?: string }>
       planId?: string
-      userId?: string
       orderId?: string
       source?: string
       successUrl?: string
@@ -24,8 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = getStripe()
+    const userId = auth.auth.userId
     const metadata: Record<string, string> = {
-      userId: userId || "",
+      userId,
       orderId: orderId || "",
       source: source || (type === "membership" ? "membership" : "marketplace"),
     }
@@ -50,6 +54,7 @@ export async function POST(request: NextRequest) {
         line_items: [{ price: plan.priceId, quantity: 1 }],
         success_url: successUrl || STRIPE_CONFIG.checkout.successUrl,
         cancel_url: cancelUrl || STRIPE_CONFIG.checkout.cancelUrl,
+        client_reference_id: userId,
         metadata,
         subscription_data: {
           metadata,
@@ -83,6 +88,7 @@ export async function POST(request: NextRequest) {
         line_items: lineItems,
         success_url: successUrl || defaultSuccess,
         cancel_url: cancelUrl || defaultCancel,
+        client_reference_id: userId,
         metadata,
       })
 

@@ -1,4 +1,5 @@
-import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import { getSupabaseClient } from "@/lib/supabase"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import type {
   LibraryBook, LibrarySource, LibraryVersion, LibraryChapter, LibraryChunk,
   LibraryPerson, LibraryPlace, LibraryTopic, LibraryRelationship,
@@ -7,8 +8,14 @@ import type {
 } from "./types"
 
 export class BibliotecaRepository {
-  private get client() { return getSupabaseClient() }
-  private get available() { return isSupabaseAvailable() }
+  private readonly serverClient: SupabaseClient | null
+
+  constructor(serverClient?: SupabaseClient | null) {
+    this.serverClient = serverClient ?? null
+  }
+
+  private get client() { return this.serverClient ?? getSupabaseClient() }
+  private get available() { return !!this.client }
 
   async getBook(id: string): Promise<LibraryBook | null> {
     if (!this.available) return null

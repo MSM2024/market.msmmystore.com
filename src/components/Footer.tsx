@@ -32,7 +32,7 @@ export default function Footer() {
               <Link href="/eliana" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">ELIANA (IA)</Link>
               <Link href="/ecosystem" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">Ecosistema MSM</Link>
               <Link href="/universo" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">Mi Universo Digital</Link>
-              <Link href="/biblioteca" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">Biblioteca Viva</Link>
+              <Link href="/marketplace/pedidos" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">Mis Pedidos</Link>
               <Link href="/memberships" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">Membresías</Link>
               <Link href="/rewards" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">MSM Rewards</Link>
               <Link href="/referidos" className="block text-[11px] text-slate-500 hover:text-[#00D9FF] transition-colors">Mis Referidos</Link>

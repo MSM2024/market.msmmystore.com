@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       .from("eliana_actions")
       .insert({
         conversation_id,
+        user_id: user.id,
         action_type,
         parameters: parameters || {},
         status: status || "pending_confirmation",

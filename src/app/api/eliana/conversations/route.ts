@@ -52,6 +52,7 @@ export async function POST(request: Request) {
     const { data: conv, error } = await supabase
       .from("eliana_conversations")
       .insert({
+        user_id: user.id,
         channel: channel || "web",
         status: "active",
         metadata: {
