@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 5, windowMs: 60_000, keyPrefix: "forgot-password" })
+    if (limited) return limited
+
     const body = await request.json()
     const email = String(body?.email || "").trim().toLowerCase()
 

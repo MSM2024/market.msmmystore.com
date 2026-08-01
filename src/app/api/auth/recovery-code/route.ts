@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 5, windowMs: 60_000, keyPrefix: "recovery-code" })
+    if (limited) return limited
+
     const { email } = await request.json()
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

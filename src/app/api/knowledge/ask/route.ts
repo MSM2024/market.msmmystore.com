@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ragPipeline, checkInputSafety, buildSystemPrompt, ELIANA_IDENTITY } from "@/lib/knowledge"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
 import type { SearchResult } from "@/lib/knowledge"
+
+const askSchema = z.object({
+  query: z.string().min(1).max(4000),
+  system_prompt: z.string().max(20000).optional(),
+  max_results: z.number().int().min(1).max(20).optional(),
+  max_tokens: z.number().int().min(100).max(20000).optional(),
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { query, system_prompt, max_results, max_tokens } = body
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "knowledge-ask" })
+    if (limited) return limited
 
-    if (!query || typeof query !== "string") {
+    const body = await request.json()
+    const parsed = askSchema.safeParse(body)
+    if (!parsed.success) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 })
     }
+    const { query, system_prompt, max_results, max_tokens } = parsed.data
 
     const safety = checkInputSafety(query)
     if (safety.blocked) {

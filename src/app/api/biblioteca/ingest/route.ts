@@ -3,6 +3,7 @@ import { createHash } from "node:crypto"
 import { BibliotecaRepository } from "@/lib/biblioteca"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { requireOwner } from "@/lib/api-auth"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import {
   MAX_UPLOAD_BYTES,
   ALLOWED_EXTENSIONS,
@@ -16,6 +17,9 @@ import {
 export async function POST(request: Request) {
   const auth = await requireOwner()
   if (!auth.ok) return auth.response
+
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "biblioteca-ingest" })
+  if (limited) return limited
 
   const supabase = await getSupabaseServerClient()
   if (!supabase) return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 })

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/api-auth"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
 
 function slugify(value: string): string {
   return value
@@ -54,6 +56,9 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth()
   if (!auth.ok) return auth.response
 
+  const limited = rateLimitByIp(req, { max: 10, windowMs: 60_000, keyPrefix: "organizations" })
+  if (limited) return limited
+
   const admin = getSupabaseAdminClient()
   if (!admin) {
     return NextResponse.json({ error: "Servicio no configurado" }, { status: 503 })
@@ -65,17 +70,23 @@ export async function POST(req: NextRequest) {
     type?: string
   } | null
 
-  const name = (body?.name || "").trim()
-  if (!name || name.length < 2 || name.length > 80) {
-    return NextResponse.json({ error: "El nombre debe tener entre 2 y 80 caracteres" }, { status: 400 })
+  const orgSchema = z.object({
+    name: z.string().min(2).max(80),
+    slug: z.string().max(60).optional(),
+    type: z.enum(["business", "admin", "platform"]).optional(),
+  })
+  const parsed = orgSchema.safeParse({
+    name: (body?.name || "").trim(),
+    slug: (body?.slug || "").trim(),
+    type: body?.type || "business",
+  })
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos de organización inválidos" }, { status: 400 })
   }
 
-  const type = body?.type || "business"
-  if (!["business", "admin", "platform"].includes(type)) {
-    return NextResponse.json({ error: "Tipo de organización inválido" }, { status: 400 })
-  }
-
-  const slug = (body?.slug || "").trim() || slugify(name)
+  const name = parsed.data.name
+  const type = parsed.data.type
+  const slug = parsed.data.slug || slugify(name)
 
   const { data: org, error: orgError } = await admin
     .from("organizations")

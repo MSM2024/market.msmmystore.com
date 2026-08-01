@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
 
 function slugify(title: string): string {
   return title
@@ -57,6 +59,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "stories" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
 
@@ -64,11 +69,21 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 })
 
     const body = await request.json()
-    const { title, content, summary, category, privacy, status, event_date, location } = body
-
-    if (!title || title.trim().length < 2) {
+    const storySchema = z.object({
+      title: z.string().min(2).max(200),
+      content: z.string().max(200000).optional(),
+      summary: z.string().max(2000).optional(),
+      category: z.string().max(100).optional(),
+      privacy: z.enum(["publica", "comunidad", "familia", "solo_yo"]).optional(),
+      status: z.enum(["borrador", "publicada", "archivada"]).optional(),
+      event_date: z.string().nullable().optional(),
+      location: z.string().max(300).optional(),
+    })
+    const parsed = storySchema.safeParse(body)
+    if (!parsed.success) {
       return NextResponse.json({ error: "El título debe tener al menos 2 caracteres" }, { status: 400 })
     }
+    const { title, content, summary, category, privacy, status, event_date, location } = parsed.data
 
     const baseSlug = slugify(title)
     const uniqueSlug = `${baseSlug}-${Date.now().toString(36)}`

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 10, windowMs: 60_000, keyPrefix: "reset-password" })
+    if (limited) return limited
+
     const body = await request.json()
     const { password, accessToken, refreshToken } = body || {}
 
