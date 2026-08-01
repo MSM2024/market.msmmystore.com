@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { BookOpen, Layers, User, MapPin, Tags, FileText, Clock, ArrowLeft, Shield } from "lucide-react"
+import { BookOpen, Layers, Tags, FileText, Clock, ArrowLeft, Shield } from "lucide-react"
 import type {
   LibraryBook, LibraryChapter, LibraryVersion, LibraryPerson,
   LibraryPlace, LibraryTopic, LibraryChunk, LibraryRelationship, LibraryAccessLog,

@@ -122,17 +122,6 @@ export function earnPTS(userId: string, action: RewardAction): { ok: boolean; pt
   return { ok: true, pts: actionDef.pts }
 }
 
-export function spendPTS(userId: string, amount: number, concept: string): { ok: boolean; error?: string } {
-  const account = getOrCreateAccount(userId)
-  if (account.balance < amount) return { ok: false, error: "PTS insuficientes" }
-  account.balance -= amount
-  account.totalSpent += amount
-  const accounts = getAccounts()
-  accounts[userId] = account
-  saveAccounts(accounts)
-  return { ok: true }
-}
-
 export function getPTSAccount(userId: string): PTSAccount {
   const account = getOrCreateAccount(userId)
   recalcLevel(account)

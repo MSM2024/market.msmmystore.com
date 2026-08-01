@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       },
       system_prompt: systemPrompt,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -33,7 +33,9 @@ Este archivo registra decisiones que requieren a Don Miguel o dependencias exter
 - [ ] Extender el helper de auditoría (`lib/audit.ts`) al resto de mutaciones sensibles (knowledge, biblioteca, organizaciones, user-settings); hoy está conectado a `album/*` y `eliana/channels`. La IP real ya se captura vía `x-forwarded-for`/`x-real-ip` en `writeAuditLog`.
 - [ ] `src/lib/biblioteca/types.ts`: `LibraryApproval` no tipa `book`/`reviewer` → el panel usa `book_id`/`requested_at` internos (aproximación documentada). Tipar con relaciones si se añaden a la migración.
 - [ ] Almacenar la IP real para auditoría de `library_access_logs` (los logs no capturan IP).
-- [ ] Limpiar warnings de eslint preexistentes (imports no usados en `biblioteca/[id]/page.tsx`, catch `error` sin usar en knowledge/ask y knowledge/feedback).
+- [ ] **`/perfil/[username]` muestra el perfil del usuario autenticado, no el del username de la URL**: `getCreatorProfile()` carga el perfil propio porque no existe búsqueda por username (ni endpoint público). Implementar lookup por username cuando exista soporte backend. (Se eliminó el parámetro sin usar de `getCreatorProfile`.)
+- [ ] Migrar los `<img>` de avatares remotos en `perfil/[username]/page.tsx` (3) a `next/image` con `remotePatterns` en `next.config.ts` (las URLs son de dominio arbitrario).
+- [x] Limpiar warnings de eslint preexistentes (imports no usados en `biblioteca/[id]/page.tsx`, catch `error` sin usar en knowledge/ask y knowledge/feedback; `spendPTS` muerto eliminado; `UserProfile` sin usar en universo.ts).
 
 ## Configuración segura aplicada (sin credenciales inventadas)
 

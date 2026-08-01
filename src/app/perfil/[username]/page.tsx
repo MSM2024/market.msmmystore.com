@@ -6,13 +6,12 @@ import { useParams } from "next/navigation"
 import {
   ArrowLeft, ExternalLink, Gem, MessageSquare, User as UserIcon, Award, Flame,
   Calendar, MapPin, Users, Star, Shield, Mail, Globe, CheckCircle, Share2,
-  Link2, Video, BookOpen, Code2, ShoppingCart, Music, FileText, Heart, Send,
-  Plus, Settings, TrendingUp, Eye, Activity, Clock, Target, Zap, Bot, Cpu,
-  Sparkles, Layers, Trophy, Gift, CreditCard, DollarSign, Bell, MessageCircle,
-  MoreHorizontal, ChevronRight, X, Edit3, Camera, Briefcase, Music2, Podcast, Store,
+  Link2, Video, Code2, Heart, Send,
+  Plus, TrendingUp, Eye, Activity, Clock, Target, Zap, Bot, Cpu,
+  Sparkles, Layers, Trophy, Gift, DollarSign, MessageCircle,
+  ChevronRight, X, Edit3, Camera, Briefcase, Music2, Podcast, Store,
 } from "lucide-react"
 import ElianaDiamond from "@/components/ElianaDiamond"
-import { usePageTitle } from "@/lib/usePageTitle"
 
 function renderSafeMessage(msg: string) {
   if (msg.startsWith("ELIANA:")) {
@@ -23,9 +22,9 @@ function renderSafeMessage(msg: string) {
   }
   return msg
 }
-import { getCreatorProfile, PLATFORM_META, CONTENT_LABELS, getPlatforms, type ConnectedPlatform } from "@/lib/universo"
-import { DEFAULT_ECOSYSTEM, type EcosystemProject } from "@/lib/ecosistema"
-import { getDefaultPublicaciones, getPublicaciones, type Publicacion } from "@/lib/comentarios"
+import { getCreatorProfile, PLATFORM_META } from "@/lib/universo"
+import { DEFAULT_ECOSYSTEM } from "@/lib/ecosistema"
+import { getDefaultPublicaciones, type Publicacion } from "@/lib/comentarios"
 
 const PLATFORM_ICONS: Record<string, typeof Globe> = {
   youtube: Video, instagram: Camera, twitter: MessageCircle, linkedin: Briefcase,
@@ -43,13 +42,13 @@ export default function PublicCreatorProfile() {
   const params = useParams()
   const username = params.username as string
   const [profile, setProfile] = useState<Awaited<ReturnType<typeof getCreatorProfile>>>(null)
-  useEffect(() => { getCreatorProfile(username).then(setProfile) }, [username])
+  useEffect(() => { getCreatorProfile().then(setProfile) }, [username])
   const [following, setFollowing] = useState(() => {
     if (typeof window === "undefined") return false
     const stored = JSON.parse(localStorage.getItem("zafiro_following") || "[]")
     return stored.includes(username)
   })
-  const [publicaciones, setPublicaciones] = useState<Publicacion[]>(() => getDefaultPublicaciones(username))
+  const [publicaciones] = useState<Publicacion[]>(() => getDefaultPublicaciones(username))
   const [showEliana, setShowEliana] = useState(false)
   const [elianaChat, setElianaChat] = useState<string[]>([])
   const [elianaInput, setElianaInput] = useState("")

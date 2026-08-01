@@ -1,6 +1,6 @@
 'use client'
 
-import { getProfile, type UserProfile } from "./profile"
+import { getProfile } from "./profile"
 
 export type PlatformType =
   | "youtube" | "instagram" | "tiktok" | "twitter" | "facebook"
@@ -184,7 +184,7 @@ export function getAllConnectedUsers(): { userId: string; name: string; username
   }
 }
 
-export async function getCreatorProfile(username: string): Promise<{
+export async function getCreatorProfile(): Promise<{
   name: string; username: string; bio: string; image: string;
   joinedAt: string; location: string; title: string;
   points: number; streak: number; achievements: number;
