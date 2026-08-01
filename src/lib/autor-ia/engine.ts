@@ -1,10 +1,15 @@
 import { GoogleGenAI } from "@google/genai"
 import { checkInputSafety } from "@/lib/knowledge/guardrails"
+import { isUsableApiKey } from "@/lib/eliana/provider"
 
 export const AUTHOR_MODEL = process.env.AUTOR_IA_MODEL || "gemini-2.0-flash"
 
 export function getGeminiKey(): string | undefined {
-  return process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
+  const gemini = process.env.GEMINI_API_KEY
+  if (isUsableApiKey(gemini)) return gemini
+  const google = process.env.GOOGLE_API_KEY
+  if (isUsableApiKey(google)) return google
+  return undefined
 }
 
 export interface GenerateOptions {

@@ -1,10 +1,10 @@
 # ROADMAP_ZAFIRO.md — Diagnóstico, inventario y orden de implementación
 
-> CAPÍTULO 1 del "Método Autor + IA" · 2026-08-01 · Basado en evidencia del repositorio (HEAD `66f0a0f`, rama `finish-zafiro-eliana`). Los porcentajes expresan avance real por módulo según la clasificación de fuentes de datos (REAL / PARCIAL / SIMULADO / ESTÁTICO / ROTO / DUPLICADO / AUSENTE), no estimaciones de esfuerzo.
+> CAPÍTULO 1 del "Método Autor + IA" · 2026-08-01 · Basado en evidencia del repositorio (HEAD `c6404fc`, rama `finish-zafiro-eliana`). Los porcentajes expresan avance real por módulo según la clasificación de fuentes de datos (REAL / PARCIAL / SIMULADO / ESTÁTICO / ROTO / DUPLICADO / AUSENTE), no estimaciones de esfuerzo.
 
 ## 0. Resumen ejecutivo
 
-- **Compila y verifica**: tsc 0 errores · eslint 0 errores en código nuevo · vitest 75/75 · build OK.
+- **Compila y verifica**: tsc 0 errores · eslint 0 errores en código nuevo · vitest 88/88 · build OK.
 - **Lo real y sólido**: autenticación server-side, perfiles, ELIANA con Gemini, Knowledge Core (RAG), Biblioteca (owner-only), historias, Marketplace sobre Supabase, Stripe con idempotencia durable, RLS endurecida (00035/00048/00049/00051), universo visual ZAFIRO (emblema/PWA/favicons), C7 Autor IA, C8 Álbum de la Vida, C10 Canales ELIANA, 59 migraciones.
 - **Lo pendiente de verdad**: migrar a datos reales lo que hoy vive en localStorage (PTS/referidos/mensajes/sponsors/carrito/memoria ELIANA), conectar pagos de marketplace, activar proveedores reales, prueba e2e, aplicar migraciones en la nube y desplegar.
 - **Bloqueo externo principal**: claves reales de Supabase/Stripe y CLI de Supabase no disponibles aún para la fase de validación en producción.
@@ -26,7 +26,7 @@
 
 | Módulo | Estado real | % | Archivos | Tablas | Permisos | Pruebas | Pendiente | Criterio |
 |---|---|---|---|---|---|---|---|---|
-| Chat Gemini | REAL | 85 | `api/chat`, `lib/eliana/engine.ts`, `eliana/chat` | `eliana_conversations`, `eliana_messages` | RLS por `user_id` (00049) | — | Calidad de respuestas; voz en tiempo real | Conversación cercana/segura e2e |
+| Chat Gemini | REAL | 90 | `api/chat`, `lib/eliana/engine.ts`, `lib/eliana/provider.ts`, `eliana/chat` | `eliana_conversations`, `eliana_messages` | RLS por `user_id` (00049) | vitest (provider 13) + e2e real (503/429/validación/inyección/dedupe) | **Cuota/billing de Google (429) y clave en Vercel**; calidad de respuestas; voz en tiempo real | Conversación cercana/segura e2e (bloqueada por cuota externa) |
 | Memoria/tareas | PARCIAL | 50 | `lib/eliana/core/*`, `eliana/memoria`, `eliana/tareas` | `eliana_memory`, `eliana_tasks`, `eliana_tickets` | RLS | — | **Migrar de localStorage a Supabase**; aprobación/corrección/olvido | Memoria autorizada, exportable, borrable |
 | Knowledge integración | PARCIAL | 60 | `lib/knowledge/*`, `api/knowledge/*` | `knowledge_*` (15 tablas) | `is_knowledge_admin` | — | Unificar con motor `eliana/core`; fuentes/referencias | ELIANA cita documento/página/fragmento |
 | Canales (C10) | REAL (gestión) | 70 | `eliana/configuracion/canales`, `api/eliana/channels`, `lib/eliana/core/adapters.ts`, `00059` | `eliana_channels` | INSERT/DELETE owner (00059), UPDATE owner (00034) | vitest (channels 11/11) | Voz real, credenciales de canales externos (bloqueadas por diseño), webhooks | Capítulo 10 cumple sus pruebas (gestión + adaptadores seguros simulados) |

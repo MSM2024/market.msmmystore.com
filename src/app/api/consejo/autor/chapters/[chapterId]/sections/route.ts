@@ -55,7 +55,7 @@ export async function POST(request: Request, { params }: Params) {
   const content = await generateText({ systemPrompt, userPrompt })
 
   if (!content) {
-    return NextResponse.json({ error: "No se pudo generar la sección (revisa GOOGLE_API_KEY)" }, { status: 502 })
+    return NextResponse.json({ error: "No se pudo generar la sección (revisa GEMINI_API_KEY)" }, { status: 502 })
   }
 
   const check = sanitizeGeneratedText(content)

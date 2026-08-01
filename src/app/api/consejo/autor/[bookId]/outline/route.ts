@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: Params) {
   const outline = await generateText({ systemPrompt, userPrompt })
 
   if (!outline) {
-    return NextResponse.json({ error: "No se pudo generar el outline (revisa GOOGLE_API_KEY)" }, { status: 502 })
+    return NextResponse.json({ error: "No se pudo generar el outline (revisa GEMINI_API_KEY)" }, { status: 502 })
   }
 
   const check = sanitizeGeneratedText(outline)

@@ -27,13 +27,27 @@
 - Confirmación explícita y bloqueo de activación de canales externos sin credenciales.
 - Verificación de conectividad: sin enlaces internos rotos.
 
+### Bloque E — Reparación ELIANA (commits `8f27163`, `66bd33b`, `c6404fc`)
+- Causa raíz del chat "reconectándose": `GOOGLE_API_KEY` placeholder ensombrecía a `GEMINI_API_KEY`
+  real. Selección de clave robusta (`isUsableApiKey`), timeout 45 s, reintentos solo 429/502/503/504,
+  idempotencia por `requestId`, errores HTTP honestos (503/502/429/500), Reintentar y Nueva
+  conversación funcionales, textos sin engaño.
+- Corrección de bug E2E: el dedupe en vuelo compartía el mismo `NextResponse` (HTTP 500 en la 2ª
+  petición concurrente); `compute()` devuelve datos planos y cada consumidor construye su respuesta.
+- Mismo sombreado corregido en `autor-ia/engine.ts`, `story-action/route.ts` y `health`.
+- Lógica de proveedor extraída a `src/lib/eliana/provider.ts` (13 tests unitarios).
+- **Diagnóstico real vs Gemini**: la clave autentica, pero Google devuelve 429 (cuota); bloqueo real
+  = plan/billing del proyecto, no el código. Detalle en `DIAGNOSTICO_ELIANA.md`.
+- Frase "Nuestra sede conceptual está en Madrid, España..." eliminada de `/about`.
+
 ## Verificación global
 
 - `npx tsc --noEmit` → 0 errores.
 - eslint → 0 errores (0 warnings) en código nuevo.
-- `vitest run` → **75/75** (auth 9 · rate-limit 5 · eliana-memory 9 · biblioteca-ingest 10 · autor-ia 14 · album 17 · channels 11).
+- `vitest run` → **88/88** (auth 9 · rate-limit 5 · eliana-memory 9 · biblioteca-ingest 10 · autor-ia 14 · album 17 · channels 11 · provider 13).
 - `npm run build` → OK.
-- Commits locales (sin push): `8462fdd`, `450debb`, `fa41b96`, `66f0a0f`.
+- E2E real vs `/api/chat` (servidor local): 503 honesto por cuota, 429 rate-limit, dedupe concurrente, validación e inyección bloqueada.
+- Commits locales (sin push): `8462fdd`, `450debb`, `fa41b96`, `66f0a0f`, `8f27163`, `66bd33b`, `c6404fc`.
 
 ## Pendientes críticos (detalle en PENDIENTES_ZAFIRO.md)
 
@@ -41,4 +55,5 @@
 2. Validación e2e RLS y de canales externos con cuenta owner real.
 3. Credenciales reales de canales externos (WhatsApp/Telegram/email) con gestor de secretos.
 4. Migrar localStorage (idioma/tema/privacidad/otras funciones) a `user_settings`/Supabase.
-5. C12: despliegue, entrega y versión final de este informe.
+5. **Habilitar cuota/billing de Google AI (429)** y publicar `GEMINI_API_KEY`/claves Supabase en Vercel; probar conversación ida y vuelta en producción.
+6. C12: despliegue, entrega y versión final de este informe.
