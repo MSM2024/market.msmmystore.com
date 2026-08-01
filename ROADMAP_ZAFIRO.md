@@ -1,12 +1,12 @@
 # ROADMAP_ZAFIRO.md — Diagnóstico, inventario y orden de implementación
 
-> CAPÍTULO 1 del "Método Autor + IA" · 2026-07-31 · Basado en evidencia del repositorio (HEAD `695f241`). Los porcentajes expresan avance real por módulo según la clasificación de fuentes de datos (REAL / PARCIAL / SIMULADO / ESTÁTICO / ROTO / DUPLICADO / AUSENTE), no estimaciones de esfuerzo.
+> CAPÍTULO 1 del "Método Autor + IA" · 2026-08-01 · Basado en evidencia del repositorio (HEAD `66f0a0f`, rama `finish-zafiro-eliana`). Los porcentajes expresan avance real por módulo según la clasificación de fuentes de datos (REAL / PARCIAL / SIMULADO / ESTÁTICO / ROTO / DUPLICADO / AUSENTE), no estimaciones de esfuerzo.
 
 ## 0. Resumen ejecutivo
 
-- **Compila y verifica**: tsc 0 errores · eslint 0 errores (323 warnings) · vitest 9/9 · build 129 páginas OK.
-- **Lo real y sólido**: autenticación server-side, perfiles, ELIANA con Gemini, Knowledge Core (RAG), Biblioteca (owner-only), historias, Marketplace sobre Supabase, Stripe con idempotencia durable, RLS endurecida (00035/00048/00049/00051), 53 migraciones.
-- **Lo pendiente de verdad**: migrar a datos reales lo que hoy vive en localStorage (PTS/referidos/mensajes/sponsors/carrito/memoria ELIANA), conectar pagos de marketplace, activar proveedores reales, panel de auditoría, pruebas e2e, aplicar migraciones en la nube y desplegar.
+- **Compila y verifica**: tsc 0 errores · eslint 0 errores en código nuevo · vitest 75/75 · build OK.
+- **Lo real y sólido**: autenticación server-side, perfiles, ELIANA con Gemini, Knowledge Core (RAG), Biblioteca (owner-only), historias, Marketplace sobre Supabase, Stripe con idempotencia durable, RLS endurecida (00035/00048/00049/00051), universo visual ZAFIRO (emblema/PWA/favicons), C7 Autor IA, C8 Álbum de la Vida, C10 Canales ELIANA, 59 migraciones.
+- **Lo pendiente de verdad**: migrar a datos reales lo que hoy vive en localStorage (PTS/referidos/mensajes/sponsors/carrito/memoria ELIANA), conectar pagos de marketplace, activar proveedores reales, prueba e2e, aplicar migraciones en la nube y desplegar.
 - **Bloqueo externo principal**: claves reales de Supabase/Stripe y CLI de Supabase no disponibles aún para la fase de validación en producción.
 
 ## 1. Matriz de módulos (responsable, estado, archivos, tablas, permisos, pruebas, pendiente)
@@ -20,7 +20,7 @@
 | Auth server (Supabase) | REAL | 95 | `api/auth/*`, `src/proxy.ts`, `src/lib/api-auth.ts` | `auth.users`, `profiles` | RLS por `user_id` | vitest (auth) | Validación e2e con claves; MFA (TOTP) y gestión de sesiones implementados en UI | Login/registro/recovery/reset funcionan e2e con validación de Don Miguel |
 | Roles/perfiles | REAL | 85 | `src/lib/auth.ts`, `api/auth/me`, `profile-page/*`, `00037` | `profiles`, `user_roles`, `council_user_roles` | `is_owner/admin` | vitest (roles) | Roles leídos del servidor (ok); validación e2e por rol | Matriz de roles aplicada y probada por rol |
 | Organizaciones/membresías | PARCIAL | 65 | `api/organizations*`, `organizacion/*`, `00036`, `00054` | `organizations`, `memberships` | RLS + service role | — | Flujo de membresías (Stripe) y entitlements | Suscripción ↔ perfil ↔ acceso coherentes |
-| Auditoría | PARCIAL | 65 | `00001`, `00033`, `lib/admin/data.ts`, `admin/auditoria` | `audit_logs`, `eliana_audit_logs`, `marketplace_audit_logs` | owner/admin | — | Registro proactivo en rutas sensibles; e2e con claves | Acciones sensibles registradas con quién/cuándo/resultado |
+| Auditoría | PARCIAL | 80 | `00001`, `00033`, `lib/admin/data.ts`, `admin/auditoria`, `lib/audit.ts` (helper compartido) | `audit_logs`, `eliana_audit_logs`, `marketplace_audit_logs` | owner/admin | — | Registro proactivo en rutas sensibles (ya en album/* y eliana/channels); e2e con claves | Acciones sensibles registradas con quién/cuándo/resultado |
 
 ### 1.2 ELIANA (IA)
 
@@ -29,7 +29,7 @@
 | Chat Gemini | REAL | 85 | `api/chat`, `lib/eliana/engine.ts`, `eliana/chat` | `eliana_conversations`, `eliana_messages` | RLS por `user_id` (00049) | — | Calidad de respuestas; voz en tiempo real | Conversación cercana/segura e2e |
 | Memoria/tareas | PARCIAL | 50 | `lib/eliana/core/*`, `eliana/memoria`, `eliana/tareas` | `eliana_memory`, `eliana_tasks`, `eliana_tickets` | RLS | — | **Migrar de localStorage a Supabase**; aprobación/corrección/olvido | Memoria autorizada, exportable, borrable |
 | Knowledge integración | PARCIAL | 60 | `lib/knowledge/*`, `api/knowledge/*` | `knowledge_*` (15 tablas) | `is_knowledge_admin` | — | Unificar con motor `eliana/core`; fuentes/referencias | ELIANA cita documento/página/fragmento |
-| Canales (voz/web) | PARCIAL | 40 | `eliana/configuracion/voz` | — | — | — | Voz real, interruptibilidad, adaptadores | Capítulo 10 cumple sus pruebas |
+| Canales (C10) | REAL (gestión) | 70 | `eliana/configuracion/canales`, `api/eliana/channels`, `lib/eliana/core/adapters.ts`, `00059` | `eliana_channels` | INSERT/DELETE owner (00059), UPDATE owner (00034) | vitest (channels 11/11) | Voz real, credenciales de canales externos (bloqueadas por diseño), webhooks | Capítulo 10 cumple sus pruebas (gestión + adaptadores seguros simulados) |
 
 ### 1.3 Marketplace
 
@@ -82,7 +82,7 @@
 
 | Módulo | Estado real | % | Archivos | Pendiente |
 |---|---|---|---|---|
-| Migraciones | REAL | 53/53 | `supabase/migrations/00001-00053` | Aplicar 00045-00053 en la nube (`supabase db push`) |
+| Migraciones | REAL | 59/59 | `supabase/migrations/00001-00059` | Aplicar 00045-00059 en la nube (`supabase db push`) |
 | RLS | REAL | 85 | 00035, 00048, 00049, 00051 | Auditoría por rol en e2e |
 | Stripe idempotencia | REAL | 90 | `lib/stripe/idempotency.ts`, `00052` | Webhook secret real |
 | PWA | PARCIAL | 40 | `public/manifest.json` | Iconos y SW |
@@ -147,10 +147,10 @@ Todo ──► C11 Seguridad/calidad/privacidad ──► C12 Terminación/despl
 | C5 ELIANA | Memoria persistida Supabase (doble escritura), dedupe y contexto; tests 9/9 | ~70 |
 | C6 Biblioteca Viva | Aprobaciones (GET/POST/PUT), panel admin, privacidad 4 niveles (00055), ingesta txt/md + bucket (00056), tests 10/10 | ~70 |
 | C7 Autor de libros | Autor IA: motor Gemini + RAG (00057), API `/api/consejo/autor` (crear, outline, capítulos, secciones, publicar a Biblioteca Viva), UI `/admin/autor-ia`; tests 14/14 | ~45 |
-| C8 Álbum de la Vida | AUSENTE (album = legado) | ~5 |
+| C8 Álbum de la Vida | Álbum completo: migración 00058 (familias/miembros/árbol/eventos/medios con RLS), `lib/album/*`, 6 rutas API `/api/album/*`, componentes UI + `/album` con tabs, integración `/ecosystem/album`; tests 17/17 | ~90 |
 | C9 Rutas | NO INICIAR (sin autorización) | 0 |
-| C10 Canales | AUSENTE (estructura council/eliana_channels existe) | ~5 |
-| C11 Seguridad | Rate limiting por IP (15 rutas sensibles) + validación Zod en rutas de escritura; tests 5/5 | ~60 |
+| C10 Canales | Canales ELIANA: migración 00059 (políticas INSERT/DELETE + seed 7 canales), API GET/PATCH owner con rate limit y Zod, gestión UI con confirmación explícita, idioma/tema y privacidad funcionales, adaptadores seguros simulados (nunca envían a terceros); tests 11/11 | ~70 |
+| C11 Seguridad | Rate limiting por IP (rutas sensibles) + validación Zod + helper de auditoría compartido `lib/audit.ts` aplicado a album/* y eliana/channels; tests 5/5 | ~65 |
 | C12 Terminación | Documentación y deploy pendiente | ~20 |
 
-**Avance global ponderado: ~45%** (compila y tiene base real fuerte, pero la mayoría de las funciones "visibles" siguen en localStorage o datos estáticos hasta C2-C5).
+**Avance global ponderado: ~55%** (compila, base real fuerte y C7/C8/C10 con implementación completa y pruebas; la mayoría de las funciones "visibles" siguen en localStorage o datos estáticos hasta C2-C5).

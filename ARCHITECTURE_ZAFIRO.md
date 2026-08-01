@@ -42,7 +42,7 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 
 ## 4. Base de datos (Supabase Postgres)
 
-- **Esquema**: `public`, 57 migraciones secuenciales (`supabase/migrations/00001…00057`), tablas principales:
+- **Esquema**: `public`, 59 migraciones secuenciales (`supabase/migrations/00001…00059`), tablas principales:
   - **Identidad/Auth**: `profiles`, `user_roles`, `organizations`, `memberships`, `app_sessions`, `login_events`, `sso_tickets`, `user_settings`, `audit_logs`.
   - **ELIANA**: `eliana_conversations`, `eliana_messages`, `eliana_memory`, `eliana_tasks`, `eliana_tickets`, `eliana_intakes`, `eliana_handoffs`, `eliana_actions`, `eliana_audit_logs`, `eliana_settings`, `eliana_feedback`, `eliana_knowledge`, `eliana_channels`, `eliana_contacts`, `eliana_identities`.
   - **Knowledge Core**: `knowledge_sources`, `knowledge_documents`, `knowledge_chunks`, `knowledge_tags`, `knowledge_document_tags`, `knowledge_versions`, `knowledge_permissions`, `knowledge_queries`, `knowledge_answers`, `knowledge_feedback`, `knowledge_ingestion_jobs`, `knowledge_approvals`, `knowledge_gaps`, `knowledge_settings`, `knowledge_audit_logs`.
@@ -50,10 +50,14 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
   - **Consejo Invisible**: `invisible_council_*` (23 tablas: guides, sources, audio_files, transcripts, transcript_segments, teachings, sessions, session_guides, session_teachings, books, book_chapters, book_sections, goals, goal_updates, journal_entries, prayers, tags, content_tags, files, versions, permissions, ai_interactions) + `council_user_roles`.
   - **Economía**: `economia_operaciones`, `economia_caja`, `economia_inventario`, `frequency_origin_nodes`, `frequency_channels`, `frequency_events`, `guardian_actions`.
   - **Contenido**: `mis_historias` (stories), `referrals`, `rewards_log`, `contact_messages`, `stripe_events`, `library_*` (Biblioteca Viva).
+  - **Álbum de la Vida (C8)**: `album_families`, `album_members` (con `parent_id` para árbol), `album_timeline_events`, `album_event_media`.
 - **RLS**: política activa endurecida en `00035`, `00048`, `00049`, `00051` (owner/admin sobre acciones sensibles; insert autenticado; datos por `user_id`). `knowledge` con `is_knowledge_admin()`.
 - **Recovery**: RPCs `generate_recovery_code` / `validate_recovery_code` (`00043`) — no hay SMTP propio; recuperación vía código en Supabase Auth.
 - **Gestión de sesiones**: RPCs `list_my_sessions` / `revoke_my_session` / `revoke_other_sessions` (`00054`, `SECURITY DEFINER` sobre `auth.sessions`) expuestos vía `api/auth/sessions`; la sesión actual se identifica por el claim `session_id` del access token.
 - **Autor IA (C7)**: `00057` añade columnas aditivas a `invisible_council_books`/`_book_chapters` (`outline`, `voice`, `style_guide`, `published_book_id`, `generation_metadata`) para el flujo de escritura con IA (sin tocar RLS). El motor usa Gemini + RAG y publica el resultado en la Biblioteca Viva (`library_*`).
+- **Álbum de la Vida (C8)**: `00058_album_vida.sql` crea `album_families`, `album_members`, `album_timeline_events`, `album_event_media` con RLS (lectura pública/comunidad, escritura del propietario o `is_admin_or_superadmin()`), trigger `handle_updated_at()` e índices. Lógica en `src/lib/album/validation.ts` (Zod) y `src/lib/album/repository.ts`; API `/api/album/*` (6 rutas, rate-limited, validadas, con auditoría); UI `/album` (tabs familias/árbol/cronología) y CTA real en `/ecosystem/album`.
+- **Canales ELIANA (C10)**: `00059_eliana_channels.sql` añade políticas INSERT/DELETE (solo `OWNER_SUPERADMIN`), trigger `trg_eliana_channels_updated_at` y seed idempotente de 7 canales (web/whatsapp/marketplace/zafiro/eliana_domain/telegram/email; externos `enabled=false` con `config.requires_credentials`). API `api/eliana/channels` (GET autenticado, PATCH `requireOwner()` + rate limit + Zod + auditoría); gestión UI en `/eliana/configuracion/canales` con confirmación explícita; adaptadores seguros simulados en `lib/eliana/core/adapters.ts` (`dispatchSafeMessage` nunca envía a terceros: exige `confirmed` y credenciales).
+- **Auditoría compartida**: `src/lib/audit.ts` (`writeAuditLog`) inserta en `audit_logs` (action, resource_type/resource_id, previous_value/new_value, actor_email, user_agent, ip, app_name) y está conectada a las mutaciones de `album/*` y `eliana/channels`.
 - **MFA (TOTP)**: enroll/challenge/verify/desenroll vía GoTrue (`MfaSection`) + UI de sesiones en `/settings`; pendiente validación e2e con claves reales.
 
 ## 5. Almacenamiento
@@ -85,7 +89,7 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 | WhatsApp | Enlaces manuales (`wa.me`) | Sin API oficial/configuración de bot |
 | Google Drive (Biblioteca) | `src/lib/biblioteca/google-drive-sync.ts` | Librería presente; sin claves/config verificado |
 | Vercel | Despliegue | Proyecto `zafiro`; producción servida desde `origin/main` |
-| Supabase | Auth + DB + Storage | CLI no instalada; migraciones 00045-00053 no aplicadas en producción |
+| Supabase | Auth + DB + Storage | CLI no instalada; migraciones 00045-00059 no aplicadas en producción | 
 | Gemini | IA | Clave presente; modo producción/fallback mixto |
 | SMTP/Email | No hay | Contacto persiste en Supabase; recuperación por código |
 
@@ -116,5 +120,5 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 6. **`remotePatterns` de imágenes abierto** a cualquier hostname. **C2**: restringido a `msmmystore.com`, `*.supabase.co`, `*.gravatar.com`.
 7. **Pagos del marketplace no conectados** (provider manual genera `MANUAL-<timestamp>`, sin transacción real).
 8. **Sin pruebas de integración/e2e completas** (solo 9 unitarias de auth + spec de playwright estático).
-9. **CLI Supabase no instalada**; migraciones 00045-00053 aún no aplicadas en la nube.
+9. **CLI Supabase no instalada**; migraciones 00045-00059 aún no aplicadas en la nube.
 10. **`ecosystem/payments` es marketing** (cartera digital no existe) — debe marcarse o retirarse.

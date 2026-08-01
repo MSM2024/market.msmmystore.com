@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ArrowLeft, Volume2, Play } from "lucide-react"
+import { ArrowLeft, Play } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function VozPage() {
