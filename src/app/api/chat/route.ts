@@ -158,7 +158,7 @@ interface IdempotencyEntry {
 
 const IDEMPOTENCY_TTL_MS = 120_000
 const idempotencyMap = new Map<string, IdempotencyEntry>()
-const inflightMap = new Map<string, Promise<NextResponse>>()
+const inflightMap = new Map<string, Promise<{ status: number; body: Record<string, unknown> }>>()
 
 function pruneIdempotencyMap(now: number) {
   if (idempotencyMap.size <= 200) return
@@ -490,34 +490,46 @@ export async function POST(request: NextRequest) {
       ? requestId
       : undefined
 
-    const compute = async (): Promise<NextResponse> => {
+    const compute = async (): Promise<{ status: number; body: Record<string, unknown> }> => {
       if (!GEMINI_API_KEY) {
         console.error("Chat API: no valid AI provider key configured (GEMINI_API_KEY / GOOGLE_API_KEY ausente o placeholder)")
-        return NextResponse.json({
-          text: "Bendiciones. Aún no estoy conectada al proveedor de inteligencia artificial. Contacta al administrador para completar la configuración.",
-          error: "ai_provider_not_configured",
-        }, { status: 503 })
+        return {
+          status: 503,
+          body: {
+            text: "Bendiciones. Aún no estoy conectada al proveedor de inteligencia artificial. Contacta al administrador para completar la configuración.",
+            error: "ai_provider_not_configured",
+          },
+        }
       }
 
       const result = await callGeminiWithRetry(safeMessage, validHistory, effectiveUserId)
 
       if (!result.text) {
         if (isRetryableStatus(result.status)) {
-          return NextResponse.json({
-            text: "Bendiciones. ELIANA no pudo responder ahora porque el servicio está ocupado. Pulsa Reintentar y lo intento de nuevo.",
-            error: "ai_provider_unavailable",
-          }, { status: 503 })
+          return {
+            status: 503,
+            body: {
+              text: "Bendiciones. ELIANA no pudo responder ahora porque el servicio está ocupado. Pulsa Reintentar y lo intento de nuevo.",
+              error: "ai_provider_unavailable",
+            },
+          }
         }
         if (result.status && result.status >= 400 && result.status < 500) {
-          return NextResponse.json({
-            text: "Bendiciones. No pude generar una respuesta en este momento. Pulsa Reintentar y lo intento de nuevo.",
-            error: "ai_provider_permanent",
-          }, { status: 502 })
+          return {
+            status: 502,
+            body: {
+              text: "Bendiciones. No pude generar una respuesta en este momento. Pulsa Reintentar y lo intento de nuevo.",
+              error: "ai_provider_permanent",
+            },
+          }
         }
-        return NextResponse.json({
-          text: "Bendiciones. No pude generar una respuesta en este momento. Pulsa Reintentar y lo intento de nuevo.",
-          error: "ai_provider_empty",
-        }, { status: 502 })
+        return {
+          status: 502,
+          body: {
+            text: "Bendiciones. No pude generar una respuesta en este momento. Pulsa Reintentar y lo intento de nuevo.",
+            error: "ai_provider_empty",
+          },
+        }
       }
 
       const filteredResponse = filterServerOutput(result.text)
@@ -535,8 +547,11 @@ export async function POST(request: NextRequest) {
         idempotencyMap.set(requestKey, { payload: { ...payload, cached: true }, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS })
       }
 
-      return NextResponse.json(payload)
+      return { status: 200, body: payload }
     }
+
+    const toResponse = (r: { status: number; body: Record<string, unknown> }) =>
+      NextResponse.json(r.body, { status: r.status })
 
     if (requestKey) {
       pruneIdempotencyMap(Date.now())
@@ -546,17 +561,17 @@ export async function POST(request: NextRequest) {
       }
       idempotencyMap.delete(requestKey)
 
-      const inFlight = inflightMap.get(requestKey)
-      if (inFlight) return inFlight
-
-      const promise = compute().finally(() => {
-        inflightMap.delete(requestKey)
-      })
-      inflightMap.set(requestKey, promise)
-      return promise
+      let inFlight = inflightMap.get(requestKey)
+      if (!inFlight) {
+        inFlight = compute().finally(() => {
+          inflightMap.delete(requestKey)
+        })
+        inflightMap.set(requestKey, inFlight)
+      }
+      return toResponse(await inFlight)
     }
 
-    return compute()
+    return toResponse(await compute())
   } catch (err) {
     console.error("Chat API error:", err instanceof Error ? err.message : String(err))
     return NextResponse.json({

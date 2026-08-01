@@ -49,6 +49,41 @@ Fecha: 2026-08-01
 - `npx vitest run` → 7 archivos, 75 tests, todos en verde.
 - `npx next build` → compilación exitosa; `/api/chat` generada como ruta dinámica (ƒ).
 
+## Prueba real contra la API de Gemini (2026-08-01)
+
+Se ejecutó una llamada real al endpoint de Google con la clave presente en `.env.local`
+(sin revelar su contenido; solo se reportan códigos HTTP y mensajes del proveedor):
+
+| Modelo | Autenticación | Resultado |
+| --- | --- | --- |
+| gemini-2.0-flash | header de API key (igual que el SDK) | **HTTP 429 cuota agotada** |
+| gemini-2.0-flash | Bearer token | HTTP 401 credencial inválida |
+| gemini-2.5-flash | header de API key | HTTP 404 "no longer available to new users" |
+| gemini-2.5-flash | Bearer token | HTTP 401 |
+| gemini-2.5-pro | header de API key | HTTP 429 cuota agotada |
+| gemini-2.0-flash-lite | header de API key | HTTP 429 cuota agotada |
+
+**Hallazgo**: la clave actual SÍ pasa la autenticación de Google (no devuelve 400/401 con el
+header de API key). El bloqueo real del proveedor es **cuota agotada (429)**: el proyecto de
+Google AI no tiene cuota activa (revisar plan/billing en ai.google.dev). El modelo configurado
+`gemini-2.0-flash` es válido; `gemini-2.5-flash` ya no está disponible para cuentas nuevas (404).
+Por tanto, una vez habilitada la cuota/billing, la ruta debería responder sin cambiar el código.
+
+## Pruebas de extremo a extremo contra `/api/chat` en servidor real
+
+- Mensaje normal → **503 `ai_provider_unavailable`** tras 3 intentos (429 con backoff), texto honesto con "Pulsa Reintentar".
+- Dos peticiones concurrentes con el mismo `requestId` → **ambas responden igual y en el tiempo de una sola llamada** (dedupe `inflightMap` correcto).
+- Rate limit: la petición 31 dentro de la ventana → **429 `rate_limited`**.
+- Body vacío / mensaje vacío → **200 `validation_error`**.
+- Prompt injection en inglés → **200 bloqueado** por `sanitizeServerInput`.
+
+## Corrección adicional detectada en las pruebas E2E
+
+- **Bug corregido**: el dedupe en vuelo (`inflightMap`) compartía el mismo objeto `NextResponse`
+  entre dos peticiones concurrentes; al consumirse el body una sola vez, la segunda petición
+  recibía HTTP 500. Se refactorizó para que `compute()` devuelva datos planos
+  `{ status, body }` y cada consumidor construya su propio `NextResponse`.
+
 ## Resultado
 
 - El fallo real se corrigió en código y la ruta responde con errores HTTP precisos según el caso
@@ -60,15 +95,17 @@ Fecha: 2026-08-01
 
 ## Pendiente de validar en el entorno publicado (Vercel)
 
-1. **Variables de entorno en Vercel**: confirmar que `GEMINI_API_KEY` está publicada con la clave
+1. **Cuota/billing en Google AI (causa real actual)**: la clave ya autentica, pero todas las
+   llamadas devuelven 429 "quota exceeded". Habilitar la cuota/plan en ai.google.dev (billing).
+   Una vez con cuota, la conversación debería responder sin cambios de código.
+2. **Variables de entorno en Vercel**: confirmar que `GEMINI_API_KEY` está publicada con la clave
    real (y NO existe `GOOGLE_API_KEY` con placeholder ensombreciéndola). Si falta, solo agregar la
    variable `GEMINI_API_KEY`. (No se revela contenido de claves en este documento.)
-2. **Formato de la clave**: si el proveedor sigue respondiendo 401/404 tras el deploy, convertir el
-   token actual a una API key Gemini estándar (formato `AIza...`) o actualizar el endpoint/token de
-   acceso, y verificar el nombre del modelo (`AI_MODEL`) contra la API real.
-3. **Prueba de conversación ida y vuelta** en producción: enviar un mensaje y confirmar respuesta del
+3. **Modelo**: `gemini-2.0-flash` es válido. NO usar `gemini-2.5-flash` (404 para cuentas nuevas).
+   Verificar `AI_MODEL` en Vercel si se configura otra variante.
+4. **Prueba de conversación ida y vuelta** en producción: enviar un mensaje y confirmar respuesta del
    proveedor; si persiste, revisar los logs del server en Vercel (la ruta registra el error real sin
    exponer claves).
-4. **Supabase**: reemplazar los placeholders de `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
+5. **Supabase**: reemplazar los placeholders de `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
    `SUPABASE_SERVICE_ROLE_KEY` por las claves reales para habilitar autenticación/RLS de funciones
    que dependen de ellas.
