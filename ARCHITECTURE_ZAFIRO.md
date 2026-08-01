@@ -22,7 +22,7 @@ ZAFIRO es una aplicación web Next.js (App Router) de una sola base de código q
 
 ## 3. Backend (API)
 
-Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
+Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 
 | Dominio | Endpoints | Estado |
 |---|---|---|
@@ -30,7 +30,7 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 | Perfil/config | `user-profile, user-settings` | Real (Supabase) |
 | ELIANA | `chat`, `eliana/messages, conversations, actions, audit, intakes, context-handoff, health, story-action, marketplace, eliana/messages` | Real (Gemini + Supabase) + capa cliente localStorage |
 | Knowledge | `knowledge/search, ask, ingest, documents, approvals, audit, feedback, gaps, settings, stats, seed` | Real RAG sobre docs estáticos + Supabase |
-| Biblioteca | `biblioteca/books, books/[id], chapters, imports, people, places, sources, approvals` | Real (Supabase) + `requireOwner()` (retirada del público) |
+| Biblioteca | `biblioteca/books, books/[id], chapters, imports, people, places, sources, approvals, ingest` | Real (Supabase) + `requireOwner()` (retirada del público); aprobaciones GET/POST/PUT y ingesta manual txt/md |
 | Stripe | `stripe/checkout, portal, webhook, billing` | Real; webhook con idempotencia durable (`stripe_events`) |
 | Marketplace | vía `src/lib/marketplace/client.ts` (Supabase) | Real |
 | Historias | `stories, stories/[slug]` | Real (Supabase) |
@@ -38,10 +38,11 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 
 - **Middleware**: `src/proxy.ts` — sesión SSR + protección de rutas por rol.
 - **Autenticación de API**: `src/lib/api-auth.ts` — validación server-side del usuario (owner/admin/roles).
+- **Seguridad (C11)**: `src/lib/rate-limit.ts` — rate limiting por IP (ventana deslizante en memoria) aplicado a ~15 rutas sensibles (auth, contacto, chat ELIANA, knowledge, organizaciones, historias, Stripe, ingesta); validación Zod en las rutas de escritura más expuestas (contact, user-settings, user-profile, feedback, ask, messages, organizations, stories, checkout, approvals, memory, ingest).
 
 ## 4. Base de datos (Supabase Postgres)
 
-- **Esquema**: `public`, 54 migraciones secuenciales (`supabase/migrations/00001…00054`), tablas principales:
+- **Esquema**: `public`, 56 migraciones secuenciales (`supabase/migrations/00001…00056`), tablas principales:
   - **Identidad/Auth**: `profiles`, `user_roles`, `organizations`, `memberships`, `app_sessions`, `login_events`, `sso_tickets`, `user_settings`, `audit_logs`.
   - **ELIANA**: `eliana_conversations`, `eliana_messages`, `eliana_memory`, `eliana_tasks`, `eliana_tickets`, `eliana_intakes`, `eliana_handoffs`, `eliana_actions`, `eliana_audit_logs`, `eliana_settings`, `eliana_feedback`, `eliana_knowledge`, `eliana_channels`, `eliana_contacts`, `eliana_identities`.
   - **Knowledge Core**: `knowledge_sources`, `knowledge_documents`, `knowledge_chunks`, `knowledge_tags`, `knowledge_document_tags`, `knowledge_versions`, `knowledge_permissions`, `knowledge_queries`, `knowledge_answers`, `knowledge_feedback`, `knowledge_ingestion_jobs`, `knowledge_approvals`, `knowledge_gaps`, `knowledge_settings`, `knowledge_audit_logs`.
@@ -56,6 +57,7 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 
 ## 5. Almacenamiento
 
+- **Bucket `biblioteca_ingesta`** (`00056`, privado, máx 5 MB, solo owner/admin): copias originales de la ingesta manual de txt/markdown. La ingesta en BD no depende del bucket (best-effort). Aplicación de la migración pendiente en la nube.
 - Supabase Storage previsto para archivos de Biblioteca Viva (checksum, versiones) — migraciones definen metadatos (`library_*`, `knowledge_documents` con `storage_path`). No hay uploads de archivos verificados end-to-end en esta auditoría.
 - `knowledge-pack/` contiene el contenido institucional (markdown) que el script `scripts/generate-knowledge-data.mjs` convierte en `src/lib/knowledge-data.ts` embebido (81 docs en build).
 
@@ -68,7 +70,8 @@ Route Handlers en `src/app/api/**/route.ts` (~65), agrupadas por dominio:
 ## 7. Inteligencia artificial (ELIANA)
 
 - **Motor**: `@google/genai` (Gemini) en `src/app/api/chat/route.ts` y `api/eliana/*`; `GEMINI_API_KEY` / `GOOGLE_API_KEY` desde env; rate limit 30/min.
-- **Conocimiento**: capa `src/lib/knowledge/*` (RAG por keywords sobre docs estáticos + búsqueda híbrida contra `knowledge_*` cuando hay DB) + capa cliente `src/lib/eliana/*` (memory, analysis, knowledge, recommendations, core/*) basada en localStorage. **Duplicación de motores** entre `lib/eliana/core/*` y `lib/knowledge/*` + `api/eliana/*`.
+- **Conocimiento**: capa `src/lib/knowledge/*` (RAG por keywords sobre docs estáticos + búsqueda híbrida contra `knowledge_*` cuando hay DB) + capa cliente `src/lib/eliana/*` (memory, analysis, knowledge, recommendations, core/*). **Duplicación de motores** entre `lib/eliana/core/*` y `lib/knowledge/*` + `api/eliana/*`.
+- **Memoria (C5)**: `src/lib/eliana/memory.ts` con persistencia dual — caché localStorage sincrónica + Supabase (`eliana_memory`) en segundo plano vía `api/eliana/memory` (append/replace, límite 500 filas/vuelta, dedupe de hechos con confianza +0.1 hasta 1.0).
 - **Guardrails**: sanitización de entrada/salida (`checkInputSafety`/`checkOutputSafety`) y protección contra prompt injection en rutas de conocimiento; referencias de fuentes hacia documento/página/sección.
 - **Voz**: Web Speech API (configuración `/eliana/configuracion/voz`); **no verificado** en esta auditoría el flujo de voz en tiempo real.
 

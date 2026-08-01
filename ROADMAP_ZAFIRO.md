@@ -144,13 +144,13 @@ Todo ──► C11 Seguridad/calidad/privacidad ──► C12 Terminación/despl
 | C2 Núcleo | Implementado (código); validación e2e pendiente | ~80 |
 | C3 Marketplace | Parcial con huecos reales | ~55 |
 | C4 Economía | Base DB, falta motor contable | ~25 |
-| C5 ELIANA | Chat real, memoria simulada | ~55 |
-| C6 Biblioteca Viva | Knowledge real, ingesta pendiente | ~45 |
+| C5 ELIANA | Memoria persistida Supabase (doble escritura), dedupe y contexto; tests 9/9 | ~70 |
+| C6 Biblioteca Viva | Aprobaciones (GET/POST/PUT), panel admin, privacidad 4 niveles (00055), ingesta txt/md + bucket (00056), tests 10/10 | ~70 |
 | C7 Autor de libros | AUSENTE (parte de Consejo/council_books existe) | ~5 |
 | C8 Álbum de la Vida | AUSENTE (album = legado) | ~5 |
 | C9 Rutas | NO INICIAR (sin autorización) | 0 |
 | C10 Canales | AUSENTE (estructura council/eliana_channels existe) | ~5 |
-| C11 Seguridad | RLS + headers, faltan pruebas | ~40 |
+| C11 Seguridad | Rate limiting por IP (15 rutas sensibles) + validación Zod en rutas de escritura; tests 5/5 | ~60 |
 | C12 Terminación | Documentación y deploy pendiente | ~20 |
 
-**Avance global ponderado: ~40%** (compila y tiene base real fuerte, pero la mayoría de las funciones "visibles" siguen en localStorage o datos estáticos hasta C2-C5).
+**Avance global ponderado: ~45%** (compila y tiene base real fuerte, pero la mayoría de las funciones "visibles" siguen en localStorage o datos estáticos hasta C2-C5).
