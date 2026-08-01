@@ -1,13 +1,14 @@
 # PENDIENTES_ZAFIRO.md — Decisiones y tareas abiertas
 
-**Última actualización:** 2026-07-31 (noche de trabajo C5/C6/C11)
+**Última actualización:** 2026-08-01 (cierre C7 — Autor IA)
 
 Este archivo registra decisiones que requieren a Don Miguel o dependencias externas (Fase 0). Regla aplicada esta noche: si falta una decisión → configuración segura por defecto + registrar aquí.
 
 ## Bloqueos de la nube (Fase 0)
 
-- [ ] **Aplicar migraciones 00054, 00055 y 00056 en Supabase** (no hay CLI Supabase en este entorno; no se aplicaron). 00055 y 00056 son aditivas y reversibles; 00054 (RPCs de sesiones) no validada en producción.
-- [ ] **Validación e2e RLS** con cuenta owner real: aprobaciones, ingesta, bucket `biblioteca_ingesta`.
+- [ ] **Aplicar migraciones 00054, 00055, 00056 y 00057 en Supabase** (no hay CLI Supabase en este entorno; no se aplicaron). 00055, 00056 y 00057 son aditivas y reversibles; 00054 (RPCs de sesiones) no validada en producción. **00057 es necesaria para el Autor IA (C7)**: sin las columnas `outline/voice/style_guide/published_book_id/generation_metadata` el flujo de escritura/publicación falla en la nube.
+- [ ] **Validación e2e RLS** con cuenta owner real: aprobaciones, ingesta, bucket `biblioteca_ingesta`, Autor IA.
+- [ ] **Autor IA en producción**: validar que la cuenta owner esté en `council_user_roles` (`OWNER_SUPERADMIN`/`COUNCIL_EDITOR`) para inserts council bajo RLS, o migrar el acceso a `profiles.role`; confirmar `GOOGLE_API_KEY` válida y presupuesto del modelo `gemini-2.0-flash`.
 - [ ] **Stripe real** (checkout/billing/portal/webhook): no activable sin claves de producción y sin acceso.
 
 ## Decisiones abiertas

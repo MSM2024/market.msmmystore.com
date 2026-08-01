@@ -42,7 +42,7 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 
 ## 4. Base de datos (Supabase Postgres)
 
-- **Esquema**: `public`, 56 migraciones secuenciales (`supabase/migrations/00001…00056`), tablas principales:
+- **Esquema**: `public`, 57 migraciones secuenciales (`supabase/migrations/00001…00057`), tablas principales:
   - **Identidad/Auth**: `profiles`, `user_roles`, `organizations`, `memberships`, `app_sessions`, `login_events`, `sso_tickets`, `user_settings`, `audit_logs`.
   - **ELIANA**: `eliana_conversations`, `eliana_messages`, `eliana_memory`, `eliana_tasks`, `eliana_tickets`, `eliana_intakes`, `eliana_handoffs`, `eliana_actions`, `eliana_audit_logs`, `eliana_settings`, `eliana_feedback`, `eliana_knowledge`, `eliana_channels`, `eliana_contacts`, `eliana_identities`.
   - **Knowledge Core**: `knowledge_sources`, `knowledge_documents`, `knowledge_chunks`, `knowledge_tags`, `knowledge_document_tags`, `knowledge_versions`, `knowledge_permissions`, `knowledge_queries`, `knowledge_answers`, `knowledge_feedback`, `knowledge_ingestion_jobs`, `knowledge_approvals`, `knowledge_gaps`, `knowledge_settings`, `knowledge_audit_logs`.
@@ -53,6 +53,7 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 - **RLS**: política activa endurecida en `00035`, `00048`, `00049`, `00051` (owner/admin sobre acciones sensibles; insert autenticado; datos por `user_id`). `knowledge` con `is_knowledge_admin()`.
 - **Recovery**: RPCs `generate_recovery_code` / `validate_recovery_code` (`00043`) — no hay SMTP propio; recuperación vía código en Supabase Auth.
 - **Gestión de sesiones**: RPCs `list_my_sessions` / `revoke_my_session` / `revoke_other_sessions` (`00054`, `SECURITY DEFINER` sobre `auth.sessions`) expuestos vía `api/auth/sessions`; la sesión actual se identifica por el claim `session_id` del access token.
+- **Autor IA (C7)**: `00057` añade columnas aditivas a `invisible_council_books`/`_book_chapters` (`outline`, `voice`, `style_guide`, `published_book_id`, `generation_metadata`) para el flujo de escritura con IA (sin tocar RLS). El motor usa Gemini + RAG y publica el resultado en la Biblioteca Viva (`library_*`).
 - **MFA (TOTP)**: enroll/challenge/verify/desenroll vía GoTrue (`MfaSection`) + UI de sesiones en `/settings`; pendiente validación e2e con claves reales.
 
 ## 5. Almacenamiento
@@ -73,6 +74,7 @@ Route Handlers en `src/app/api/**/route.ts` (~66), agrupadas por dominio:
 - **Conocimiento**: capa `src/lib/knowledge/*` (RAG por keywords sobre docs estáticos + búsqueda híbrida contra `knowledge_*` cuando hay DB) + capa cliente `src/lib/eliana/*` (memory, analysis, knowledge, recommendations, core/*). **Duplicación de motores** entre `lib/eliana/core/*` y `lib/knowledge/*` + `api/eliana/*`.
 - **Memoria (C5)**: `src/lib/eliana/memory.ts` con persistencia dual — caché localStorage sincrónica + Supabase (`eliana_memory`) en segundo plano vía `api/eliana/memory` (append/replace, límite 500 filas/vuelta, dedupe de hechos con confianza +0.1 hasta 1.0).
 - **Guardrails**: sanitización de entrada/salida (`checkInputSafety`/`checkOutputSafety`) y protección contra prompt injection en rutas de conocimiento; referencias de fuentes hacia documento/página/sección.
+- **Autor IA (C7)**: `src/lib/autor-ia/*` — motor `engine.ts` (`generateText` con `@google/genai`, modelo `gemini-2.0-flash` por defecto, tiempo de espera 60 s), `prompts.ts` (sistema, outline, capítulo, sección), `repository.ts` (CRUD sobre `invisible_council_books`/`_chapters`/`_sections` + auditoría en `invisible_council_ai_interactions` + publicación a Biblioteca Viva). API en `api/consejo/autor*` (owner-only, rate-limited) y UI en `/admin/autor-ia`.
 - **Voz**: Web Speech API (configuración `/eliana/configuracion/voz`); **no verificado** en esta auditoría el flujo de voz en tiempo real.
 
 ## 8. Canales externos e integraciones

@@ -146,7 +146,7 @@ Todo ──► C11 Seguridad/calidad/privacidad ──► C12 Terminación/despl
 | C4 Economía | Base DB, falta motor contable | ~25 |
 | C5 ELIANA | Memoria persistida Supabase (doble escritura), dedupe y contexto; tests 9/9 | ~70 |
 | C6 Biblioteca Viva | Aprobaciones (GET/POST/PUT), panel admin, privacidad 4 niveles (00055), ingesta txt/md + bucket (00056), tests 10/10 | ~70 |
-| C7 Autor de libros | AUSENTE (parte de Consejo/council_books existe) | ~5 |
+| C7 Autor de libros | Autor IA: motor Gemini + RAG (00057), API `/api/consejo/autor` (crear, outline, capítulos, secciones, publicar a Biblioteca Viva), UI `/admin/autor-ia`; tests 14/14 | ~45 |
 | C8 Álbum de la Vida | AUSENTE (album = legado) | ~5 |
 | C9 Rutas | NO INICIAR (sin autorización) | 0 |
 | C10 Canales | AUSENTE (estructura council/eliana_channels existe) | ~5 |
