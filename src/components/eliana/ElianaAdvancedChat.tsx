@@ -7,7 +7,6 @@ import ElianaDiamond from "@/components/ElianaDiamond"
 import MarkdownRenderer from "@/components/MarkdownRenderer"
 import { processElianaRequest, getElianaContext } from "@/lib/eliana/engine"
 import { getSession } from "@/lib/auth"
-import { CHANNEL_CONFIGS } from "@/lib/eliana/core/types"
 import {
   ElianaStateMachine,
   STATE_LABELS,
@@ -68,7 +67,6 @@ function detectContext(messages: ChatMessage[]): string {
 
 export default function ElianaAdvancedChat() {
   const session = getSession()
-  const channelConfig = CHANNEL_CONFIGS.eliana_domain
   const smRef = useRef(createStateMachine())
   const [elianaState, setElianaState] = useState<ElianaStateMachine["state"]>("VIVA")
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -318,7 +316,7 @@ export default function ElianaAdvancedChat() {
       const errorMsg: ChatMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         role: "eliana",
-        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado; inténtalo nuevamente en unos segundos.",
+        text: "Bendiciones. No pude obtener una respuesta en este momento. Reintentaré en unos segundos.",
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, errorMsg])

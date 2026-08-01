@@ -283,7 +283,7 @@ export default function ElianaStandaloneChat() {
       const errorMsg: ChatMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         role: "eliana",
-        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado; inténtalo nuevamente en unos segundos.",
+        text: "Bendiciones. No pude obtener una respuesta en este momento. Reintentaré en unos segundos.",
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, errorMsg])

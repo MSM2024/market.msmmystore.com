@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Globe, Brain, Users, Shield, Sparkles, BookOpen, Infinity, Cpu } from "lucide-react"
+import { ArrowLeft, Gem, Globe, Brain, Users, Shield, Sparkles, Cpu } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function AboutPage() {
@@ -42,7 +42,7 @@ export default function AboutPage() {
             En un mundo donde la información crece exponencialmente, creamos una plataforma que no solo almacena datos, sino que los comprende, los relaciona y los transforma en conocimiento vivo. ZAFIRO es el punto de encuentro entre la inteligencia humana y la inteligencia artificial, donde las preguntas encuentran respuestas precisas y las conexiones generan nuevo aprendizaje.
           </p>
           <p className="text-sm text-slate-300 leading-relaxed">
-            Somos un equipo multidisciplinario de desarrolladores, creadores de contenido, expertos en inteligencia artificial y visionarios del conocimiento digital. Nuestra sede conceptual está en Madrid, España, pero nuestra comunidad abarca todo el mundo hispanohablante.
+            Somos un equipo multidisciplinario de desarrolladores, creadores de contenido, expertos en inteligencia artificial y visionarios del conocimiento digital, conectados en línea y unidos por una comunidad que abarca todo el mundo hispanohablante.
           </p>
         </div>
 

@@ -61,7 +61,7 @@ export default function AiAssistant() {
     } catch {
       const errorMessage: ChatMessage = {
         role: "model",
-        text: "Bendiciones. ELIANA está reconectándose. Tu mensaje quedó guardado; inténtalo nuevamente en unos segundos.",
+        text: "Bendiciones. I could not reach my AI engine right now. Please try again in a moment.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
       setMessages(prev => [...prev, errorMessage])
