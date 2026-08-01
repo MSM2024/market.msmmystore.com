@@ -1,15 +1,16 @@
 'use client'
 
 import Link from "next/link"
-import { Gem, Mail, Lock, Eye, EyeOff, AlertCircle, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react"
 import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { loginUser, verifyLoginMfa } from "@/lib/auth"
+import BrandEmblem from "@/components/ui/BrandEmblem"
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen zafiro-page flex items-center justify-center"><Gem className="w-12 h-12 text-slate-700 animate-pulse" /></div>}>
+    <Suspense fallback={<div className="min-h-screen zafiro-page flex items-center justify-center"><BrandEmblem size={48} decorative className="animate-pulse" /></div>}>
       <LoginForm />
     </Suspense>
   )
@@ -77,7 +78,7 @@ function LoginForm() {
     <div className="min-h-screen zafiro-page text-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <Gem className="w-8 h-8 text-[#00D9FF]" />
+          <BrandEmblem size={32} decorative />
           <span className="text-lg font-black zafiro-gold-text">ZAFIRO</span>
         </Link>
 

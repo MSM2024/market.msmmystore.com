@@ -18,6 +18,7 @@ import {
 } from "@/lib/zafiro-data"
 import ParticlesBackground from "@/components/ParticlesBackground"
 import NotificationsDropdown from "@/components/NotificationsDropdown"
+import BrandEmblem from "@/components/ui/BrandEmblem"
 import GemLab from "@/components/gemology/GemLab"
 import Handbook from "@/components/gemology/Handbook"
 import AiAssistant from "@/components/gemology/AiAssistant"
@@ -314,10 +315,8 @@ export default function Home() {
 
       {/* TOP BAR */}
       <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b border-slate-800/50 bg-[#050816]/80 backdrop-blur-xl glow-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#050816] flex items-center justify-center border border-cyan-500/30">
-            <Gem className="w-4 h-4 text-[#00D9FF]" />
-          </div>
+          <div className="flex items-center gap-2.5">
+            <BrandEmblem size={32} decorative priority className="drop-shadow-[0_0_10px_rgba(0,217,255,0.35)]" />
           <div className="hidden sm:block leading-none">
             <span className="text-sm font-black font-display tracking-widest zafiro-gold-text uppercase block leading-none">ZAFIRO</span>
             <span className="text-[7.5px] font-mono tracking-wider font-extrabold text-[#00D9FF] block uppercase mt-0.5">Knowledge Future</span>
@@ -451,7 +450,7 @@ export default function Home() {
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00D9FF] via-[#2563EB] to-[#7C3AED] rounded-2xl blur opacity-30 group-hover:opacity-65 transition duration-500" />
                   <div className="relative flex items-center rounded-2xl p-3 border bg-[#050816]/95 border-[#00D9FF]/20">
                     <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#00D9FF]/10 to-blue-500/10 text-[#00D9FF] mr-3">
-                      <Gem className="w-5 h-5 animate-pulse" />
+                      <BrandEmblem size={20} decorative className="animate-pulse" />
                     </div>
                     <input type="text" value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}

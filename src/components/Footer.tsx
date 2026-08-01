@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Gem } from "lucide-react"
+import BrandEmblem from "@/components/ui/BrandEmblem"
 
 export default function Footer() {
   return (
@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Gem className="w-5 h-5 text-[#00D9FF]" />
+              <BrandEmblem size={20} decorative />
               <span className="text-sm font-black">ZAFIRO</span>
             </div>
             <p className="text-[10px] text-slate-500 leading-relaxed">La primera Red Social del Conocimiento impulsada por Inteligencia Artificial.</p>

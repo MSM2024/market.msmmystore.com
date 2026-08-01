@@ -41,9 +41,12 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta name="theme-color" content="#050816" />
         <meta name="color-scheme" content="dark" />
-        <link rel="icon" type="image/svg+xml" href="/eliana-diamond.svg" />
-        <link rel="apple-touch-icon" href="/eliana-diamond.svg" />
+        <link rel="icon" href="/icons/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/svg+xml" href="/zafiro-mark.svg" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
         <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-title" content="ZAFIRO" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body className="bg-[#050816] text-white antialiased flex flex-col min-h-screen">
         <ClientLayout>{children}</ClientLayout>
