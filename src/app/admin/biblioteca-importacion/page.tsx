@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Database, Upload, CheckCircle, XCircle, Clock, FileText, RefreshCw, BookCheck } from "lucide-react"
+import { Database, Upload, CheckCircle, XCircle, Clock, FileText, RefreshCw, BookCheck, FileUp, ShieldAlert } from "lucide-react"
 
 interface ImportJob {
   id: string
@@ -70,10 +70,13 @@ export default function AdminBibliotecaImportacionPage() {
   const [jobs, setJobs] = useState<ImportJob[]>([])
   const [approvals, setApprovals] = useState<Approval[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<"catalogo" | "importaciones" | "aprobaciones">("catalogo")
+  const [tab, setTab] = useState<"catalogo" | "importaciones" | "aprobaciones" | "ingesta">("catalogo")
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState("")
+  const [ingest, setIngest] = useState({ title: "", author: "", category: "interno", file: null as File | null })
+  const [ingestBusy, setIngestBusy] = useState(false)
+  const [ingestResult, setIngestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -100,6 +103,37 @@ export default function AdminBibliotecaImportacionPage() {
   const reviewedApprovals = approvals.filter(a => a.status !== "pending")
 
   const bookTitle = (id: string) => books.find(b => b.id === id)?.title || id.slice(0, 8)
+
+  async function submitIngest(e: React.FormEvent) {
+    e.preventDefault()
+    if (!ingest.file) return
+    setIngestBusy(true)
+    setIngestResult(null)
+    try {
+      const form = new FormData()
+      form.append("file", ingest.file)
+      form.append("title", ingest.title)
+      form.append("author", ingest.author)
+      form.append("privacy_category", ingest.category)
+      const res = await fetch("/api/biblioteca/ingest", { method: "POST", body: form })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setIngestResult({ ok: false, message: data?.error || "No se pudo ingestar el archivo" })
+        return
+      }
+      setIngestResult({
+        ok: true,
+        message: `"${data.book?.title}" ingestado · ${data.chapters_created} capítulos · ${data.chunks_created} fragmentos${data.warnings?.length ? ` · ${data.warnings.join(" · ")}` : ""}`,
+      })
+      setIngest({ title: "", author: "", category: "interno", file: null })
+      const booksData = await fetch("/api/biblioteca/books?limit=200").then(r => r.json())
+      setBooks(booksData.books || [])
+    } catch {
+      setIngestResult({ ok: false, message: "Error de red al ingestar el archivo" })
+    } finally {
+      setIngestBusy(false)
+    }
+  }
 
   async function decideApproval(id: string, status: string) {
     setBusyId(id)
@@ -191,6 +225,14 @@ export default function AdminBibliotecaImportacionPage() {
                 {pendingApprovals.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setTab("ingesta")}
+            className={`px-4 py-2 rounded-xl text-sm transition-colors ${
+              tab === "ingesta" ? "bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40" : "bg-white/10 text-white/70 border border-white/10"
+            }`}
+          >
+            <FileUp className="w-4 h-4 inline mr-1" /> Ingesta manual
           </button>
         </div>
 
@@ -351,6 +393,74 @@ export default function AdminBibliotecaImportacionPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+        {tab === "ingesta" && (
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-sm font-semibold text-white/70 mb-3">Subir obra (txt / markdown)</h2>
+              <form onSubmit={submitIngest} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-xs text-white/50">Título (opcional)</span>
+                    <input
+                      type="text"
+                      value={ingest.title}
+                      onChange={e => setIngest(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Se detecta del archivo si se omite"
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00D9FF]/50"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-white/50">Autor *</span>
+                    <input
+                      type="text"
+                      value={ingest.author}
+                      onChange={e => setIngest(prev => ({ ...prev, author: e.target.value }))}
+                      placeholder="Autor de la obra"
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00D9FF]/50"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-white/50">Categoría de privacidad</span>
+                    <select
+                      value={ingest.category}
+                      onChange={e => setIngest(prev => ({ ...prev, category: e.target.value }))}
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-[#00D9FF]/50"
+                    >
+                      <option value="publico">Público</option>
+                      <option value="interno">Interno</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-white/50">Archivo (.txt / .md / .markdown, máx 5 MB)</span>
+                    <input
+                      type="file"
+                      accept=".txt,.md,.markdown,text/plain,text/markdown"
+                      onChange={e => setIngest(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white file:mr-3 file:px-3 file:py-1 file:rounded-lg file:border-0 file:bg-[#00D9FF]/20 file:text-[#00D9FF] file:text-sm"
+                    />
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={ingestBusy || !ingest.file || !ingest.author}
+                    className="px-4 py-2 rounded-lg text-sm bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40 hover:bg-[#00D9FF]/30 disabled:opacity-50 transition-colors"
+                  >
+                    <Upload className="w-4 h-4 inline mr-1" /> {ingestBusy ? "Ingestando..." : "Ingestar"}
+                  </button>
+                  <span className="text-xs text-white/40 flex items-center gap-1">
+                    <ShieldAlert className="w-3 h-3" /> Solo se permiten obras públicas o internas; la obra queda pendiente de revisión.
+                  </span>
+                </div>
+              </form>
+            </div>
+            {ingestResult && (
+              <div className={`p-3 rounded-lg border text-sm ${ingestResult.ok ? "bg-green-500/10 border-green-500/30 text-green-300" : "bg-red-500/10 border-red-500/30 text-red-300"}`}>
+                {ingestResult.message}
               </div>
             )}
           </div>
