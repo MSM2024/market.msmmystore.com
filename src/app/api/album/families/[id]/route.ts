@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { AlbumRepository } from "@/lib/album/repository"
 import { albumFamilySchema } from "@/lib/album/validation"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit"
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,8 +38,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors }, { status: 400 })
   }
 
+  const previous = await repo.getFamily(id)
   const family = await repo.updateFamily(id, parsed.data)
   if (!family) return NextResponse.json({ error: "No se pudo actualizar la familia" }, { status: 500 })
+
+  await writeAuditLog({
+    action: "album.family.updated",
+    resource_type: "album_family",
+    resource_id: id,
+    previous_value: previous,
+    new_value: family,
+    request,
+    app_name: "album",
+  })
   return NextResponse.json({ family })
 }
 
@@ -59,5 +71,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const ok = await repo.deleteFamily(id)
   if (!ok) return NextResponse.json({ error: "No se pudo eliminar la familia" }, { status: 500 })
+
+  await writeAuditLog({
+    action: "album.family.deleted",
+    resource_type: "album_family",
+    resource_id: id,
+    request,
+    app_name: "album",
+  })
   return NextResponse.json({ ok: true })
 }

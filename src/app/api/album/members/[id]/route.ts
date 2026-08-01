@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { AlbumRepository } from "@/lib/album/repository"
 import { albumMemberPatchSchema } from "@/lib/album/validation"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit"
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -31,6 +32,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const updated = await repo.updateMember(id, parsed.data)
   if (!updated) return NextResponse.json({ error: "No se pudo actualizar el miembro" }, { status: 500 })
+
+  await writeAuditLog({
+    action: "album.member.updated",
+    resource_type: "album_member",
+    resource_id: id,
+    previous_value: member,
+    new_value: updated,
+    request,
+    app_name: "album",
+  })
   return NextResponse.json({ member: updated })
 }
 
@@ -53,5 +64,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const ok = await repo.deleteMember(id)
   if (!ok) return NextResponse.json({ error: "No se pudo eliminar el miembro" }, { status: 500 })
+
+  await writeAuditLog({
+    action: "album.member.deleted",
+    resource_type: "album_member",
+    resource_id: id,
+    request,
+    app_name: "album",
+  })
   return NextResponse.json({ ok: true })
 }

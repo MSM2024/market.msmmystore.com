@@ -3,7 +3,10 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
 import { requireOwner } from "@/lib/api-auth"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit"
 import { z } from "zod"
+
+const EXTERNAL_CHANNELS = new Set(["whatsapp", "telegram", "email"])
 
 const channelPatchSchema = z.object({
   channel_name: z.string().trim().min(1, "El nombre del canal es obligatorio").max(100),
@@ -51,6 +54,25 @@ export async function PATCH(request: NextRequest) {
   }
 
   const { channel_name, ...patch } = parsed.data
+
+  const { data: existing } = await admin
+    .from("eliana_channels")
+    .select("*")
+    .eq("channel_name", channel_name)
+    .single()
+  if (!existing) {
+    return NextResponse.json({ error: "Canal no encontrado" }, { status: 404 })
+  }
+
+  const enabling = patch.enabled === true
+  const external = EXTERNAL_CHANNELS.has(channel_name) || existing.config?.requires_credentials === true
+  if (enabling && !existing.enabled && external && existing.config?.credentials_configured !== true) {
+    return NextResponse.json(
+      { error: "No se puede activar este canal: requiere credenciales seguras aún no configuradas", reason: "requires_credentials" },
+      { status: 400 }
+    )
+  }
+
   const { data: channel, error } = await admin
     .from("eliana_channels")
     .update({ ...patch, updated_at: new Date().toISOString() })
@@ -62,6 +84,16 @@ export async function PATCH(request: NextRequest) {
     console.error("ELIANA_CHANNELS_PATCH_ERROR", error)
     return NextResponse.json({ error: "No se pudo actualizar el canal (¿existe?)" }, { status: 500 })
   }
+
+  await writeAuditLog({
+    action: "eliana.channel.updated",
+    resource_type: "eliana_channel",
+    resource_id: channel_name,
+    previous_value: existing,
+    new_value: channel,
+    request,
+    app_name: "eliana",
+  })
 
   return NextResponse.json({ channel })
 }

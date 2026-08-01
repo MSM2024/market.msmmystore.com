@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { AlbumRepository } from "@/lib/album/repository"
 import { albumEventSchema } from "@/lib/album/validation"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -32,5 +33,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const event = await repo.createEvent({ ...parsed.data, created_by: user.id })
   if (!event) return NextResponse.json({ error: "No se pudo crear el evento" }, { status: 500 })
+
+  await writeAuditLog({
+    action: "album.event.created",
+    resource_type: "album_timeline_event",
+    resource_id: event.id,
+    new_value: event,
+    request,
+    app_name: "album",
+  })
   return NextResponse.json({ event }, { status: 201 })
 }

@@ -42,6 +42,7 @@ export default function CanalesPage() {
   const [error, setError] = useState("")
   const [busyName, setBusyName] = useState<string | null>(null)
   const [notice, setNotice] = useState("")
+  const [pendingExternal, setPendingExternal] = useState<Channel | null>(null)
   const isOwner = isOwnerSession()
 
   useEffect(() => {
@@ -54,8 +55,8 @@ export default function CanalesPage() {
     return () => { cancelled = true }
   }, [])
 
-  const toggle = async (channel: Channel) => {
-    if (!isOwner) return
+  const applyToggle = async (channel: Channel) => {
+    setPendingExternal(null)
     setBusyName(channel.channel_name)
     setError(""); setNotice("")
     try {
@@ -78,6 +79,16 @@ export default function CanalesPage() {
     }
   }
 
+  const onToggle = (channel: Channel) => {
+    if (!isOwner) return
+    const meta = CHANNEL_META[channel.channel_name]
+    if (!channel.enabled && meta?.external) {
+      setPendingExternal(channel)
+      return
+    }
+    applyToggle(channel)
+  }
+
   return (
     <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-6">
@@ -96,6 +107,36 @@ export default function CanalesPage() {
           <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-[11px] text-slate-400 mb-4">
             <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
             Solo el propietario puede cambiar el estado de los canales.
+          </div>
+        )}
+
+        {pendingExternal && (
+          <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 mb-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-300">Activar canal externo: {CHANNEL_META[pendingExternal.channel_name]?.label}</p>
+                <p className="text-[11px] text-slate-300 mt-1">
+                  Este canal comunica con un servicio de terceros y requiere credenciales configuradas de forma segura. No se activará sin ellas.
+                  ¿Confirmas la activación?
+                </p>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => applyToggle(pendingExternal)}
+                    disabled={busyName === pendingExternal.channel_name}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-[11px] font-bold text-amber-300 hover:bg-amber-500/30 disabled:opacity-40"
+                  >
+                    {busyName === pendingExternal.channel_name ? "Activando..." : "Confirmar activación"}
+                  </button>
+                  <button
+                    onClick={() => setPendingExternal(null)}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] text-slate-300 hover:bg-white/10"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -132,7 +173,7 @@ export default function CanalesPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[9px] font-mono text-slate-500 hidden sm:block">{c.max_context_length} ctx</span>
                     <button
-                      onClick={() => toggle(c)}
+                      onClick={() => onToggle(c)}
                       disabled={!isOwner || busyName === c.channel_name}
                       aria-label={`${c.enabled ? "Desactivar" : "Activar"} canal ${meta.label}`}
                       aria-pressed={c.enabled}
