@@ -5,21 +5,13 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { ragPipeline, knowledgeSearch, extractTopics, detectKnowledgeGaps } from "@/lib/knowledge"
 import { buildKnowledgeContext } from "@/lib/knowledge"
 import { GoogleGenAI } from "@google/genai"
+import { isUsableApiKey, getErrorStatus, isRetryableStatus, callWithRetry } from "@/lib/eliana/provider"
 
 const AI_MODEL = "gemini-2.0-flash"
 
 const RATE_LIMIT_WINDOW = 60_000
 const RATE_LIMIT_MAX = 30
 const TIMEOUT_MS = 45_000
-
-function isUsableApiKey(value: string | undefined | null): value is string {
-  if (!value) return false
-  const trimmed = value.trim()
-  if (trimmed.length < 20) return false
-  if (/^\[.*\]$/.test(trimmed)) return false
-  if (/^(xxx+|your[_-]?api[_-]?key|your-anon-key-here|change[_-]?me|placeholder|<.+>|null|undefined)$/i.test(trimmed)) return false
-  return true
-}
 
 const GEMINI_RAW_KEY = process.env.GEMINI_API_KEY || ""
 const GOOGLE_RAW_KEY = process.env.GOOGLE_API_KEY || ""
@@ -130,25 +122,6 @@ function filterServerOutput(text: string): string {
     }
   }
   return filtered
-}
-
-function getErrorStatus(error: unknown): number | undefined {
-  const e = error as { status?: unknown; statusCode?: unknown; code?: unknown; response?: { status?: unknown }; httpStatus?: unknown; message?: unknown }
-  const candidates = [e?.status, e?.statusCode, e?.code, e?.response?.status, e?.httpStatus]
-  for (const candidate of candidates) {
-    const n = Number(candidate)
-    if (Number.isInteger(n) && n >= 100 && n <= 599) return n
-  }
-  const msg = typeof e?.message === "string" ? e.message : String(error ?? "")
-  const match = msg.match(/\b(4\d\d|5\d\d)\b/)
-  if (match) return Number(match[1])
-  if (/RESOURCE_EXHAUSTED|rate\s*limit|quota/i.test(msg)) return 429
-  if (/UNAVAILABLE|overloaded|deadline exceeded|timed?\s*out|temporarily/i.test(msg)) return 503
-  return undefined
-}
-
-function isRetryableStatus(status: number | undefined): boolean {
-  return status === 429 || status === 502 || status === 503 || status === 504
 }
 
 interface IdempotencyEntry {
@@ -264,32 +237,21 @@ async function getOrderByUser(userId: string): Promise<UserOrder[]> {
 
 // --- Gemini API ---
 
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 async function callGeminiWithRetry(
   message: string,
   history: Array<{ role: string; text?: string; content?: string }>,
   userId?: string
 ): Promise<{ text: string | null; status: number | undefined }> {
-  const MAX_ATTEMPTS = 3
-  let lastStatus: number | undefined
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    if (attempt > 0) {
-      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000)
-      await sleep(delay)
-    }
-    try {
-      const result = await callGeminiAPI(message, history, userId)
-      return { text: result, status: undefined }
-    } catch (error) {
-      lastStatus = getErrorStatus(error)
-      if (!isRetryableStatus(lastStatus)) break
-    }
+  const result = await callWithRetry(
+    () => callGeminiAPI(message, history, userId),
+    getErrorStatus,
+    { maxAttempts: 3, baseDelayMs: 1000, maxDelayMs: 4000 },
+  )
+  if (result.ok) {
+    return { text: result.value, status: undefined }
   }
-  console.error(`Chat API: Gemini provider request failed [status=${lastStatus ?? "unknown"}]`)
-  return { text: null, status: lastStatus }
+  console.error(`Chat API: Gemini provider request failed [status=${result.status ?? "unknown"}]`)
+  return { text: null, status: result.status }
 }
 
 async function callGeminiAPI(
