@@ -89,6 +89,12 @@ export default function BookDetailPage() {
                 <Shield className="w-3 h-3 inline mr-1" />
                 {PRIVACY_LABELS[book.privacy_level] || book.privacy_level}
               </span>
+              {book.privacy_category && (
+                <span className="px-3 py-1 text-xs rounded-full bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/30">
+                  <Shield className="w-3 h-3 inline mr-1" />
+                  Categoría: {book.privacy_category}
+                </span>
+              )}
               <span className="px-3 py-1 text-xs rounded-full bg-white/10 text-white/50 border border-white/10">
                 {book.status}
               </span>

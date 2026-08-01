@@ -58,6 +58,7 @@ export interface LibraryBook {
   format?: string
   status: LibraryBookStatus
   privacy_level: LibraryPrivacyLevel
+  privacy_category?: "publico" | "interno" | "privado" | "confidencial"
   version: number
   checksum?: string
   owner_id?: string
