@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { z } from "zod"
+
+const storyPutSchema = z.object({
+  title: z.string().min(1).max(300).optional(),
+  content: z.string().max(500_000).optional(),
+  summary: z.string().max(2000).optional(),
+  category: z.string().max(100).optional(),
+  privacy: z.enum(["solo_yo", "familia", "equipo", "comunidad", "publica"]).optional(),
+  status: z.enum(["borrador", "publicada", "archivada"]).optional(),
+  event_date: z.string().max(50).optional(),
+  location: z.string().max(300).optional(),
+})
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -40,19 +52,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "No tienes permiso para editar esta historia" }, { status: 403 })
     }
 
-    const body = await request.json()
-    const update: Record<string, unknown> = {}
-    if (body.title !== undefined) update.title = body.title.trim()
-    if (body.content !== undefined) update.content = body.content
-    if (body.summary !== undefined) update.summary = body.summary
-    if (body.category !== undefined) update.category = body.category
-    if (body.privacy !== undefined) update.privacy = body.privacy
-    if (body.status !== undefined) {
-      update.status = body.status
-      if (body.status === "publicada") update.published_at = new Date().toISOString()
+    const body = await request.json().catch(() => null)
+    const parsed = storyPutSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de historia inválidos", issues: parsed.error.issues }, { status: 400 })
     }
-    if (body.event_date !== undefined) update.event_date = body.event_date
-    if (body.location !== undefined) update.location = body.location
+
+    const data = parsed.data
+    const update: Record<string, unknown> = {}
+    if (data.title !== undefined) update.title = data.title.trim()
+    if (data.content !== undefined) update.content = data.content
+    if (data.summary !== undefined) update.summary = data.summary
+    if (data.category !== undefined) update.category = data.category
+    if (data.privacy !== undefined) update.privacy = data.privacy
+    if (data.status !== undefined) {
+      update.status = data.status
+      if (data.status === "publicada") update.published_at = new Date().toISOString()
+    }
+    if (data.event_date !== undefined) update.event_date = data.event_date
+    if (data.location !== undefined) update.location = data.location
 
     const { data: story, error } = await supabase
       .from("stories")

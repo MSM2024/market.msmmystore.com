@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/api-auth"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit"
 import { z } from "zod"
 
 function slugify(value: string): string {
@@ -110,6 +111,16 @@ export async function POST(req: NextRequest) {
   if (memberError) {
     return NextResponse.json({ error: memberError.message }, { status: 500 })
   }
+
+  await writeAuditLog({
+    action: "organization.create",
+    resource: "organizations",
+    resource_type: "organization",
+    resource_id: org.id,
+    new_value: { name: org.name, slug: org.slug, type: org.type },
+    request: req,
+    app_name: "zafiro",
+  })
 
   return NextResponse.json({
     organization: { id: org.id, name: org.name, slug: org.slug, type: org.type, owner_id: org.owner_id },

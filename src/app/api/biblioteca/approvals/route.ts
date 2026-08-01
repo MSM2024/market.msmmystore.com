@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     resource_id: book.id,
     resource_title: book.title,
     new_value: { status: "pendiente_revision" },
-  })
+  }, request)
 
   return NextResponse.json({ approval }, { status: 201 })
 }
@@ -114,7 +114,7 @@ export async function PUT(request: Request) {
       resource_id: book.id,
       resource_title: book.title,
       new_value: { status: bookStatus, review_notes: parsed.data.review_notes ?? null },
-    })
+    }, request)
   }
 
   return NextResponse.json({ approval })

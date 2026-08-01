@@ -170,7 +170,7 @@ export async function POST(request: Request) {
       chunks: chunkCount,
       checksum,
     },
-  })
+  }, request)
 
   return NextResponse.json(
     {

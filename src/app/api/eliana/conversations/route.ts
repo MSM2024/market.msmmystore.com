@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { z } from "zod"
+
+const conversationPostSchema = z.object({
+  title: z.string().max(500).optional(),
+  channel: z.string().max(50).optional(),
+  source_app: z.string().max(100).optional(),
+})
 
 export async function GET() {
   try {
@@ -46,21 +53,24 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const body = await request.json()
-    const { title, channel, source_app } = body
+    const body = await request.json().catch(() => null)
+    const parsed = conversationPostSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de conversación inválidos", issues: parsed.error.issues }, { status: 400 })
+    }
 
     const { data: conv, error } = await supabase
       .from("eliana_conversations")
       .insert({
         user_id: user.id,
-        channel: channel || "web",
+        channel: parsed.data.channel || "web",
         status: "active",
         metadata: {
           user_id: user.id,
           user_name: user.user_metadata?.name || user.email,
-          source_app: source_app || "eliana",
+          source_app: parsed.data.source_app || "eliana",
         },
-        summary: title || null,
+        summary: parsed.data.title || null,
       })
       .select("id")
       .single()

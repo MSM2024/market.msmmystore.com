@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit"
 import { z } from "zod"
 
 const DEFAULTS = {
@@ -73,6 +74,16 @@ export async function PUT(request: Request) {
       .single()
 
     if (error) throw error
+
+    await writeAuditLog({
+      action: "user_settings.update",
+      resource: "user_settings",
+      resource_type: "user_settings",
+      new_value: parsed.data,
+      request,
+      app_name: "zafiro",
+    })
+
     return NextResponse.json(data)
   } catch {
     return NextResponse.json({ error: "Failed to save" }, { status: 500 })

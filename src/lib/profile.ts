@@ -50,6 +50,26 @@ export interface UserProfile {
   badges: string[]
 }
 
+export interface PublicProfile {
+  id: string
+  name: string
+  username: string
+  role: string | null
+  avatar: string | null
+  created_at: string | null
+  status: string | null
+}
+
+export async function getProfileByUsername(username: string): Promise<PublicProfile | null> {
+  try {
+    const res = await fetch(`/api/profiles/by-username/${encodeURIComponent(username)}`)
+    const data = await res.json()
+    return data.profile || null
+  } catch {
+    return null
+  }
+}
+
 export async function getProfileFromAPI(): Promise<UserProfile | null> {
   try {
     const res = await fetch("/api/user-profile")

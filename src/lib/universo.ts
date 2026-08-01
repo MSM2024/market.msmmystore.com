@@ -1,6 +1,7 @@
 'use client'
 
-import { getProfile } from "./profile"
+import { getProfile, getProfileByUsername } from "./profile"
+import type { UserProfile } from "./profile"
 
 export type PlatformType =
   | "youtube" | "instagram" | "tiktok" | "twitter" | "facebook"
@@ -184,31 +185,68 @@ export function getAllConnectedUsers(): { userId: string; name: string; username
   }
 }
 
-export async function getCreatorProfile(): Promise<{
-  name: string; username: string; bio: string; image: string;
-  joinedAt: string; location: string; title: string;
-  points: number; streak: number; achievements: number;
-  followers: number; communities: number;
-  platforms: ConnectedPlatform[];
-} | null> {
-  const profile = await getProfile()
-  if (!profile) return null
+export interface CreatorProfile {
+  name: string
+  username: string
+  bio: string
+  image: string
+  joinedAt: string
+  location: string
+  title: string
+  points: number
+  streak: number
+  achievements: number
+  followers: number
+  communities: number
+  platforms: ConnectedPlatform[]
+  isOwn: boolean
+}
+
+function buildOwnProfile(profile: UserProfile) {
   const platforms: ConnectedPlatform[] = typeof window !== "undefined"
     ? JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").filter((p: ConnectedPlatform) => p.userId === profile.userId)
     : []
   return {
     name: profile.publicName || profile.name,
     username: profile.username,
-    bio: profile.bioShort || profile.bioLong,
-    image: profile.avatar,
-    joinedAt: profile.joinedAt,
-    location: profile.location,
-    title: profile.title,
-    points: profile.points,
-    streak: profile.streak,
-    achievements: profile.achievements,
-    followers: profile.followers,
-    communities: profile.communities,
+    bio: profile.bioShort || profile.bioLong || "",
+    image: profile.avatar || "",
+    joinedAt: profile.joinedAt || "",
+    location: profile.location || "",
+    title: profile.title || "",
+    points: profile.points ?? 0,
+    streak: profile.streak ?? 0,
+    achievements: profile.achievements ?? 0,
+    followers: profile.followers ?? 0,
+    communities: profile.communities ?? 0,
     platforms,
+  }
+}
+
+export async function getCreatorProfile(username?: string): Promise<CreatorProfile | null> {
+  const profile = await getProfile()
+
+  if (profile && (!username || profile.username?.toLowerCase() === username.toLowerCase())) {
+    return { ...buildOwnProfile(profile), isOwn: true }
+  }
+
+  const pub = await getProfileByUsername(username || "")
+  if (!pub) return null
+
+  return {
+    name: pub.name || pub.username,
+    username: pub.username,
+    bio: "",
+    image: pub.avatar || "",
+    joinedAt: pub.created_at ? pub.created_at.slice(0, 10) : "",
+    location: "",
+    title: pub.role && pub.role !== "customer" ? pub.role : "Miembro de ZAFIRO",
+    points: 0,
+    streak: 0,
+    achievements: 0,
+    followers: 0,
+    communities: 0,
+    platforms: [],
+    isOwn: false,
   }
 }

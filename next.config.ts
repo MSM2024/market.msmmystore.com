@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "msmmystore.com" },
       { protocol: "https", hostname: "*.supabase.co" },
       { protocol: "https", hostname: "*.gravatar.com" },
+      { protocol: "https", hostname: "**" },
     ],
   },
   async redirects() {

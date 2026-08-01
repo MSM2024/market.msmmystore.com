@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useParams } from "next/navigation"
 import {
   ArrowLeft, ExternalLink, Gem, MessageSquare, User as UserIcon, Award, Flame,
@@ -42,7 +43,7 @@ export default function PublicCreatorProfile() {
   const params = useParams()
   const username = params.username as string
   const [profile, setProfile] = useState<Awaited<ReturnType<typeof getCreatorProfile>>>(null)
-  useEffect(() => { getCreatorProfile().then(setProfile) }, [username])
+  useEffect(() => { getCreatorProfile(username).then(setProfile) }, [username])
   const [following, setFollowing] = useState(() => {
     if (typeof window === "undefined") return false
     const stored = JSON.parse(localStorage.getItem("zafiro_following") || "[]")
@@ -165,9 +166,9 @@ export default function PublicCreatorProfile() {
             <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-4">
               <div className="relative shrink-0">
                 <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-gradient-to-br from-[#00D9FF] via-blue-500 to-purple-600 p-0.5 shadow-[0_0_30px_rgba(0,217,255,0.2)]">
-                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden backdrop-blur-sm">
+                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden backdrop-blur-sm relative">
                     {profile.image ? (
-                      <img src={profile.image} alt={profile.name} className="w-full h-full object-cover" />
+                      <Image src={profile.image} alt={profile.name} fill sizes="144px" className="object-cover" />
                     ) : (
                       <span className="text-3xl sm:text-4xl font-black text-white/80">
                         {profile.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
@@ -210,10 +211,12 @@ export default function PublicCreatorProfile() {
                     className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-300 text-[9px] font-bold hover:bg-slate-700/50 transition-all cursor-pointer flex items-center gap-1 border border-slate-700/50">
                     <Share2 className="w-3 h-3" /> Compartir
                   </button>
-                  <Link href="/settings"
-                    className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-300 text-[9px] font-bold hover:bg-slate-700/50 transition-all cursor-pointer flex items-center gap-1 border border-slate-700/50">
-                    <Edit3 className="w-3 h-3" /> Editar Perfil
-                  </Link>
+                  {profile.isOwn && (
+                    <Link href="/settings"
+                      className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-300 text-[9px] font-bold hover:bg-slate-700/50 transition-all cursor-pointer flex items-center gap-1 border border-slate-700/50">
+                      <Edit3 className="w-3 h-3" /> Editar Perfil
+                    </Link>
+                  )}
                   <button onClick={() => setShowEliana(true)}
                     className="px-3 py-1.5 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-[9px] font-bold hover:bg-[#00D9FF]/20 transition-all cursor-pointer flex items-center gap-1 border border-[#00D9FF]/20">
                     <ElianaDiamond size={12} /> Preguntar a ELIANA
@@ -291,8 +294,8 @@ export default function PublicCreatorProfile() {
                       return (
                         <div key={p.id} className="group relative rounded-2xl border border-slate-800 bg-[#0B1220]/40 hover:border-slate-700 transition-all overflow-hidden backdrop-blur-sm">
                           {p.image && (
-                            <div className="h-20 sm:h-24 bg-slate-800/30 overflow-hidden">
-                              <img src={p.image} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none" }} />
+                            <div className="relative h-20 sm:h-24 bg-slate-800/30 overflow-hidden">
+                              <Image src={p.image} alt="" fill sizes="(max-width: 768px) 480px, 768px" className="object-cover" onError={e => { (e.target as HTMLElement).style.display = "none" }} />
                             </div>
                           )}
                           <div className="p-3.5">
@@ -348,8 +351,8 @@ export default function PublicCreatorProfile() {
                     return (
                       <div key={pub.id} className="flex gap-3 px-3 py-2.5 rounded-xl border border-slate-800 bg-[#0B1220]/40 hover:border-slate-700 transition-all">
                         {pub.image && (
-                          <div className="w-14 h-14 rounded-xl bg-slate-700/50 shrink-0 overflow-hidden hidden sm:block">
-                            <img src={pub.image} alt="" className="w-full h-full object-cover" />
+                          <div className="relative w-14 h-14 rounded-xl bg-slate-700/50 shrink-0 overflow-hidden hidden sm:block">
+                            <Image src={pub.image} alt="" fill sizes="56px" className="object-cover" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">

@@ -192,6 +192,7 @@ export interface LibraryApproval {
   review_notes?: string
   requested_at: string
   reviewed_at?: string
+  book?: Pick<LibraryBook, "id" | "title" | "author" | "status"> | null
 }
 
 export interface LibraryAccessLog {
