@@ -49,7 +49,7 @@ export default function RecoverPage() {
     } finally {
       setLoading(false)
     }
-  }, [email])
+  }, [email, loading])
 
   const handleResend = useCallback(() => {
     setSent(false)

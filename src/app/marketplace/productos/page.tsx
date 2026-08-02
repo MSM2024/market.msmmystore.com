@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Filter, Grid3X3, List, Star, Package, ArrowLeft, Truck, Loader2 } from "lucide-react"
@@ -136,8 +136,7 @@ function MarketplaceProductsContent() {
     router.replace(`/marketplace/productos?${params.toString()}`, { scroll: false })
   }
 
-  const loadProducts = async (reset = false) => {
-    const currentOffset = reset ? 0 : offset
+  const loadProducts = useCallback(async (reset: boolean, currentOffset: number, q: string) => {
     if (reset) {
       setLoading(true)
       setProducts([])
@@ -152,7 +151,7 @@ function MarketplaceProductsContent() {
       limit: PAGE_SIZE,
       offset: currentOffset,
     }
-    if (search) filters.search = search
+    if (q) filters.search = q
     if (selectedCountry) filters.country = selectedCountry
     if (freeShipping) filters.free_shipping = true
 
@@ -187,15 +186,25 @@ function MarketplaceProductsContent() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }
+  }, [sortBy, selectedCountry, freeShipping])
+
+  const loadProductsRef = useRef(loadProducts)
+  useEffect(() => {
+    loadProductsRef.current = loadProducts
+  })
+
+  const searchRef = useRef(search)
+  useEffect(() => {
+    searchRef.current = search
+  })
 
   useEffect(() => {
-    Promise.resolve().then(() => loadProducts(true))
+    Promise.resolve().then(() => loadProductsRef.current(true, 0, searchRef.current))
   }, [sortBy, selectedCountry, freeShipping])
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      loadProducts(true)
+      loadProductsRef.current(true, 0, search)
     }, 400)
     return () => clearTimeout(timeout)
   }, [search])
@@ -363,7 +372,7 @@ function MarketplaceProductsContent() {
             {hasMore && (
               <div className="flex justify-center mt-6">
                 <button
-                  onClick={() => loadProducts(false)}
+                  onClick={() => loadProducts(false, offset, search)}
                   disabled={loadingMore}
                   className="px-6 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 text-[11px] font-bold text-white hover:border-[#197BD2]/30 transition-colors disabled:opacity-50"
                 >

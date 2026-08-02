@@ -12,7 +12,7 @@ import type { MarketplaceStore } from "@/lib/marketplace/types"
 
 export default function SellerPortalPage() {
   usePageTitle("Mi Tienda — MSM Marketplace")
-  const session = getSession()
+  const userId = getSession()?.id
   const [store, setStore] = useState<MarketplaceStore | null>(null)
   const [stats, setStats] = useState({ totalProducts: 0, activeProducts: 0, totalOrders: 0, pendingOrders: 0, totalRevenue: 0, monthRevenue: 0 })
   const [loading, setLoading] = useState(true)
@@ -20,7 +20,7 @@ export default function SellerPortalPage() {
 
   useEffect(() => {
     const supabase = getSupabaseClient()
-    if (!supabase || !isSupabaseAvailable() || !session?.id) {
+    if (!supabase || !isSupabaseAvailable() || !userId) {
       Promise.resolve().then(() => setLoading(false))
       return
     }
@@ -29,7 +29,7 @@ export default function SellerPortalPage() {
       const { data: storeData } = await supabase!
         .from("marketplace_stores")
         .select("*")
-        .eq("owner_id", session!.id)
+        .eq("owner_id", userId!)
         .single()
       if (storeData) {
         setStore(storeData)
@@ -40,7 +40,7 @@ export default function SellerPortalPage() {
       setLoading(false)
     }
     load()
-  }, [session?.id])
+  }, [userId])
 
   if (loading) return (
     <div className="min-h-screen zafiro-page text-white flex items-center justify-center">

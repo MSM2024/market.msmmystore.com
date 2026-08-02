@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Plus, Trash2, ExternalLink, Search, Gem, Globe, Link2, X, Check, AlertCircle, Shield, Download, MessageSquare, Heart, Send, Eye, EyeOff, ArrowUp, ArrowDown, Edit3 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSession } from "@/lib/auth"
@@ -272,8 +273,8 @@ export default function UniversoPage() {
                       return (
                         <div key={p.id} className="group rounded-2xl glass hover:border-slate-700 transition-all overflow-hidden">
                           {p.image && (
-                            <div className="h-20 sm:h-24 bg-slate-800/30 overflow-hidden">
-                              <img src={p.image} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            <div className="h-20 sm:h-24 bg-slate-800/30 overflow-hidden relative">
+                              <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 400px" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                             </div>
                           )}
                           <div className="p-4">

@@ -9,6 +9,7 @@ import {
   Home as HomeIcon, FlaskConical, ScrollText, Settings
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 import {
   stories as defaultStories, trends, communities, experts,
@@ -489,8 +490,8 @@ export default function Home() {
                         className="p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-left bg-[#0b1220]/40 hover:bg-[#0b1220]/80 border-slate-800/80"
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <img src={q.author.avatar} alt={q.author.name} className="w-7 h-7 rounded-full object-cover border border-slate-700" />
+                          <div className="flex items-center space-x-2 relative">
+                            <Image src={q.author.avatar} alt={q.author.name} fill sizes="56px" className="w-7 h-7 rounded-full object-cover border border-slate-700" />
                             <div className="leading-tight">
                               <div className="flex items-center space-x-1">
                                 <h4 className="text-[11px] font-bold text-white">{q.author.name}</h4>
@@ -630,8 +631,8 @@ export default function Home() {
                   {communities.map(c => {
                     const isJoined = joinedCommunities.includes(c.id)
                     return (
-                      <div key={c.id} className="p-4 rounded-2xl glass text-left flex items-start gap-3">
-                        <img src={c.avatar} alt={c.name} className="w-11 h-11 rounded-xl object-cover border border-slate-700 shrink-0" />
+                      <div key={c.id} className="p-4 rounded-2xl glass text-left flex items-start gap-3 relative">
+                        <Image src={c.avatar} alt={c.name} fill sizes="88px" className="w-11 h-11 rounded-xl object-cover border border-slate-700 shrink-0" />
                         <div className="space-y-1 flex-1">
                           <div className="flex items-center justify-between">
                             <h4 className="text-xs font-bold text-white">{c.name}</h4>
@@ -668,8 +669,8 @@ export default function Home() {
                   <span className="text-[9px] font-mono font-bold tracking-wider text-[#00D9FF] uppercase">Sintonizador Certificado</span>
                   <h2 className="text-xl font-black text-white font-display uppercase">{userSession?.name || "Miguel Solano"}</h2>
                 </div>
-                <div className="p-4 rounded-2xl glass flex items-center gap-4">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120" className="w-14 h-14 rounded-2xl object-cover border border-slate-700" alt="" />
+                <div className="p-4 rounded-2xl glass flex items-center gap-4 relative">
+                  <Image src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120" alt="" fill sizes="112px" className="w-14 h-14 rounded-2xl object-cover border border-slate-700" />
                   <div className="space-y-1 leading-tight">
                     <h4 className="text-sm font-bold text-white">{userSession?.name || "Miguel Solano"}</h4>
                     <p className="text-xs text-slate-400 font-semibold">Socio Platino de ZAFIRO</p>
@@ -1035,8 +1036,8 @@ export default function Home() {
               className="w-full max-w-lg h-[650px] rounded-3xl border border-slate-800 bg-[#050816]/98 p-5 flex flex-col shadow-2xl"
             >
               <div className="flex justify-between items-center border-b border-slate-900 pb-2.5 mb-3 shrink-0">
-                <div className="flex items-center space-x-2">
-                  <img src={selectedQuestion.author.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                <div className="flex items-center space-x-2 relative">
+                  <Image src={selectedQuestion.author.avatar} alt="" fill sizes="64px" className="w-8 h-8 rounded-full object-cover" />
                   <div>
                     <h4 className="text-xs font-black text-white">{selectedQuestion.author.name}</h4>
                     <span className="text-[9px] text-slate-500 font-semibold">{selectedQuestion.time}</span>
@@ -1073,13 +1074,13 @@ export default function Home() {
                           Respuesta IA Oficial
                         </div>
                       )}
-                      <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex items-center space-x-2 mb-2 relative">
                         {reply.isAi ? (
                           <div className="w-6 h-6 rounded-md bg-[#00D9FF]/15 flex items-center justify-center border border-[#00D9FF]/30">
                             <Gem className="w-3.5 h-3.5 text-[#00D9FF]" />
                           </div>
                         ) : (
-                          <img src={reply.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
+                          <Image src={reply.avatar} alt="" fill sizes="48px" className="w-6 h-6 rounded-full object-cover" />
                         )}
                         <div>
                           <h5 className="text-[10px] font-extrabold text-white">{reply.author}</h5>

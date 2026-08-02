@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowLeft, Star, Shield, Package, MapPin, MessageCircle, Mail,
   Calendar, RotateCcw, Truck, Heart, Loader2, ExternalLink,
@@ -96,7 +97,7 @@ export default function StoreDetailPage({ params }: { params: Promise<{ slug: st
       {/* Cover */}
       <div className="h-36 bg-gradient-to-br from-[#0C3F6A] to-[#197BD2] relative">
         {store.cover_url && (
-          <img src={store.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <Image src={store.cover_url} alt="" fill sizes="100vw" className="w-full h-full object-cover" />
         )}
         <Link
           href="/marketplace/tiendas"

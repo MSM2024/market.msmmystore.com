@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft, Shield, Users, FileText, BarChart3, Activity, Settings, AlertTriangle, MessageSquare, Eye, Cpu, Bot, CheckCircle, XCircle, RefreshCw, Gem, Search, Store, Package, X, Check, ChevronLeft, ChevronRight, BookOpen, Database, Server, ShoppingCart } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { hasRole, refreshSession } from "@/lib/auth"
@@ -108,12 +108,12 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     if (!dbConnected) return
     const data = await fetchUsers(USERS_PER_PAGE, userPage * USERS_PER_PAGE)
     setUsers(data)
     setUserTotal(stats.totalUsers)
-  }
+  }, [dbConnected, userPage, stats.totalUsers])
 
   useEffect(() => {
     refreshSession().then(session => {
@@ -127,7 +127,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === "usuarios") { Promise.resolve().then(() => loadUsers()) }
-  }, [tab, userPage])
+  }, [tab, loadUsers])
 
   const automationStats = [
     { label: "Usuarios Registrados", value: stats.totalUsers.toLocaleString(), icon: Users, color: "text-[#00D9FF]" },

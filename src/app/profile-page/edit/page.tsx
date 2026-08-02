@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Save, Camera, Plus, Trash2, Globe, AlertCircle, RefreshCw } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession } from "@/lib/auth"
@@ -210,9 +211,9 @@ export default function EditProfilePage() {
             <div className="flex gap-4">
               <div className="relative group">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#00D9FF] to-blue-600 p-0.5">
-                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden relative">
                     {profile.avatar ? (
-                      <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
+                      <Image src={profile.avatar} alt="" fill sizes="192px" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-2xl font-black text-white/60">
                         {profile.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}

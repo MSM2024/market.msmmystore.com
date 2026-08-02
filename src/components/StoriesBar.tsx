@@ -2,6 +2,7 @@
 
 import { Compass } from "lucide-react";
 import { Story } from "@/lib/zafiro-data";
+import Image from "next/image";
 
 interface StoriesBarProps {
   stories: Story[];
@@ -27,10 +28,12 @@ export default function StoriesBar({ stories, onViewStory }: StoriesBarProps) {
             <div
               className={`w-16 h-16 rounded-full bg-gradient-to-br ${story.gradient} p-[2px]`}
             >
-              <div className="w-full h-full rounded-full overflow-hidden border-2 border-black/40">
-                <img
+              <div className="w-full h-full rounded-full overflow-hidden border-2 border-black/40 relative">
+                <Image
                   src={story.avatar}
                   alt={story.name}
+                  fill
+                  sizes="128px"
                   className="w-full h-full object-cover"
                 />
               </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Package, Store, Star, ChevronRight, Grid3X3, List, Truck, Shield, Zap } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { formatPrice } from "@/lib/marketplace/constants"
@@ -188,9 +189,9 @@ export default function MarketplacePage() {
               className="flex-shrink-0 w-48 p-4 rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all"
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#197BD2] to-[#0C3F6A] flex items-center justify-center text-lg overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#197BD2] to-[#0C3F6A] flex items-center justify-center text-lg overflow-hidden relative">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+                    <Image src={store.logo_url} alt={store.name} fill sizes="80px" className="w-full h-full object-cover" />
                   ) : (
                     COUNTRY_FLAGS[store.country] || "🌍"
                   )}
@@ -230,9 +231,9 @@ export default function MarketplacePage() {
                 href={`/marketplace/productos/${product.slug}`}
                 className={`group rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all overflow-hidden ${viewMode === "list" ? "flex" : ""}`}
               >
-                <div className={`bg-slate-800/30 flex items-center justify-center ${viewMode === "list" ? "w-28 h-28 shrink-0" : "h-36"}`}>
+                <div className={`bg-slate-800/30 flex items-center justify-center relative ${viewMode === "list" ? "w-28 h-28 shrink-0" : "h-36"}`}>
                   {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 50vw, 350px" className="w-full h-full object-cover" />
                   ) : (
                     <Package className="w-10 h-10 text-slate-600" />
                   )}

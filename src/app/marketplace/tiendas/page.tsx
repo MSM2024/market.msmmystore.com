@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Search, Star, Store, Shield, MapPin, Package, Loader2, StoreIcon } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { fetchStores } from "@/lib/marketplace/client"
@@ -164,7 +165,7 @@ export default function MarketplaceStoresPage() {
                   {/* Cover gradient */}
                   <div className="h-20 bg-gradient-to-br from-[#0C3F6A] to-[#197BD2] relative">
                     {store.cover_url && (
-                      <img src={store.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <Image src={store.cover_url} alt="" fill sizes="100vw" className="w-full h-full object-cover" />
                     )}
                   </div>
 

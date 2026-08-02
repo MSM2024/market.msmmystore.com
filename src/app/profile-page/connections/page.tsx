@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Globe, ExternalLink, Plus, Trash2, Save, Shield, Camera, MessageSquare, Video, Music2, Send, Store, Briefcase, Code2, MessageCircle, Music, BookOpen } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getProfile, updateProfile, type SocialLink, type UserProfile } from "@/lib/profile"
@@ -209,8 +210,8 @@ export default function ConnectionsPage() {
                   return (
                     <div key={p.id} className="group relative rounded-2xl border border-slate-800 bg-[#0B1220]/40 hover:border-slate-700 transition-all backdrop-blur-sm">
                       {p.image && (
-                        <div className="h-16 sm:h-20 bg-slate-800/30 overflow-hidden rounded-t-2xl">
-                          <img src={p.image} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none" }} />
+                        <div className="h-16 sm:h-20 bg-slate-800/30 overflow-hidden rounded-t-2xl relative">
+                          <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 400px" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none" }} />
                         </div>
                       )}
                       <div className="p-3">

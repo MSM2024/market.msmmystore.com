@@ -16,14 +16,14 @@ interface Buyer {
 
 export default function DashboardClientesPage() {
   usePageTitle("Clientes — Dashboard")
-  const session = getSession()
+  const userId = getSession()?.id
   const [buyers, setBuyers] = useState<Buyer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!session?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }
 
@@ -32,7 +32,7 @@ export default function DashboardClientesPage() {
         const { data: storeData } = await supabase!
           .from("marketplace_stores")
           .select("id")
-          .eq("owner_id", session!.id)
+          .eq("owner_id", userId!)
           .single()
         if (!storeData) { setLoading(false); return }
 
@@ -57,7 +57,7 @@ export default function DashboardClientesPage() {
       setLoading(false)
     }
     load()
-  }, [session?.id])
+  }, [userId])
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">

@@ -12,7 +12,7 @@ import type { MarketplaceProduct } from "@/lib/marketplace/types"
 
 export default function DashboardProductosPage() {
   usePageTitle("Productos — Dashboard")
-  const session = getSession()
+  const userId = getSession()?.id
   const router = useRouter()
   const [products, setProducts] = useState<MarketplaceProduct[]>([])
   const [loading, setLoading] = useState(true)
@@ -20,7 +20,7 @@ export default function DashboardProductosPage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!session?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }
 
@@ -29,7 +29,7 @@ export default function DashboardProductosPage() {
         const { data: storeData } = await supabase!
           .from("marketplace_stores")
           .select("id")
-          .eq("owner_id", session!.id)
+          .eq("owner_id", userId!)
           .single()
         if (!storeData) { setLoading(false); return }
 
@@ -43,7 +43,7 @@ export default function DashboardProductosPage() {
       setLoading(false)
     }
     load()
-  }, [session?.id])
+  }, [userId])
 
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar este producto?")) return

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { getSession } from "@/lib/auth"
 
 interface Story {
@@ -110,9 +111,9 @@ export default function HistoriaDetailPage() {
             {story.story_media
               .sort((a, b) => a.sort_order - b.sort_order)
               .map((media) => (
-                <div key={media.id} className="rounded-xl overflow-hidden bg-white/5">
+                <div key={media.id} className="rounded-xl overflow-hidden bg-white/5 relative">
                   {media.media_type === "image" && (
-                    <img src={media.url} alt={media.caption || story.title} className="w-full h-48 object-cover" />
+                    <Image src={media.url} alt={media.caption || story.title} fill sizes="(max-width: 768px) 45vw, 300px" className="w-full h-48 object-cover" />
                   )}
                   {media.caption && <p className="text-xs text-white/50 p-2">{media.caption}</p>}
                 </div>

@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { Story } from "@/lib/zafiro-data";
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 
 interface StoryViewerProps {
   story: Story | null;
@@ -37,10 +38,12 @@ export default function StoryViewer({
         className="fixed inset-0 bg-black/95 z-50 flex flex-col"
       >
         <div className="relative flex-1 flex flex-col">
-          <img
+          <Image
             src={story.content.image}
             alt={story.content.title}
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            sizes="100vw"
+            className="w-full h-full object-cover"
           />
 
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80" />
@@ -62,10 +65,12 @@ export default function StoryViewer({
                 <div
                   className={`w-10 h-10 rounded-full bg-gradient-to-br ${story.gradient} p-[2px]`}
                 >
-                  <div className="w-full h-full rounded-full overflow-hidden border-2 border-black/40">
-                    <img
+                  <div className="w-full h-full rounded-full overflow-hidden border-2 border-black/40 relative">
+                    <Image
                       src={story.avatar}
                       alt={story.name}
+                      fill
+                      sizes="80px"
                       className="w-full h-full object-cover"
                     />
                   </div>

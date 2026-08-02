@@ -145,12 +145,8 @@ Criterio de inclusión: todo lo que NO puede resolverse desde el repositorio (de
 - **Riesgo:** MEDIO.
 - **Acción necesaria:** escribir E2E de los flujos críticos una vez configurada la infraestructura.
 
-### C2. 31 warnings de lint restantes (sin bloqueo)
-- **Motivo:** en esta etapa se eliminaron los 229 warnings de `no-unused-vars` (quedan 0). Persisten **31 warnings de otras reglas**: 12 `react-hooks/exhaustive-deps` y 19 `@next/next/no-img-element` (`<img>` sin `next/image`).
-- **Dependencia:** código.
-- **Tiempo estimado:** 2–3 h.
-- **Riesgo:** BAJO (los `exhaustive-deps` no se tocaron para no alterar el comportamiento de los hooks).
-- **Acción necesaria:** migrar `<img>` a `next/image` (19) y revisar las deps de hooks una por una (12).
+### C2. (Resuelto) 31 warnings de lint → 0
+- **Estado:** ✅ RESUELTO EN ESTA ETAPA. Los 12 `react-hooks/exhaustive-deps` se corrigieron estabilizando las deps (`getSession()?.id` en vez del objeto sesión, `useCallback`/refs en admin y marketplace) y los 19 `@next/next/no-img-element` se migraron a `next/image`. **`pnpm lint` = 0 errores / 0 warnings.** No queda ninguna acción pendiente aquí.
 
 ### C3. Rate limiting persistente en producción
 - **Motivo:** el limitador `src/lib/rate-limit.ts` es en memoria (`Map`): ahora cubre **todas las rutas de escritura y lectura sensibles** (25 rutas añadidas en esta etapa + las que ya tenían), pero el contador vive por instancia y se reinicia en cada redeploy; no es compartido entre instancias.
@@ -170,9 +166,10 @@ Criterio de inclusión: todo lo que NO puede resolverse desde el repositorio (de
 
 ## Resumen de la etapa de cierre
 
-- **Funcional y verificado:** suite completa `pnpm install` + `lint` (0 errores/31 warnings) + `typecheck` (0) + `test` (88/88) + `build` (140 páginas) + `playwright` (28/28).
+- **Funcional y verificado:** suite completa `pnpm install` + `lint` (**0 errores / 0 warnings**) + `typecheck` (0) + `test` (88/88) + `build` (140 páginas) + `playwright` (28/28).
 - **Corregido (errores reales):** bug de precedencia en `public/sw.js:25` (la comprobación de origen era código muerto); rama demo muerta en `StripeModal.tsx` por desalineación de cadena con el 503 de checkout (ahora usa `code: "STRIPE_NOT_CONFIGURED"` y el aviso ámbar solo se muestra en modo demo); documentación de autenticación obsoleta en el Knowledge Pack (decía "auth mock/localStorage" cuando ya es Supabase Auth).
 - **Seguridad:** rate limiting añadido a las 25 rutas API que no tenían (auth, eliana, knowledge, stripe, voz-viva, admin/seed-owner); el limitador en memoria cubre ahora todas las rutas sensibles.
-- **Calidad:** 229 warnings de `no-unused-vars` eliminados (0 restantes); suite E2E ampliada de 10 a 28 tests de páginas públicas.
+- **Calidad:** **0 warnings de lint** (se resolvieron los 31 restantes: 12 `exhaustive-deps` + 19 `no-img-element`); suite E2E ampliada de 10 a 28 tests de páginas públicas.
 - **Eliminado (etapa anterior):** cluster económico simulado (6 archivos), directorio de proveedores huérfano (5 archivos), dependencia `rehype-raw`.
-- **Completado desde código:** PWA (service worker + registro), márgenes/flags del admin persistidos en `marketplace_config`.
+- **Eliminado (etapa actual):** `src/lib/unified-identity/` (4 módulos muertos, 0 imports en el repo).
+- **Completado desde código:** PWA (service worker + registro), márgenes/flags del admin persistidos en `marketplace_config`, tab **Settings de Knowledge** del admin conectado a la API real (`GET/PUT /api/knowledge/settings` → tabla `knowledge_settings`) con fallback a localStorage y aviso honesto cuando la DB no está conectada.

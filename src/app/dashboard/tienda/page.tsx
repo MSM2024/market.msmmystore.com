@@ -13,7 +13,7 @@ import type { MarketplaceStore } from "@/lib/marketplace/types"
 export default function DashboardTiendaPage() {
   usePageTitle("Mi Tienda — Dashboard")
   const router = useRouter()
-  const session = getSession()
+  const userId = getSession()?.id
   const [store, setStore] = useState<MarketplaceStore | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -26,7 +26,7 @@ export default function DashboardTiendaPage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!session?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }
 
@@ -34,7 +34,7 @@ export default function DashboardTiendaPage() {
       const { data } = await supabase!
         .from("marketplace_stores")
         .select("*")
-        .eq("owner_id", session!.id)
+        .eq("owner_id", userId!)
         .single()
       if (!data) { router.replace("/marketplace/crear-tienda"); return }
       setStore(data)
@@ -48,7 +48,7 @@ export default function DashboardTiendaPage() {
       setLoading(false)
     }
     load()
-  }, [session?.id, router])
+  }, [userId, router])
 
   async function handleSave() {
     if (!store) return
