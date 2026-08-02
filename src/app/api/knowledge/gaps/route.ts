@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo } from "@/lib/knowledge"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import type { KnowledgeGap } from "@/lib/knowledge/types"
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-gaps" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -28,13 +32,16 @@ export async function GET(request: NextRequest) {
       total: gaps.length,
       open: gaps.filter((g: KnowledgeGap) => g.status !== "archived").length,
     })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-gaps" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -66,13 +73,16 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ gap }, { status: 201 })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-gaps" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -91,7 +101,7 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({ gap })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

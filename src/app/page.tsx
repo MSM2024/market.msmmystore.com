@@ -5,19 +5,21 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   Sparkles, Gem, Sun, Moon, Wifi, Battery, Search, Flame, MessageSquare, Users, Award,
   Plus, Send, X, Eye, MessageCircle, Signal, Globe, User, Heart,
-  CheckCircle, BookOpen, CreditCard, Sliders, Activity, Library,
+  CheckCircle, BookOpen, CreditCard, Sliders, Activity, ShoppingBag,
   Home as HomeIcon, FlaskConical, ScrollText, Settings
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 import {
-  stories as defaultStories, questions as defaultQuestions, trends, communities, experts,
-  defaultSponsors, nobleSponsors, getContextualAdMatch, loadPersistedSponsors,
+  stories as defaultStories, trends, communities, experts,
+  nobleSponsors, loadPersistedSponsors,
   saveSponsors, loadPersistedQuestions, saveQuestions,
   type Question, type SponsorCampaign, type Story
 } from "@/lib/zafiro-data"
 import ParticlesBackground from "@/components/ParticlesBackground"
 import NotificationsDropdown from "@/components/NotificationsDropdown"
+import BrandEmblem from "@/components/ui/BrandEmblem"
 import GemLab from "@/components/gemology/GemLab"
 import Handbook from "@/components/gemology/Handbook"
 import AiAssistant from "@/components/gemology/AiAssistant"
@@ -47,7 +49,7 @@ export default function Home() {
   const [selectedTag, setSelectedTag] = useState("Todas")
   const [activeNav, setActiveNav] = useState("Inicio")
   const [currentTime, setCurrentTime] = useState("18:30")
-  const [userSession, setUserSession] = useState<{ name: string; email: string } | null>(() => getSession())
+  const [userSession] = useState<{ name: string; email: string } | null>(() => getSession())
 
   const [streak] = useState(18)
   const [points, setPoints] = useState(4820)
@@ -82,7 +84,6 @@ export default function Home() {
     { id: "2", text: "Ganaste 50 PTS por sintonizar con la comunidad IA", time: "hace 1 hora" }
   ])
 
-  const [isElianaExpanded, setIsElianaExpanded] = useState(false)
   const [chatInput, setChatInput] = useState("")
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "model"; text: string; time: string }>>(() => {
@@ -300,26 +301,17 @@ export default function Home() {
     })
   }, [selectedTag, searchQuery, qs])
 
-  const sortedSponsors = useMemo(() => {
-    return [...sponsors].sort((a, b) => {
-      return getContextualAdMatch(b, selectedTag, searchQuery, joinedCommunities).percentage -
-        getContextualAdMatch(a, selectedTag, searchQuery, joinedCommunities).percentage
-    })
-  }, [sponsors, selectedTag, searchQuery, joinedCommunities])
-
   return (
-    <div className="min-h-screen bg-[#050816] text-white overflow-hidden relative">
+    <div className="min-h-screen zafiro-page text-white overflow-hidden relative">
 
       <ParticlesBackground isDarkMode={isDarkMode} />
 
       {/* TOP BAR */}
       <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b border-slate-800/50 bg-[#050816]/80 backdrop-blur-xl glow-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#050816] flex items-center justify-center border border-cyan-500/30">
-            <Gem className="w-4 h-4 text-[#00D9FF]" />
-          </div>
+          <div className="flex items-center gap-2.5">
+            <BrandEmblem size={32} decorative priority className="drop-shadow-[0_0_10px_rgba(0,217,255,0.35)]" />
           <div className="hidden sm:block leading-none">
-            <span className="text-sm font-black font-display tracking-widest text-gradient uppercase block leading-none">ZAFIRO</span>
+            <span className="text-sm font-black font-display tracking-widest zafiro-gold-text uppercase block leading-none">ZAFIRO</span>
             <span className="text-[7.5px] font-mono tracking-wider font-extrabold text-[#00D9FF] block uppercase mt-0.5">Knowledge Future</span>
           </div>
         </div>
@@ -377,7 +369,7 @@ export default function Home() {
             { id: "Gemología", label: "Gemología", icon: Gem },
             { id: "Sponsors", label: "Sponsors", icon: Award },
             { id: "Historias", label: "Mis Historias", icon: BookOpen, href: "/mis-historias" },
-            { id: "Biblioteca", label: "Biblioteca", icon: Library, href: "/biblioteca" },
+            { id: "Mis Pedidos", label: "Mis Pedidos", icon: ShoppingBag, href: "/marketplace/pedidos" },
             { id: "Universo", label: "Universo", icon: Activity, href: "/universo" },
             { id: "Perfil", label: "Mi Perfil", icon: User },
           ].map(item => {
@@ -434,10 +426,10 @@ export default function Home() {
                 {/* HERO */}
                 <div className="text-left space-y-2">
                   <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-black font-display tracking-tight leading-none text-white uppercase"
+                    className="text-2xl font-black font-display tracking-tight leading-none zafiro-gold-text uppercase"
                   >
                     Cada pregunta <br />
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00D9FF] via-[#2563EB] to-[#7C3AED] animate-pulse-glow">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F1D98C] to-[#B8860B] animate-pulse-glow">
                       construye el futuro
                     </span>
                   </motion.h1>
@@ -451,7 +443,7 @@ export default function Home() {
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00D9FF] via-[#2563EB] to-[#7C3AED] rounded-2xl blur opacity-30 group-hover:opacity-65 transition duration-500" />
                   <div className="relative flex items-center rounded-2xl p-3 border bg-[#050816]/95 border-[#00D9FF]/20">
                     <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#00D9FF]/10 to-blue-500/10 text-[#00D9FF] mr-3">
-                      <Gem className="w-5 h-5 animate-pulse" />
+                      <BrandEmblem size={20} decorative className="animate-pulse" />
                     </div>
                     <input type="text" value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -498,8 +490,8 @@ export default function Home() {
                         className="p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-left bg-[#0b1220]/40 hover:bg-[#0b1220]/80 border-slate-800/80"
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <img src={q.author.avatar} alt={q.author.name} className="w-7 h-7 rounded-full object-cover border border-slate-700" />
+                          <div className="flex items-center space-x-2 relative">
+                            <Image src={q.author.avatar} alt={q.author.name} fill sizes="56px" className="w-7 h-7 rounded-full object-cover border border-slate-700" />
                             <div className="leading-tight">
                               <div className="flex items-center space-x-1">
                                 <h4 className="text-[11px] font-bold text-white">{q.author.name}</h4>
@@ -639,8 +631,8 @@ export default function Home() {
                   {communities.map(c => {
                     const isJoined = joinedCommunities.includes(c.id)
                     return (
-                      <div key={c.id} className="p-4 rounded-2xl glass text-left flex items-start gap-3">
-                        <img src={c.avatar} alt={c.name} className="w-11 h-11 rounded-xl object-cover border border-slate-700 shrink-0" />
+                      <div key={c.id} className="p-4 rounded-2xl glass text-left flex items-start gap-3 relative">
+                        <Image src={c.avatar} alt={c.name} fill sizes="88px" className="w-11 h-11 rounded-xl object-cover border border-slate-700 shrink-0" />
                         <div className="space-y-1 flex-1">
                           <div className="flex items-center justify-between">
                             <h4 className="text-xs font-bold text-white">{c.name}</h4>
@@ -677,8 +669,8 @@ export default function Home() {
                   <span className="text-[9px] font-mono font-bold tracking-wider text-[#00D9FF] uppercase">Sintonizador Certificado</span>
                   <h2 className="text-xl font-black text-white font-display uppercase">{userSession?.name || "Miguel Solano"}</h2>
                 </div>
-                <div className="p-4 rounded-2xl glass flex items-center gap-4">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120" className="w-14 h-14 rounded-2xl object-cover border border-slate-700" alt="" />
+                <div className="p-4 rounded-2xl glass flex items-center gap-4 relative">
+                  <Image src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120" alt="" fill sizes="112px" className="w-14 h-14 rounded-2xl object-cover border border-slate-700" />
                   <div className="space-y-1 leading-tight">
                     <h4 className="text-sm font-bold text-white">{userSession?.name || "Miguel Solano"}</h4>
                     <p className="text-xs text-slate-400 font-semibold">Socio Platino de ZAFIRO</p>
@@ -1044,8 +1036,8 @@ export default function Home() {
               className="w-full max-w-lg h-[650px] rounded-3xl border border-slate-800 bg-[#050816]/98 p-5 flex flex-col shadow-2xl"
             >
               <div className="flex justify-between items-center border-b border-slate-900 pb-2.5 mb-3 shrink-0">
-                <div className="flex items-center space-x-2">
-                  <img src={selectedQuestion.author.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                <div className="flex items-center space-x-2 relative">
+                  <Image src={selectedQuestion.author.avatar} alt="" fill sizes="64px" className="w-8 h-8 rounded-full object-cover" />
                   <div>
                     <h4 className="text-xs font-black text-white">{selectedQuestion.author.name}</h4>
                     <span className="text-[9px] text-slate-500 font-semibold">{selectedQuestion.time}</span>
@@ -1082,13 +1074,13 @@ export default function Home() {
                           Respuesta IA Oficial
                         </div>
                       )}
-                      <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex items-center space-x-2 mb-2 relative">
                         {reply.isAi ? (
                           <div className="w-6 h-6 rounded-md bg-[#00D9FF]/15 flex items-center justify-center border border-[#00D9FF]/30">
                             <Gem className="w-3.5 h-3.5 text-[#00D9FF]" />
                           </div>
                         ) : (
-                          <img src={reply.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
+                          <Image src={reply.avatar} alt="" fill sizes="48px" className="w-6 h-6 rounded-full object-cover" />
                         )}
                         <div>
                           <h5 className="text-[10px] font-extrabold text-white">{reply.author}</h5>

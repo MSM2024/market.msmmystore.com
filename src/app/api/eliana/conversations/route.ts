@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
 
-export async function GET() {
+const conversationPostSchema = z.object({
+  title: z.string().max(500).optional(),
+  channel: z.string().max(50).optional(),
+  source_app: z.string().max(100).optional(),
+})
+
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-conversations" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
 
@@ -40,26 +51,33 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-conversations" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const body = await request.json()
-    const { title, channel, source_app } = body
+    const body = await request.json().catch(() => null)
+    const parsed = conversationPostSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de conversación inválidos", issues: parsed.error.issues }, { status: 400 })
+    }
 
     const { data: conv, error } = await supabase
       .from("eliana_conversations")
       .insert({
-        channel: channel || "web",
+        user_id: user.id,
+        channel: parsed.data.channel || "web",
         status: "active",
         metadata: {
           user_id: user.id,
           user_name: user.user_metadata?.name || user.email,
-          source_app: source_app || "eliana",
+          source_app: parsed.data.source_app || "eliana",
         },
-        summary: title || null,
+        summary: parsed.data.title || null,
       })
       .select("id")
       .single()
@@ -74,6 +92,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-conversations" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
 

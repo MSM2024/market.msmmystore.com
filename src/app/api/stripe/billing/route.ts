@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from "next/server"
+import type Stripe from "stripe"
 import { getStripe, isStripeAvailable } from "@/lib/stripe/server"
 import { STRIPE_PLANS, STRIPE_CONFIG, getPlanById } from "@/lib/stripe/config"
+import { requireAuth, type AuthContext } from "@/lib/api-auth"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
-export async function GET() {
+async function findCustomerId(stripe: Stripe, email: string): Promise<string | null> {
+  if (!email) return null
+  const customers = await stripe.customers.list({ email, limit: 1 })
+  return customers.data[0]?.id || null
+}
+
+async function resolveCustomerId(stripe: Stripe, email: string): Promise<string | null> {
+  const existing = await findCustomerId(stripe, email)
+  if (existing) return existing
+  if (!email) return null
+  const created = await stripe.customers.create({ email })
+  return created.id
+}
+
+async function ownsSubscription(
+  stripe: Stripe,
+  subscriptionId: string,
+  auth: AuthContext,
+  customerId: string | null
+): Promise<boolean> {
+  const sub = await stripe.subscriptions.retrieve(subscriptionId)
+  if (sub.metadata?.userId && sub.metadata.userId === auth.userId) return true
+  if (customerId && sub.customer === customerId) return true
+  return false
+}
+
+export async function GET(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "stripe-billing" })
+  if (limited) return limited
+
   if (!isStripeAvailable()) {
     return NextResponse.json(
       { error: "Stripe no está configurado" },
@@ -11,7 +43,6 @@ export async function GET() {
   }
 
   try {
-    const stripe = getStripe()
     const plans = STRIPE_PLANS.filter((p) => p.priceId).map((plan) => ({
       id: plan.id,
       name: plan.name,
@@ -33,6 +64,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "stripe-billing" })
+  if (limited) return limited
+
+  const authResult = await requireAuth()
+  if (!authResult.ok) return authResult.response
+  const auth = authResult.auth
+
   if (!isStripeAvailable()) {
     return NextResponse.json(
       { error: "Stripe no está configurado" },
@@ -41,15 +79,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { action, subscriptionId, planId, customerId } = await request.json()
+    const { action, subscriptionId, planId } = await request.json()
 
     const stripe = getStripe()
+    const customerId = await findCustomerId(stripe, auth.email)
 
     switch (action) {
       case "subscribe": {
-        if (!planId || !customerId) {
+        if (!planId) {
           return NextResponse.json(
-            { error: "planId y customerId son requeridos" },
+            { error: "planId es requerido" },
             { status: 400 }
           )
         }
@@ -62,15 +101,18 @@ export async function POST(request: NextRequest) {
           )
         }
 
+        const resolvedCustomer = await resolveCustomerId(stripe, auth.email)
+
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
-          customer: customerId,
+          customer: resolvedCustomer || undefined,
           line_items: [{ price: plan.priceId, quantity: 1 }],
           success_url: STRIPE_CONFIG.checkout.successUrl,
           cancel_url: STRIPE_CONFIG.checkout.cancelUrl,
-          metadata: { planId, source: "membership" },
+          client_reference_id: auth.userId,
+          metadata: { planId, userId: auth.userId, source: "membership" },
           subscription_data: {
-            metadata: { planId, source: "membership" },
+            metadata: { planId, userId: auth.userId, source: "membership" },
           },
         })
 
@@ -83,6 +125,10 @@ export async function POST(request: NextRequest) {
             { error: "subscriptionId es requerido" },
             { status: 400 }
           )
+        }
+
+        if (!(await ownsSubscription(stripe, subscriptionId, auth, customerId))) {
+          return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
         }
 
         const canceled = await stripe.subscriptions.update(subscriptionId, {
@@ -104,6 +150,10 @@ export async function POST(request: NextRequest) {
             { error: "subscriptionId es requerido" },
             { status: 400 }
           )
+        }
+
+        if (!(await ownsSubscription(stripe, subscriptionId, auth, customerId))) {
+          return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
         }
 
         const reactivated = await stripe.subscriptions.update(subscriptionId, {
@@ -135,6 +185,10 @@ export async function POST(request: NextRequest) {
           )
         }
 
+        if (!(await ownsSubscription(stripe, subscriptionId, auth, customerId))) {
+          return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
+        }
+
         const currentSub = await stripe.subscriptions.retrieve(subscriptionId)
         const currentItemId = currentSub.items.data[0]?.id
 
@@ -148,7 +202,7 @@ export async function POST(request: NextRequest) {
         const updated = await stripe.subscriptions.update(subscriptionId, {
           items: [{ id: currentItemId, price: newPlan.priceId }],
           proration_behavior: "create_prorations",
-          metadata: { planId, source: "membership" },
+          metadata: { planId, userId: auth.userId, source: "membership" },
         })
 
         return NextResponse.json({

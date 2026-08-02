@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Shield, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react'
+import { X, Shield, CheckCircle, AlertTriangle } from 'lucide-react'
 
 interface StripeModalProps {
   isOpen: boolean
@@ -15,6 +15,7 @@ interface StripeModalProps {
 export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }: StripeModalProps) => {
   const [stripePaying, setStripePaying] = useState(false)
   const [stripeSuccess, setStripeSuccess] = useState(false)
+  const [stripeDemoMode, setStripeDemoMode] = useState(false)
   const [stripeError, setStripeError] = useState<string | null>(null)
 
   const handleSubmit = async () => {
@@ -33,7 +34,8 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
-      } else if (data.error === "Stripe no configurado") {
+      } else if (res.status === 503 && data.code === "STRIPE_NOT_CONFIGURED") {
+        setStripeDemoMode(true)
         setStripeSuccess(true)
       } else {
         setStripeError(data.error || "Error al crear sesión de pago")
@@ -48,6 +50,8 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
   const handleClose = () => {
     if (stripePaying) return
     setStripeError(null)
+    setStripeDemoMode(false)
+    setStripeSuccess(false)
     onClose()
   }
 
@@ -97,16 +101,18 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
                     <p className="text-xs text-red-300">{stripeError}</p>
                   </div>
                 )}
-                <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-amber-300 font-medium">Stripe no configurado</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      El procesador de pagos real estará disponible cuando se configuren las claves de Stripe en producción.
-                      Por ahora la campaña se creará sin cargo.
-                    </p>
+                {stripeDemoMode && (
+                  <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-amber-300 font-medium">Stripe no configurado</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        El procesador de pagos real estará disponible cuando se configuren las claves de Stripe en producción.
+                        Por ahora la campaña se creará sin cargo.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="text-xs text-slate-500 leading-relaxed">
                   Al confirmar aceptas los{' '}
                   <a href="/terms" className="text-[#00D9FF] hover:underline">términos del servicio</a>.
@@ -133,9 +139,17 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
           ) : (
             <div className="p-8 flex flex-col items-center text-center">
               <CheckCircle className="w-12 h-12 text-emerald-400 mb-4" />
-              <h3 className="text-lg font-bold text-white mb-1">¡Campaña Creada!</h3>
+              <h3 className="text-lg font-bold text-white mb-1">{stripeDemoMode ? "¡Campaña Creada (Demo)!" : "¡Campaña Creada!"}</h3>
               <p className="text-sm text-slate-400 mb-6">
-                Has ganado <span className="text-emerald-400 font-semibold">+500 PTS de Conocimiento</span>
+                {stripeDemoMode ? (
+                  <>
+                    <span className="text-amber-400 font-semibold">Modo demo:</span> Stripe no está configurado; la campaña se creó sin cargo real. Conecta Stripe para activar el pago real.
+                  </>
+                ) : (
+                  <>
+                    Has ganado <span className="text-emerald-400 font-semibold">+500 PTS de Conocimiento</span>
+                  </>
+                )}
               </p>
               <button
                 onClick={onSuccess}

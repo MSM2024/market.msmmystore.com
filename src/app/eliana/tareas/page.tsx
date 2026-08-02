@@ -93,7 +93,7 @@ export default function TareasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/eliana/chat" className="inline-flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-xs">

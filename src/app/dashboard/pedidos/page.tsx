@@ -11,14 +11,14 @@ import type { OrderWithItems } from "@/lib/marketplace/types"
 
 export default function DashboardPedidosPage() {
   usePageTitle("Pedidos — Dashboard")
-  const session = getSession()
+  const userId = getSession()?.id
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!session?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }
 
@@ -27,7 +27,7 @@ export default function DashboardPedidosPage() {
         const { data: storeData } = await supabase!
           .from("marketplace_stores")
           .select("id")
-          .eq("owner_id", session!.id)
+          .eq("owner_id", userId!)
           .single()
         if (!storeData) { setLoading(false); return }
         const data = await fetchStoreOrders(storeData.id)
@@ -36,7 +36,7 @@ export default function DashboardPedidosPage() {
       setLoading(false)
     }
     load()
-  }, [session?.id])
+  }, [userId])
 
   async function handleStatus(orderId: string, status: string) {
     const ok = await updateOrderStatus(orderId, status)

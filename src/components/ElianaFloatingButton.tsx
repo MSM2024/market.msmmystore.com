@@ -8,7 +8,6 @@ import ElianaDiamond from "./ElianaDiamond"
 import { processElianaRequest, getElianaContext } from "@/lib/eliana/engine"
 import { getContextualSuggestions } from "@/lib/eliana/recommendations"
 import { getSession } from "@/lib/auth"
-import type { ElianaContext } from "@/lib/eliana/types"
 
 type ConnectionStatus = "online" | "processing" | "offline"
 

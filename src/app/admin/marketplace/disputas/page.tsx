@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { AlertTriangle, CheckCircle, XCircle, ArrowUpRight, Search, Loader2, MessageSquare } from "lucide-react"
+import { AlertTriangle, CheckCircle, XCircle, ArrowUpRight, Loader2, MessageSquare } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 import { formatPrice, DISPUTE_STATUS_LABELS, DISPUTE_REASON_LABELS } from "@/lib/marketplace/constants"

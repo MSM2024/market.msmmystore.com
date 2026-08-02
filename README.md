@@ -1,3 +1,23 @@
+# ZAFIRO — Red Social del Conocimiento impulsada por IA (MSM MY STORE LLC)
+
+Aplicación Next.js (App Router) del ecosistema MSM: identidad, membresías, administración, datos y proyectos.
+Incluye ELIANA (asistente con Gemini), Knowledge Core (RAG), Biblioteca Viva, Marketplace, historias, el
+**Álbum de la Vida (C8)** y la **gestión de Canales de ELIANA (C10)**.
+
+## Documentación
+
+- `ROADMAP_ZAFIRO.md` — diagnóstico, inventario y estado por capítulo.
+- `ARCHITECTURE_ZAFIRO.md` — arquitectura, base de datos y seguridad.
+- `PENDIENTES_ZAFIRO.md` — decisiones abiertas y bloqueos externos.
+- `INFORME_FINAL_ZAFIRO.md` — resumen de cierre (provisional, pendiente C12).
+- `docs/status/` — informes de cierre por capítulo (C7, C8, C10, D).
+
+## Verificación
+
+`npx tsc --noEmit` (0 errores) · `eslint` (0 errores en código nuevo) · `vitest run` (75/75) · `npm run build`.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

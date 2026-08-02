@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { BookOpen, Layers, User, MapPin, Tags, FileText, Clock, ArrowLeft, Shield } from "lucide-react"
+import { BookOpen, Layers, Tags, FileText, Clock, ArrowLeft, Shield } from "lucide-react"
 import type {
   LibraryBook, LibraryChapter, LibraryVersion, LibraryPerson,
   LibraryPlace, LibraryTopic, LibraryChunk, LibraryRelationship, LibraryAccessLog,
@@ -55,13 +55,13 @@ export default function BookDetailPage() {
   }, [params.id])
 
   if (loading) return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <div className="text-white/50">Cargando obra...</div>
     </div>
   )
 
   if (!data?.book) return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <div className="text-center">
         <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p className="text-white/50">Obra no encontrada</p>
@@ -73,7 +73,7 @@ export default function BookDetailPage() {
   const { book, chapters, versions, relationships } = data
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/biblioteca" className="inline-flex items-center gap-2 text-white/50 hover:text-[#00D9FF] mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Volver a la biblioteca
@@ -89,6 +89,12 @@ export default function BookDetailPage() {
                 <Shield className="w-3 h-3 inline mr-1" />
                 {PRIVACY_LABELS[book.privacy_level] || book.privacy_level}
               </span>
+              {book.privacy_category && (
+                <span className="px-3 py-1 text-xs rounded-full bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/30">
+                  <Shield className="w-3 h-3 inline mr-1" />
+                  Categoría: {book.privacy_category}
+                </span>
+              )}
               <span className="px-3 py-1 text-xs rounded-full bg-white/10 text-white/50 border border-white/10">
                 {book.status}
               </span>

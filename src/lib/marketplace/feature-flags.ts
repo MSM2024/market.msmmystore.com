@@ -124,3 +124,21 @@ export function clearFlagsCache(): void {
   flagsCache = null
   lastFetch = 0
 }
+
+export async function saveFeatureFlag(key: string, value: unknown): Promise<boolean> {
+  if (flagsCache) flagsCache[key] = value
+  const supabase = getSupabase()
+  if (!supabase) return false
+  try {
+    const { error } = await supabase
+      .from("marketplace_config")
+      .upsert({ key, value: { value } }, { onConflict: "key" })
+    if (error) {
+      console.error("saveFeatureFlag:", error)
+      return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}

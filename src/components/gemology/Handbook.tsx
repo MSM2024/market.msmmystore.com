@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import {
-  BookOpen, Layers, Flame, Eye, Compass, Cpu, Award
+  Layers, Flame, Eye, Compass, Cpu, Award
 } from "lucide-react"
 
 interface SpectroPreset {

@@ -87,9 +87,7 @@ export default function ResetPasswordPage() {
           }
         }
 
-        await new Promise(r => setTimeout(r, 500))
         if (!mountedRef.current) return
-
         const { data: sessionCheck } = await supabase.auth.getSession()
         if (sessionCheck.session) {
           if (mountedRef.current) {
@@ -241,7 +239,7 @@ export default function ResetPasswordPage() {
   }, [password, confirmPassword, recoveryCode, useRecoveryCode, router, updatePasswordViaAPI])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center p-4">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <Link href="/auth/login" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver
@@ -249,7 +247,7 @@ export default function ResetPasswordPage() {
 
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <Gem className="w-8 h-8 text-[#00D9FF]" />
-          <span className="text-lg font-black">ZAFIRO</span>
+          <span className="text-lg font-black zafiro-gold-text">ZAFIRO</span>
         </Link>
 
         <div className="p-6 rounded-3xl border border-slate-800 bg-[#0B1220]/60">

@@ -14,7 +14,6 @@ export function getStripe(): Stripe {
   }
 
   stripeInstance = new Stripe(key, {
-    apiVersion: "2026-06-24.dahlia",
     typescript: true,
     appInfo: {
       name: "MSM Zafiro",

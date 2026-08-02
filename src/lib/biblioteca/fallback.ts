@@ -15,7 +15,7 @@ function toSlug(title: string): string {
     .replace(/(^-|-$)/g, "")
 }
 
-function enrich(entry: SeedBookEntry, index: number) {
+function enrich(entry: SeedBookEntry, _index: number) {
   const id = hashId(entry.normalized_title)
   const col = collectionFor(entry)
   const tags = [...entry.tags]
@@ -46,10 +46,6 @@ function collectionFor(entry: SeedBookEntry): string {
   if (t.some(x => ["ensenanzas", "oraciones", "reflexiones", "elevacion", "voz"].includes(x))) return "elevacion"
   if (t.some(x => ["guion", "pelicula", "creatividad"].includes(x))) return "guiones"
   return "general"
-}
-
-function determinePrivacy(entry: SeedBookEntry): string {
-  return entry.privacy_level || "interno_eliana"
 }
 
 const ENRICHED = SEED_CATALOG.map(enrich)

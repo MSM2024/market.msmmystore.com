@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { getSession } from "@/lib/auth"
 
 interface Story {
@@ -68,17 +69,17 @@ export default function HistoriaDetailPage() {
     load()
   }, [params.slug])
 
-  if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Cargando...</div>
+  if (loading) return <div className="min-h-screen zafiro-page text-white flex items-center justify-center">Cargando...</div>
 
   if (!story) return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen zafiro-page text-white flex flex-col items-center justify-center gap-4">
       <p className="text-xl text-white/50">Historia no encontrada</p>
       <Link href="/historias" className="text-purple-400 hover:underline">Ver todas las historias</Link>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
           <Link href="/historias" className="hover:text-white">Historias</Link>
@@ -110,9 +111,9 @@ export default function HistoriaDetailPage() {
             {story.story_media
               .sort((a, b) => a.sort_order - b.sort_order)
               .map((media) => (
-                <div key={media.id} className="rounded-xl overflow-hidden bg-white/5">
+                <div key={media.id} className="rounded-xl overflow-hidden bg-white/5 relative">
                   {media.media_type === "image" && (
-                    <img src={media.url} alt={media.caption || story.title} className="w-full h-48 object-cover" />
+                    <Image src={media.url} alt={media.caption || story.title} fill sizes="(max-width: 768px) 45vw, 300px" className="w-full h-48 object-cover" />
                   )}
                   {media.caption && <p className="text-xs text-white/50 p-2">{media.caption}</p>}
                 </div>

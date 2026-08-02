@@ -3,8 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
+      { protocol: "https", hostname: "msmmystore.com" },
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.gravatar.com" },
       { protocol: "https", hostname: "**" },
     ],
+  },
+  async redirects() {
+    return [
+      { source: "/escuela", destination: "/ecosystem/escuela", permanent: true },
+    ]
   },
   async headers() {
     return [

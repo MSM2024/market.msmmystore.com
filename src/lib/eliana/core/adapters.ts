@@ -4,9 +4,7 @@ import type {
   ElianaChannel,
   ChannelContext,
   ElianaConversation,
-  ElianaIntake,
-  IntakeType,
-  HandoffReason
+  ElianaIntake
 } from './types'
 import { CHANNEL_CONFIGS } from './types'
 import {
@@ -125,8 +123,7 @@ export class WhatsAppAdapter extends BaseAdapter {
 
   async processWhatsAppMessage(
     phone: string,
-    message: string,
-    mediaUrl?: string
+    message: string
   ): Promise<AdapterResponse> {
     const contactId = `wa_${phone}`
     const context: ChannelContext = {
@@ -145,10 +142,76 @@ export class WhatsAppAdapter extends BaseAdapter {
   }
 
   async sendTemplate(phone: string, templateName: string, params?: Record<string, string>): Promise<boolean> {
-    // Placeholder para WhatsApp Cloud API
+    // Placeholder para WhatsApp Cloud API (sin envíos reales)
     console.log(`[WhatsApp] Would send template "${templateName}" to ${phone}`, params)
     return true
   }
+}
+
+// --- Telegram Adapter (seguro: sin envíos reales) ---
+
+export class TelegramAdapter extends BaseAdapter {
+  constructor() {
+    super('telegram')
+  }
+
+  async processTelegramMessage(chatId: string, message: string): Promise<AdapterResponse> {
+    const context: ChannelContext = { channel: 'telegram' }
+    return this.processMessage(`tg_${chatId}`, message, context)
+  }
+
+  async sendMessage(chatId: string, text: string): Promise<{ sent: boolean; reason: string }> {
+    const config = this.getConfig()
+    if (!config.enabled) return { sent: false, reason: 'channel_disabled' }
+    if (!config.metadata?.requires_credentials) return { sent: false, reason: 'missing_credentials' }
+    // Simulación: no hay token de bot configurado
+    console.log(`[Telegram] Would send message to ${chatId}`, text)
+    return { sent: true, reason: 'simulated' }
+  }
+}
+
+// --- Email Adapter (seguro: sin envíos reales) ---
+
+export class EmailAdapter extends BaseAdapter {
+  constructor() {
+    super('email')
+  }
+
+  async sendEmail(to: string, subject: string, body: string): Promise<{ sent: boolean; reason: string }> {
+    const config = this.getConfig()
+    if (!config.enabled) return { sent: false, reason: 'channel_disabled' }
+    if (!config.metadata?.requires_credentials) return { sent: false, reason: 'missing_credentials' }
+    console.log(`[Email] Would send to ${to}`, subject, body)
+    return { sent: true, reason: 'simulated' }
+  }
+}
+
+// --- Despacho seguro de mensajes externos ---
+// Nunca hace envíos reales a terceros: sin credenciales no se envía nada,
+// y siempre se requiere confirmación explícita.
+
+export interface SafeDispatchInput {
+  channel: ElianaChannel
+  to: string
+  message: string
+  confirmed: boolean
+}
+
+export interface SafeDispatchResult {
+  sent: boolean
+  simulated: boolean
+  reason: 'channel_disabled' | 'not_confirmed' | 'missing_credentials' | 'simulated_sent'
+}
+
+export function dispatchSafeMessage(input: SafeDispatchInput): SafeDispatchResult {
+  const config = CHANNEL_CONFIGS[input.channel]
+  if (!input.confirmed) return { sent: false, simulated: false, reason: 'not_confirmed' }
+  if (!config.enabled) return { sent: false, simulated: false, reason: 'channel_disabled' }
+  if (config.metadata?.requires_credentials) {
+    return { sent: false, simulated: false, reason: 'missing_credentials' }
+  }
+  console.log(`[ELIANA] Simulated ${input.channel} message to ${input.to}`, input.message)
+  return { sent: true, simulated: true, reason: 'simulated_sent' }
 }
 
 // --- Marketplace Adapter ---
@@ -232,6 +295,8 @@ export function getAdapter(channel: ElianaChannel): BaseAdapter {
   switch (channel) {
     case 'web': return new WebAdapter()
     case 'whatsapp': return new WhatsAppAdapter()
+    case 'telegram': return new TelegramAdapter()
+    case 'email': return new EmailAdapter()
     case 'marketplace': return new MarketplaceAdapter()
     case 'zafiro': return new ZafiroAdapter()
     case 'eliana_domain': return new ElianaDomainAdapter()

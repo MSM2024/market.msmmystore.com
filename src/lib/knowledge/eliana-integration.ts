@@ -61,7 +61,7 @@ export async function getElianaKnowledge(
         sources: rag.sources,
         confidence: rag.confidence,
       }
-    } catch (error) {
+    } catch (_error) {
       // RAG failed, continue with basic search results
     }
   }
@@ -156,8 +156,6 @@ export async function processElianaKnowledgeRequest(
     include_rag: options.include_rag !== false,
   })
 
-  const prompt = buildElianaKnowledgePrompt(context, query, conversationHistory)
-
   let response = ""
 
   if (context.documents.length > 0) {
@@ -221,7 +219,7 @@ export async function detectKnowledgeGaps(
         priority: 5,
       })
       return true
-    } catch (error) {
+    } catch (_error) {
       // Silent fail for gap detection
     }
   }
@@ -230,7 +228,7 @@ export async function detectKnowledgeGaps(
 
 export async function getKnowledgeSuggestions(
   currentContext: string,
-  userRole?: string
+  _userRole?: string
 ): Promise<string[]> {
   const suggestions: string[] = []
 

@@ -1,5 +1,5 @@
 import { bibliotecaRepo } from "./repository"
-import type { LibraryBook, LibraryChunk, LibraryClaimType } from "./types"
+import type { LibraryBook } from "./types"
 
 export interface ImportResult {
   bookId: string

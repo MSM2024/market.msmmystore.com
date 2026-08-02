@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Shield, Users, FileText, BarChart3, Activity, Settings, AlertTriangle, MessageSquare, UserCheck, Eye, TrendingUp, Cpu, Zap, Bot, CheckCircle, XCircle, Clock, RefreshCw, DollarSign, Gem, Sparkles, Search, Store, Package, X, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, BookOpen, Database, Server, ShoppingCart } from "lucide-react"
+import { ArrowLeft, Shield, Users, FileText, BarChart3, Activity, Settings, AlertTriangle, MessageSquare, Eye, Cpu, Bot, CheckCircle, XCircle, RefreshCw, Gem, Search, Store, Package, X, Check, ChevronLeft, ChevronRight, BookOpen, Database, Server, ShoppingCart } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"
@@ -61,6 +61,7 @@ const SUB_ADMIN_PAGES = [
   { href: "/admin/eliana", label: "ELIANA", icon: Bot, desc: "Dashboard de IA", color: "text-[#00D9FF]" },
   { href: "/admin/biblioteca-importacion", label: "Biblioteca", icon: Database, desc: "Importación y libros", color: "text-purple-400" },
   { href: "/admin/system-status", label: "System Status", icon: Server, desc: "Monitoreo de componentes", color: "text-amber-400" },
+  { href: "/admin/auditoria", label: "Auditoría", icon: Shield, desc: "Bitácora de acciones sensibles", color: "text-slate-300" },
 ]
 
 export default function AdminPage() {
@@ -107,12 +108,12 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     if (!dbConnected) return
     const data = await fetchUsers(USERS_PER_PAGE, userPage * USERS_PER_PAGE)
     setUsers(data)
     setUserTotal(stats.totalUsers)
-  }
+  }, [dbConnected, userPage, stats.totalUsers])
 
   useEffect(() => {
     refreshSession().then(session => {
@@ -126,7 +127,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === "usuarios") { Promise.resolve().then(() => loadUsers()) }
-  }, [tab, userPage])
+  }, [tab, loadUsers])
 
   const automationStats = [
     { label: "Usuarios Registrados", value: stats.totalUsers.toLocaleString(), icon: Users, color: "text-[#00D9FF]" },
@@ -215,7 +216,7 @@ export default function AdminPage() {
   const totalPages = Math.max(1, Math.ceil(userTotal / USERS_PER_PAGE))
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="max-w-6xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">

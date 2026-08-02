@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
-import { ArrowLeft, Gem, Globe, Microscope, Network, BookOpen, Sparkles, Zap, Users, Target, Search, Shield, ExternalLink, Brain, Activity, Eye, Cpu, Database, MessageSquare, TrendingUp, Clock, Bot } from "lucide-react"
+import { ArrowLeft, Globe, Network, Sparkles, Zap, Shield, ExternalLink, Brain, Activity, Eye, Cpu, Database, MessageSquare, TrendingUp, Clock } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import ElianaDiamond from "@/components/ElianaDiamond"
@@ -161,7 +161,7 @@ export default function ElianaPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Nav */}
         <div className="flex items-center justify-between mb-6">
@@ -188,7 +188,7 @@ export default function ElianaPage() {
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl font-black text-white tracking-tight">
+                <h1 className="text-3xl font-black zafiro-gold-text tracking-tight">
                   ELIANA <span className="text-[#00D9FF]">v2.0</span>
                 </h1>
                 <p className="text-sm text-slate-400">Guía Inteligente Avanzada · MSM & ZAFIRO</p>
@@ -355,9 +355,9 @@ export default function ElianaPage() {
             {[
               { href: "/", label: "ZAFIRO", desc: "Plataforma principal", color: "#00D9FF" },
               { href: "https://marketplace.msmmystore.com", label: "Marketplace", desc: "Tiendas y productos", color: "#7c3aed", external: true },
-              { href: "/escuela", label: "Escuela", desc: "Cursos y mentores", color: "#10b981" },
+              { href: "/ecosystem/escuela", label: "Escuela", desc: "Cursos y mentores", color: "#10b981" },
               { href: "/album", label: "Álbum", desc: "Legado familiar", color: "#f59e0b" },
-              { href: "/biblioteca", label: "Biblioteca Viva", desc: "Obras de Don Miguel", color: "#22d3ee" },
+              { href: "/marketplace/pedidos", label: "Mis Pedidos", desc: "Sigue tus compras", color: "#22d3ee" },
               { href: "/referidos", label: "Referidos", desc: "Invita y gana", color: "#22c55e" },
               { href: "/admin/eliana", label: "Admin", desc: "Panel de control", color: "#ef4444" },
             ].map((link, i) => (

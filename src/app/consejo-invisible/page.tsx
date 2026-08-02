@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSession, getUserRole, refreshSession } from '@/lib/auth'
+import { getUserRole, refreshSession } from '@/lib/auth'
 import InvisibleCouncilDashboard from '@/components/consejo-invisible/InvisibleCouncilDashboard'
 
 export default function ConsejoInvisiblePage() {
@@ -26,7 +26,7 @@ export default function ConsejoInvisiblePage() {
 
   if (authorized === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050816]">
+      <div className="min-h-screen flex items-center justify-center zafiro-page">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-[#657786] text-sm">Verificando acceso...</p>

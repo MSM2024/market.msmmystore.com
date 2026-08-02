@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DollarSign, Save, Info, Calculator } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { loadMarginConfig, saveMarginConfig, type MarginConfig } from "@/lib/marketplace/client"
@@ -8,28 +8,46 @@ import { loadMarginConfig, saveMarginConfig, type MarginConfig } from "@/lib/mar
 export default function AdminMarketplaceMargenesPage() {
   usePageTitle("Admin Márgenes — Marketplace")
 
-  const [config, setConfig] = useState<MarginConfig>(loadMarginConfig)
+  const [config, setConfig] = useState<MarginConfig | null>(null)
   const [toast, setToast] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    loadMarginConfig().then(setConfig)
+  }, [])
 
   function updateConfig(key: keyof MarginConfig, value: string) {
+    if (!config) return
     const num = parseFloat(value)
     if (!isNaN(num)) {
-      setConfig(prev => ({ ...prev, [key]: num }))
+      setConfig(prev => prev ? { ...prev, [key]: num } : prev)
     }
   }
 
-  function handleSave() {
-    saveMarginConfig(config)
-    setToast("Configuración guardada")
-    setTimeout(() => setToast(""), 3000)
+  async function handleSave() {
+    if (!config) return
+    setSaving(true)
+    const savedToDb = await saveMarginConfig(config)
+    setToast(savedToDb ? "Configuración guardada en la base de datos" : "Guardado localmente (Supabase no configurado)")
+    setSaving(false)
+    setTimeout(() => setToast(""), 3500)
   }
 
   const examplePrice = 100
-  const commission = examplePrice * (config.globalCommission / 100)
-  const serviceFee = examplePrice * (config.msmServiceFee / 100)
-  const paymentFee = examplePrice * (config.paymentProcessingFee / 100) + config.paymentFixedFee
-  const reserve = examplePrice * (config.operationalReserve / 100)
+  const commission = examplePrice * ((config?.globalCommission ?? 0) / 100)
+  const serviceFee = examplePrice * ((config?.msmServiceFee ?? 0) / 100)
+  const paymentFee = examplePrice * ((config?.paymentProcessingFee ?? 0) / 100) + (config?.paymentFixedFee ?? 0)
+  const reserve = examplePrice * ((config?.operationalReserve ?? 0) / 100)
   const sellerRevenue = examplePrice - commission - serviceFee - paymentFee - reserve
+
+  if (!config) {
+    return (
+      <div className="p-6 text-sm text-slate-400">
+        <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin inline-block mr-3" />
+        Cargando configuración de márgenes...
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -117,8 +135,12 @@ export default function AdminMarketplaceMargenesPage() {
             </div>
           </div>
 
-          <button onClick={handleSave} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-[11px] font-bold hover:bg-[#D4AF37]/20 transition-colors">
-            <Save className="w-4 h-4" />
+          <button onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-[11px] font-bold hover:bg-[#D4AF37]/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+            {saving ? (
+              <span className="w-4 h-4 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
             Guardar Configuración
           </button>
         </div>

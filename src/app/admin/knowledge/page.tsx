@@ -50,9 +50,19 @@ interface KnowledgeApproval {
 }
 
 const DOC_TYPES = ["policy", "faq", "guide", "tutorial", "reference", "changelog", "identity", "operations", "legal", "marketing"]
-const STATUSES = ["draft", "review", "published", "archived", "rejected"]
 const VISIBILITIES = ["public", "internal", "confidential", "restricted"]
 const GAP_TYPES = ["missing_topic", "outdated_info", "low_coverage", "contradiction", "user_request"]
+
+const SETTING_DEFS: Record<string, { label: string; type: "text" | "number" | "select" | "boolean"; options?: string[]; default: unknown; description: string }> = {
+  embedding_model: { label: "Modelo de Embeddings", type: "text", default: "text-embedding-3-small", description: "Modelo usado para vectorizar los chunks" },
+  chunk_size: { label: "Tamaño de chunk (tokens)", type: "number", default: 800, description: "Tamaño máximo de cada fragmento" },
+  chunk_overlap: { label: "Solapamiento de chunks", type: "number", default: 120, description: "Tokens compartidos entre fragmentos contiguos" },
+  search_limit: { label: "Resultados por búsqueda", type: "number", default: 5, description: "Documentos devueltos en cada búsqueda" },
+  search_threshold: { label: "Umbral de similitud", type: "number", default: 0.5, description: "Score mínimo (0-1) para incluir resultados" },
+  retention_days: { label: "Retención de consultas (días)", type: "number", default: 365, description: "Antigüedad máxima de métricas conservadas" },
+  auto_approve_publish: { label: "Auto-aprobar publicaciones", type: "boolean", default: false, description: "Publica documentos sin aprobación manual" },
+  default_visibility: { label: "Visibilidad por defecto", type: "select", default: "internal", options: ["public", "internal", "confidential", "restricted"], description: "Visibilidad aplicada a documentos nuevos" },
+}
 
 export default function KnowledgeAdminPage() {
   const router = useRouter()
@@ -78,6 +88,12 @@ export default function KnowledgeAdminPage() {
   const [newDoc, setNewDoc] = useState({ title: "", content: "", doc_type: "reference", visibility: "internal", summary: "" })
   const [newGap, setNewGap] = useState({ gap_type: "missing_topic", title: "", description: "", priority: 0 })
 
+  const [settings, setSettings] = useState<Record<string, { value: unknown; description?: string; category: string }>>({})
+  const [settingsMode, setSettingsMode] = useState<"db" | "local">("local")
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [settingsMsg, setSettingsMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -102,7 +118,7 @@ export default function KnowledgeAdminPage() {
         const data = await approvalsRes.json()
         setApprovals(data.approvals || [])
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Error fetching data")
     } finally {
       setLoading(false)
@@ -111,6 +127,84 @@ export default function KnowledgeAdminPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData() }, [fetchData])
+
+  const loadSettings = useCallback(async () => {
+    setSettingsLoading(true)
+    try {
+      const res = await fetch("/api/knowledge/settings")
+      if (res.ok) {
+        const data = await res.json()
+        const arr = data.settings || []
+        if (arr.length > 0) {
+          const map: Record<string, { value: unknown; description?: string; category: string }> = {}
+          for (const s of arr) map[s.key] = { value: s.value, description: s.description, category: s.category }
+          setSettings(map)
+          setSettingsMode("db")
+          setSettingsLoading(false)
+          return
+        }
+      }
+    } catch (_err) {
+      // fall through to local fallback
+    }
+    try {
+      const raw = localStorage.getItem("zafiro_knowledge_settings")
+      if (raw) {
+        setSettings(JSON.parse(raw))
+        setSettingsMode("local")
+        setSettingsLoading(false)
+        return
+      }
+    } catch (_err) {
+      // fall through to defaults
+    }
+    const defaults: Record<string, { value: unknown; description?: string; category: string }> = {}
+    for (const [k, d] of Object.entries(SETTING_DEFS)) defaults[k] = { value: d.default, description: d.description, category: "knowledge" }
+    setSettings(defaults)
+    setSettingsMode("local")
+    setSettingsLoading(false)
+  }, [])
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (tab === "settings") loadSettings() }, [tab, loadSettings])
+
+  const updateSetting = (key: string, value: unknown) => {
+    setSettings(prev => {
+      const entry = prev[key] || { value: undefined, description: undefined, category: "knowledge" }
+      return { ...prev, [key]: { ...entry, value } }
+    })
+  }
+
+  const saveSettings = async () => {
+    setSettingsSaving(true)
+    setSettingsMsg(null)
+    let savedAny = false
+    for (const [key, entry] of Object.entries(settings)) {
+      try {
+        const res = await fetch("/api/knowledge/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, value: entry.value }),
+        })
+        if (res.ok) savedAny = true
+      } catch (_err) {
+        // ignore per-key failures
+      }
+    }
+    try {
+      localStorage.setItem("zafiro_knowledge_settings", JSON.stringify(settings))
+    } catch (_err) {
+      // ignore storage failures
+    }
+    if (savedAny) {
+      setSettingsMode("db")
+      setSettingsMsg({ ok: true, text: "Configuración guardada en Supabase." })
+    } else {
+      setSettingsMode("local")
+      setSettingsMsg({ ok: true, text: "Base de datos no conectada. Configuración guardada localmente en este navegador." })
+    }
+    setSettingsSaving(false)
+  }
 
   const createDocument = async () => {
     if (!newDoc.title || !newDoc.content) return
@@ -125,7 +219,7 @@ export default function KnowledgeAdminPage() {
         setNewDoc({ title: "", content: "", doc_type: "reference", visibility: "internal", summary: "" })
         fetchData()
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Error creating document")
     }
   }
@@ -143,7 +237,7 @@ export default function KnowledgeAdminPage() {
         setNewGap({ gap_type: "missing_topic", title: "", description: "", priority: 0 })
         fetchData()
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Error creating gap")
     }
   }
@@ -156,7 +250,7 @@ export default function KnowledgeAdminPage() {
         body: JSON.stringify({ id, status }),
       })
       if (res.ok) fetchData()
-    } catch (err) {
+    } catch (_err) {
       setError("Error updating document")
     }
   }
@@ -169,7 +263,7 @@ export default function KnowledgeAdminPage() {
         body: JSON.stringify({ id, status }),
       })
       if (res.ok) fetchData()
-    } catch (err) {
+    } catch (_err) {
       setError("Error updating approval")
     }
   }
@@ -179,7 +273,7 @@ export default function KnowledgeAdminPage() {
     try {
       const res = await fetch(`/api/knowledge/documents?id=${id}`, { method: "DELETE" })
       if (res.ok) fetchData()
-    } catch (err) {
+    } catch (_err) {
       setError("Error deleting document")
     }
   }
@@ -197,14 +291,14 @@ export default function KnowledgeAdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+      <div className="min-h-screen zafiro-page flex items-center justify-center">
         <div className="text-cyan-400 text-xl">Loading Knowledge Base...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white p-6">
+    <div className="min-h-screen zafiro-page text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -383,9 +477,69 @@ export default function KnowledgeAdminPage() {
 
         {tab === "settings" && (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Knowledge Settings</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Knowledge Settings</h2>
+              <button
+                onClick={saveSettings}
+                disabled={settingsSaving}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm disabled:opacity-50"
+              >
+                {settingsSaving ? "Guardando..." : "Guardar Configuración"}
+              </button>
+            </div>
+            {settingsMsg && (
+              <div className={`mb-4 px-4 py-2 rounded text-sm border ${settingsMsg.ok ? "bg-emerald-900/40 text-emerald-300 border-emerald-700" : "bg-red-900/40 text-red-300 border-red-700"}`}>
+                {settingsMsg.text}
+              </div>
+            )}
             <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-              <div className="text-gray-400">Settings management coming soon. Configure embedding models, chunk sizes, retention policies, and more.</div>
+              {settingsLoading ? (
+                <div className="text-gray-500 py-8 text-center">Cargando configuración...</div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={`px-2 py-0.5 rounded-full border font-mono ${settingsMode === "db" ? "text-emerald-300 border-emerald-600 bg-emerald-900/40" : "text-amber-300 border-amber-600 bg-amber-900/40"}`}>
+                      {settingsMode === "db" ? "Persistido en Supabase" : "Persistido localmente"}
+                    </span>
+                  </div>
+                  {Object.entries(SETTING_DEFS).map(([key, def]) => (
+                    <div key={key} className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start">
+                      <div>
+                        <div className="text-sm font-medium text-gray-200">{def.label}</div>
+                        <div className="text-xs text-gray-500">{def.description}</div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        {def.type === "boolean" ? (
+                          <label className="inline-flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(settings[key]?.value)}
+                              onChange={(e) => updateSetting(key, e.target.checked)}
+                              className="w-4 h-4 accent-emerald-500"
+                            />
+                            <span className="text-sm text-gray-300">{Boolean(settings[key]?.value) ? "Activado" : "Desactivado"}</span>
+                          </label>
+                        ) : def.type === "select" ? (
+                          <select
+                            value={String(settings[key]?.value ?? def.default)}
+                            onChange={(e) => updateSetting(key, e.target.value)}
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm"
+                          >
+                            {def.options!.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <input
+                            type={def.type === "number" ? "number" : "text"}
+                            value={String(settings[key]?.value ?? def.default)}
+                            onChange={(e) => updateSetting(key, def.type === "number" ? Number(e.target.value) : e.target.value)}
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

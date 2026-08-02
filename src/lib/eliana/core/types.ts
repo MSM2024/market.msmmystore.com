@@ -6,7 +6,7 @@
 // ================================================================
 
 // --- Canales ---
-export type ElianaChannel = 'web' | 'whatsapp' | 'marketplace' | 'zafiro' | 'eliana_domain'
+export type ElianaChannel = 'web' | 'whatsapp' | 'telegram' | 'email' | 'marketplace' | 'zafiro' | 'eliana_domain'
 
 // --- Intenciones ---
 export type ElianaIntent =
@@ -284,7 +284,28 @@ export const CHANNEL_CONFIGS: Record<ElianaChannel, ElianaChannelConfig> = {
     system_prompt_addition: 'El usuario te escribe por WhatsApp. Mantén respuestas cortas. Máximo una pregunta por turno.',
     max_context_length: 2000,
     allowed_intents: ['greeting', 'product_inquiry', 'price_check', 'order_status', 'complaint', 'human_support', 'general_info'] as ElianaIntent[],
-    requires_auth: false
+    requires_auth: false,
+    metadata: { external: true, requires_credentials: true }
+  },
+  telegram: {
+    channel: 'telegram',
+    enabled: false,
+    welcome_message: 'Bendiciones. Soy ELIANA, asistente virtual de MSM. ¿En qué puedo ayudarte?',
+    system_prompt_addition: 'El usuario te escribe por Telegram. Mantén respuestas cortas.',
+    max_context_length: 2000,
+    allowed_intents: ['greeting', 'product_inquiry', 'price_check', 'order_status', 'human_support', 'general_info'] as ElianaIntent[],
+    requires_auth: false,
+    metadata: { external: true, requires_credentials: true }
+  },
+  email: {
+    channel: 'email',
+    enabled: false,
+    welcome_message: 'Bendiciones. Soy ELIANA. Te responderé por correo electrónico.',
+    system_prompt_addition: 'El usuario se comunicó por correo. Responde de forma clara y estructurada.',
+    max_context_length: 4000,
+    allowed_intents: ['greeting', 'product_inquiry', 'order_status', 'support', 'general_info'] as ElianaIntent[],
+    requires_auth: true,
+    metadata: { external: true, requires_credentials: true }
   },
   marketplace: {
     channel: 'marketplace',

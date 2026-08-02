@@ -5,6 +5,7 @@ const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/recover", "/a
 const marketplacePublicRoutes = ["/marketplace", "/marketplace/productos", "/marketplace/tiendas"]
 const sellerRoutes = ["/marketplace/vender", "/marketplace/crear-tienda", "/dashboard"]
 const adminRoutes = ["/admin"]
+const ownerOnlyRoutes = ["/biblioteca", "/admin/biblioteca-importacion"]
 const authRequiredRoutes = ["/marketplace/pedidos", "/marketplace/proveedores", "/settings", "/messages", "/profile-page", "/rewards", "/referidos"]
 
 function isPublicRoute(pathname: string): boolean {
@@ -122,6 +123,11 @@ export default async function proxy(request: NextRequest) {
   const isAuthRequired = authRequiredRoutes.some(r => pathname.startsWith(r))
   const isSellerRoute = sellerRoutes.some(r => pathname.startsWith(r))
   const isAdminRoute = adminRoutes.some(r => pathname.startsWith(r))
+  const isOwnerOnlyRoute = pathname === "/biblioteca" || pathname.startsWith("/biblioteca/") || ownerOnlyRoutes.includes(pathname)
+
+  if (isOwnerOnlyRoute && !session) {
+    return NextResponse.redirect(new URL("/", request.url))
+  }
 
   if (!session && (isAuthRequired || isSellerRoute || isAdminRoute)) {
     const url = new URL("/auth/login", request.url)
@@ -129,7 +135,7 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (session && (isSellerRoute || isAdminRoute)) {
+  if (session && (isSellerRoute || isAdminRoute || isOwnerOnlyRoute)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -138,12 +144,16 @@ export default async function proxy(request: NextRequest) {
 
     const userRole = profile?.role || "customer"
 
-    if (isAdminRoute && userRole !== "admin" && userRole !== "superadmin") {
+    if (isAdminRoute && !["owner", "admin", "superadmin"].includes(userRole)) {
       return NextResponse.redirect(new URL("/", request.url))
     }
 
-    if (isSellerRoute && !["seller", "admin", "superadmin"].includes(userRole)) {
+    if (isSellerRoute && !["owner", "seller", "admin", "superadmin"].includes(userRole)) {
       return NextResponse.redirect(new URL("/", request.url))
+    }
+
+    if (isOwnerOnlyRoute && !["owner", "superadmin"].includes(userRole)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url))
     }
   }
 

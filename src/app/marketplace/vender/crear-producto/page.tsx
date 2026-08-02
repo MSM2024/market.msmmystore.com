@@ -17,7 +17,7 @@ import type { MarketplaceCategory } from "@/lib/marketplace/types"
 export default function CrearProductoPage() {
   usePageTitle("Crear Producto — MSM Marketplace")
   const router = useRouter()
-  const session = getSession()
+  const userId = getSession()?.id
 
   const [storeId, setStoreId] = useState<string | null>(null)
   const [categories, setCategories] = useState<MarketplaceCategory[]>([])
@@ -44,7 +44,7 @@ export default function CrearProductoPage() {
   })
 
   useEffect(() => {
-    if (!isSupabaseAvailable() || !session?.id) {
+    if (!isSupabaseAvailable() || !userId) {
       Promise.resolve().then(() => setLoadingStore(false))
       return
     }
@@ -58,7 +58,7 @@ export default function CrearProductoPage() {
       const { data: store } = await supabase!
         .from("marketplace_stores")
         .select("id")
-        .eq("owner_id", session!.id)
+        .eq("owner_id", userId!)
         .single()
 
       if (store) {
@@ -73,7 +73,7 @@ export default function CrearProductoPage() {
       setLoadingStore(false)
     }
     load()
-  }, [session?.id])
+  }, [userId, router])
 
   const slug = form.name ? generateSlug(form.name) : ""
 
@@ -174,7 +174,7 @@ export default function CrearProductoPage() {
   }
 
   if (loadingStore) return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <Loader2 className="w-6 h-6 text-[#197BD2] animate-spin" />
     </div>
   )
@@ -185,7 +185,7 @@ export default function CrearProductoPage() {
     }`
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

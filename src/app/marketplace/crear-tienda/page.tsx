@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, Store, Upload, Info, Globe, MessageCircle, Mail,
-  LinkIcon, RotateCcw, Truck, Check, Loader2, AlertCircle,
+  LinkIcon, RotateCcw, Truck, Loader2, AlertCircle,
 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { createStore } from "@/lib/marketplace/client"
@@ -97,7 +97,7 @@ export default function CreateStorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

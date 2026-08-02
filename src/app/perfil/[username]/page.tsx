@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useParams } from "next/navigation"
 import {
   ArrowLeft, ExternalLink, Gem, MessageSquare, User as UserIcon, Award, Flame,
   Calendar, MapPin, Users, Star, Shield, Mail, Globe, CheckCircle, Share2,
-  Link2, Video, BookOpen, Code2, ShoppingCart, Music, FileText, Heart, Send,
-  Plus, Settings, TrendingUp, Eye, Activity, Clock, Target, Zap, Bot, Cpu,
-  Sparkles, Layers, Trophy, Gift, CreditCard, DollarSign, Bell, MessageCircle,
-  MoreHorizontal, ChevronRight, X, Edit3, Camera, Briefcase, Music2, Podcast, Store,
+  Link2, Video, Code2, Heart, Send,
+  Plus, TrendingUp, Eye, Activity, Clock, Target, Zap, Bot, Cpu,
+  Sparkles, Layers, Trophy, Gift, DollarSign, MessageCircle,
+  ChevronRight, X, Edit3, Camera, Briefcase, Music2, Podcast, Store,
 } from "lucide-react"
 import ElianaDiamond from "@/components/ElianaDiamond"
-import { usePageTitle } from "@/lib/usePageTitle"
 
 function renderSafeMessage(msg: string) {
   if (msg.startsWith("ELIANA:")) {
@@ -23,9 +23,9 @@ function renderSafeMessage(msg: string) {
   }
   return msg
 }
-import { getCreatorProfile, PLATFORM_META, CONTENT_LABELS, getPlatforms, type ConnectedPlatform } from "@/lib/universo"
-import { DEFAULT_ECOSYSTEM, type EcosystemProject } from "@/lib/ecosistema"
-import { getDefaultPublicaciones, getPublicaciones, type Publicacion } from "@/lib/comentarios"
+import { getCreatorProfile, PLATFORM_META } from "@/lib/universo"
+import { DEFAULT_ECOSYSTEM } from "@/lib/ecosistema"
+import { getDefaultPublicaciones, type Publicacion } from "@/lib/comentarios"
 
 const PLATFORM_ICONS: Record<string, typeof Globe> = {
   youtube: Video, instagram: Camera, twitter: MessageCircle, linkedin: Briefcase,
@@ -49,7 +49,7 @@ export default function PublicCreatorProfile() {
     const stored = JSON.parse(localStorage.getItem("zafiro_following") || "[]")
     return stored.includes(username)
   })
-  const [publicaciones, setPublicaciones] = useState<Publicacion[]>(() => getDefaultPublicaciones(username))
+  const [publicaciones] = useState<Publicacion[]>(() => getDefaultPublicaciones(username))
   const [showEliana, setShowEliana] = useState(false)
   const [elianaChat, setElianaChat] = useState<string[]>([])
   const [elianaInput, setElianaInput] = useState("")
@@ -84,7 +84,7 @@ export default function PublicCreatorProfile() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <UserIcon className="w-12 h-12 text-slate-700 mx-auto mb-4" />
           <p className="text-sm text-slate-400">Perfil no encontrado</p>
@@ -114,7 +114,7 @@ export default function PublicCreatorProfile() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* ELIANA Floating Assistant */}
       <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
         {showEliana && (
@@ -166,9 +166,9 @@ export default function PublicCreatorProfile() {
             <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-4">
               <div className="relative shrink-0">
                 <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-gradient-to-br from-[#00D9FF] via-blue-500 to-purple-600 p-0.5 shadow-[0_0_30px_rgba(0,217,255,0.2)]">
-                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden backdrop-blur-sm">
+                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden backdrop-blur-sm relative">
                     {profile.image ? (
-                      <img src={profile.image} alt={profile.name} className="w-full h-full object-cover" />
+                      <Image src={profile.image} alt={profile.name} fill sizes="144px" className="object-cover" />
                     ) : (
                       <span className="text-3xl sm:text-4xl font-black text-white/80">
                         {profile.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
@@ -211,10 +211,12 @@ export default function PublicCreatorProfile() {
                     className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-300 text-[9px] font-bold hover:bg-slate-700/50 transition-all cursor-pointer flex items-center gap-1 border border-slate-700/50">
                     <Share2 className="w-3 h-3" /> Compartir
                   </button>
-                  <Link href="/settings"
-                    className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-300 text-[9px] font-bold hover:bg-slate-700/50 transition-all cursor-pointer flex items-center gap-1 border border-slate-700/50">
-                    <Edit3 className="w-3 h-3" /> Editar Perfil
-                  </Link>
+                  {profile.isOwn && (
+                    <Link href="/settings"
+                      className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-300 text-[9px] font-bold hover:bg-slate-700/50 transition-all cursor-pointer flex items-center gap-1 border border-slate-700/50">
+                      <Edit3 className="w-3 h-3" /> Editar Perfil
+                    </Link>
+                  )}
                   <button onClick={() => setShowEliana(true)}
                     className="px-3 py-1.5 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-[9px] font-bold hover:bg-[#00D9FF]/20 transition-all cursor-pointer flex items-center gap-1 border border-[#00D9FF]/20">
                     <ElianaDiamond size={12} /> Preguntar a ELIANA
@@ -292,8 +294,8 @@ export default function PublicCreatorProfile() {
                       return (
                         <div key={p.id} className="group relative rounded-2xl border border-slate-800 bg-[#0B1220]/40 hover:border-slate-700 transition-all overflow-hidden backdrop-blur-sm">
                           {p.image && (
-                            <div className="h-20 sm:h-24 bg-slate-800/30 overflow-hidden">
-                              <img src={p.image} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none" }} />
+                            <div className="relative h-20 sm:h-24 bg-slate-800/30 overflow-hidden">
+                              <Image src={p.image} alt="" fill sizes="(max-width: 768px) 480px, 768px" className="object-cover" onError={e => { (e.target as HTMLElement).style.display = "none" }} />
                             </div>
                           )}
                           <div className="p-3.5">
@@ -349,8 +351,8 @@ export default function PublicCreatorProfile() {
                     return (
                       <div key={pub.id} className="flex gap-3 px-3 py-2.5 rounded-xl border border-slate-800 bg-[#0B1220]/40 hover:border-slate-700 transition-all">
                         {pub.image && (
-                          <div className="w-14 h-14 rounded-xl bg-slate-700/50 shrink-0 overflow-hidden hidden sm:block">
-                            <img src={pub.image} alt="" className="w-full h-full object-cover" />
+                          <div className="relative w-14 h-14 rounded-xl bg-slate-700/50 shrink-0 overflow-hidden hidden sm:block">
+                            <Image src={pub.image} alt="" fill sizes="56px" className="object-cover" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">

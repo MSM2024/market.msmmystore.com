@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, ShoppingCart, Package } from "lucide-react"
+import { Search, ShoppingCart } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { useCart } from "@/contexts/CartContext"
 
@@ -20,7 +20,7 @@ export default function MarketplaceLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">

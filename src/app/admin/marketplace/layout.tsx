@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Store, Package, Truck, ShoppingCart, DollarSign, AlertTriangle, Settings, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, Store, Package, Truck, ShoppingCart, DollarSign, AlertTriangle, ArrowLeft } from "lucide-react"
 
 const ADMIN_LINKS = [
   { href: "/admin/marketplace", label: "Dashboard", icon: LayoutDashboard },
@@ -18,7 +18,7 @@ export default function AdminMarketplaceLayout({ children }: { children: React.R
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="flex">
         <aside className="hidden md:block w-56 shrink-0 border-r border-white/5 bg-slate-900/20 min-h-screen p-4">
           <Link href="/admin" className="flex items-center gap-2 mb-1 text-slate-400 hover:text-white transition-colors">

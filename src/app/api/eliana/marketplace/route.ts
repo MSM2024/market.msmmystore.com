@@ -7,6 +7,7 @@ import type {
 } from "@/lib/marketplace/types"
 import { ORDER_STATUS_LABELS, formatPrice } from "@/lib/marketplace/constants"
 import { MarketplaceBridgeSchema, SearchOrdersSchema } from "@/lib/eliana/core/validation"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 // ================================================================
 // ELIANA ↔ MARKETPLACE BRIDGE API
@@ -26,6 +27,9 @@ function unauthorized() {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-marketplace" })
+  if (limited) return limited
+
   const apiKey = process.env.ELIANA_API_KEY
   const authHeader = request.headers.get("authorization")
 

@@ -6,8 +6,7 @@ import type {
   ElianaMessage,
   ElianaIntent,
   RiskLevel,
-  ChannelContext,
-  ConversationStatus
+  ChannelContext
 } from './types'
 import { INTENT_RISK_MAP, CHANNEL_CONFIGS } from './types'
 import { buildKnowledgeContext } from './knowledge'
@@ -171,7 +170,7 @@ export function processMessage(
   message: string,
   conversationId: string,
   channel: ElianaChannel,
-  context?: ChannelContext
+  _context?: ChannelContext
 ): ProcessResult {
   const intent = classifyIntent(message)
   const risk = getIntentRisk(intent)

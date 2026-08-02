@@ -2,13 +2,14 @@
 
 import { getSupabaseClient } from "./supabase"
 
-export type UserRole = "customer" | "seller" | "vip" | "referrer" | "supplier" | "support" | "finance" | "admin" | "superadmin" | "owner"
+export type UserRole = "customer" | "seller" | "vip" | "referrer" | "supplier" | "support" | "finance" | "admin" | "superadmin" | "owner" | "kyc" | "inventory" | "auditor" | "vendor"
 
 export interface ZafiroSession {
   email: string
   name: string
   id: string
   role?: UserRole
+  roles?: UserRole[]
 }
 
 const SESSION_KEY = "zafiro_session"
@@ -71,8 +72,74 @@ function translateError(msg: string): string {
   return msg
 }
 
+// --- Server-authoritative session (roles from server, not localStorage) ---
+export interface ServerMe {
+  user?: { id: string; email: string; name: string; emailConfirmed: boolean }
+  profile?: { role?: string; plan?: string | null; name?: string | null; username?: string | null; avatar?: string | null }
+  roles: UserRole[]
+  ok: boolean
+}
+
+export async function fetchServerMe(): Promise<ServerMe> {
+  try {
+    const res = await fetch("/api/auth/me", { cache: "no-store" })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.user) return { roles: [], ok: false }
+
+    const roles: UserRole[] = Array.isArray(data.roles) ? [...data.roles] : []
+    if (data.profile?.role && !roles.includes(data.profile.role)) {
+      roles.unshift(data.profile.role)
+    }
+
+    return {
+      user: {
+        id: data.user.id,
+        email: data.user.email || "",
+        name: data.user.name || data.user.email?.split("@")[0] || "",
+        emailConfirmed: !!data.user.email_confirmed_at,
+      },
+      profile: data.profile,
+      roles,
+      ok: true,
+    }
+  } catch {
+    return { roles: [], ok: false }
+  }
+}
+
+// --- Server-authoritative session persistence ---
+async function persistSessionFromUser(user: { id: string; email?: string; user_metadata?: { name?: string } }): Promise<ZafiroSession> {
+  const me = await fetchServerMe()
+  if (me.ok && me.user) {
+    const roles = (me.roles.length ? me.roles : ["customer"]) as UserRole[]
+    const session: ZafiroSession = {
+      email: me.user.email,
+      name: me.user.name,
+      id: me.user.id,
+      role: roles[0],
+      roles,
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(ROLES_KEY, JSON.stringify(roles))
+    return session
+  }
+
+  const supabase = getSupabaseClient()
+  const email = user.email || ""
+  const name = user.user_metadata?.name || email.split("@")[0] || ""
+  let role: UserRole = "customer"
+  if (supabase) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (profile?.role) role = profile.role as UserRole
+  }
+  const session: ZafiroSession = { email, name, id: user.id, role, roles: [role] }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  localStorage.setItem(ROLES_KEY, JSON.stringify([role]))
+  return session
+}
+
 // --- Login (Supabase-only) ---
-export async function loginUser(email: string, password: string): Promise<{ ok: boolean; error?: string; session?: ZafiroSession; needsEmailConfirm?: boolean }> {
+export async function loginUser(email: string, password: string): Promise<{ ok: boolean; error?: string; session?: ZafiroSession; needsEmailConfirm?: boolean; mfaFactorId?: string }> {
   const supabase = getSupabaseClient()
   if (!supabase) return { ok: false, error: "El servidor de autenticación no está configurado." }
 
@@ -83,18 +150,40 @@ export async function loginUser(email: string, password: string): Promise<{ ok: 
   }
   if (!data.user) return { ok: false, error: "No se pudo autenticar" }
 
-  const name = data.user.user_metadata?.name || email.split("@")[0]
+  const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
+  if (!factorsError) {
+    const totpFactor = (factors?.all || []).find(
+      (f: { type: string; status: string }) => f.type === "totp" && f.status === "verified"
+    )
+    if (totpFactor) {
+      return { ok: true, mfaFactorId: totpFactor.id }
+    }
+  }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", data.user.id)
-    .single()
+  const session = await persistSessionFromUser(data.user)
+  return { ok: true, session }
+}
 
-  const role = (profile?.role || "customer") as UserRole
-  const session: ZafiroSession = { email, name, id: data.user.id, role }
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-  localStorage.setItem(ROLES_KEY, JSON.stringify([role]))
+// --- MFA second factor (after password login) ---
+export async function verifyLoginMfa(factorId: string, code: string): Promise<{ ok: boolean; error?: string; session?: ZafiroSession }> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return { ok: false, error: "El servidor de autenticación no está configurado." }
+
+  const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+  if (challengeError || !challenge) {
+    return { ok: false, error: translateError(challengeError?.message || "No se pudo generar el desafío de seguridad") }
+  }
+
+  const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
+    factorId,
+    challengeId: challenge.id,
+    code,
+  })
+  if (verifyError || !verifyData?.user) {
+    return { ok: false, error: translateError(verifyError?.message || "El código no es válido o ha expirado") }
+  }
+
+  const session = await persistSessionFromUser(verifyData.user)
   return { ok: true, session }
 }
 
@@ -121,21 +210,7 @@ export async function refreshSession(): Promise<ZafiroSession | null> {
 
   const user = data.session.user
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
-
-  const role = (profile?.role || "customer") as UserRole
-  const session: ZafiroSession = {
-    email: user.email || "",
-    name: user.user_metadata?.name || user.email?.split("@")[0] || "",
-    id: user.id,
-    role,
-  }
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-  localStorage.setItem(ROLES_KEY, JSON.stringify([role]))
+  const session = await persistSessionFromUser(user)
   return session
 }
 
@@ -176,8 +251,12 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   owner: 110,
   superadmin: 100,
   admin: 90,
+  auditor: 72,
   finance: 70,
+  kyc: 65,
+  inventory: 65,
   support: 60,
+  vendor: 55,
   supplier: 50,
   seller: 40,
   vip: 30,

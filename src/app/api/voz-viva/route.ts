@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "voz-viva" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ notes: [] }, { status: 503 })
 
@@ -24,6 +28,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "voz-viva" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
 

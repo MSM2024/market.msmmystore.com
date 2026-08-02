@@ -1,24 +1,35 @@
-const processedEvents = new Map<string, number>()
-const EVENT_TTL = 24 * 60 * 60 * 1000
+import { getSupabaseAdminClient } from "@/lib/supabase-admin"
 
-export function isEventProcessed(eventId: string): boolean {
-  cleanup()
-  return processedEvents.has(eventId)
+export async function isEventProcessed(eventId: string): Promise<boolean> {
+  const db = await getSupabaseAdminClient()
+  if (!db) return false
+
+  const { data } = await db
+    .from("stripe_events")
+    .select("id")
+    .eq("id", eventId)
+    .maybeSingle()
+
+  return !!data
 }
 
-export function markEventProcessed(eventId: string): void {
-  processedEvents.set(eventId, Date.now())
+export async function markEventProcessed(eventId: string, eventType?: string): Promise<void> {
+  const db = await getSupabaseAdminClient()
+  if (!db) return
+
+  await db.from("stripe_events").upsert({
+    id: eventId,
+    type: eventType ?? "unknown",
+  }, { onConflict: "id", ignoreDuplicates: true })
 }
 
-export function getProcessedEventCount(): number {
-  return processedEvents.size
-}
+export async function getProcessedEventCount(): Promise<number> {
+  const db = await getSupabaseAdminClient()
+  if (!db) return 0
 
-function cleanup(): void {
-  const now = Date.now()
-  for (const [id, timestamp] of processedEvents) {
-    if (now - timestamp > EVENT_TTL) {
-      processedEvents.delete(id)
-    }
-  }
+  const { count } = await db
+    .from("stripe_events")
+    .select("id", { count: "exact", head: true })
+
+  return count ?? 0
 }

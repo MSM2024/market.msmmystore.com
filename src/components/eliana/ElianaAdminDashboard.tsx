@@ -11,7 +11,7 @@ import {
   getKnowledgeStats,
   migrateFromStaticKnowledge
 } from '@/lib/eliana/core/knowledge'
-import { getConversationStats, getActiveConversations } from '@/lib/eliana/core/conversation'
+import { getConversationStats } from '@/lib/eliana/core/conversation'
 import type { ElianaKnowledge } from '@/lib/eliana/core/types'
 import { KNOWLEDGE_CATEGORIES } from '@/lib/eliana/core/types'
 
@@ -68,7 +68,7 @@ export default function ElianaAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] p-4 md:p-8">
+    <div className="min-h-screen zafiro-page p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

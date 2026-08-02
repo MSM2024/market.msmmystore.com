@@ -1,5 +1,4 @@
 import { knowledgeIngestion } from "./ingestion"
-import { knowledgeRepo } from "./repository"
 import type { KnowledgeTag } from "./types"
 
 export interface SeedDocument {
@@ -285,7 +284,7 @@ MSM utiliza Stripe como procesador de pagos principal, garantizando transaccione
 ## Soporte de Pagos
 - Email: pagos@msmmystore.com
 - Chat en vivo: 24/7
-- WhatsApp: +1 (XXX) XXX-XXXX`,
+- WhatsApp: consulta el chat en vivo del sitio`,
     summary: "Información completa sobre el sistema de pagos MSM con Stripe.",
     visibility: "public",
     priority: 8,
@@ -549,7 +548,7 @@ MSM toma la seguridad de sus usuarios muy seriously. Implementamos múltiples ca
 ## Reporte de Incidentes
 - Email: seguridad@msmmystore.com
 - Formulario web: msmmystore.com/security
-- Línea directa: +1 (XXX) XXX-XXXX
+- Reporta incidentes desde el formulario web
 - Respuesta en menos de 24 horas
 
 ## Mejores Prácticas para Usuarios

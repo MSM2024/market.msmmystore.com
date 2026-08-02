@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Layers, Plus, Trash2, Save, ExternalLink, Edit3, X, Globe } from "lucide-react"
+import { ArrowLeft, Layers, Plus, Trash2, Save, ExternalLink, Edit3 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getProfile, updateProfile, type UserProject, type UserProfile } from "@/lib/profile"
 
@@ -36,7 +36,7 @@ export default function ProjectsPage() {
   usePageTitle("Mis Proyectos")
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [projects, setProjects] = useState<UserProject[]>([])
-  const [saved, setSaved] = useState(false)
+  const [, setSaved] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: "", description: "", url: "", status: "activo" as UserProject["status"], icon: "💎", color: "text-[#00D9FF]", tags: "" })
@@ -107,14 +107,14 @@ export default function ProjectsPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <p className="text-sm text-slate-400">Cargando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <Link href="/profile-page" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">

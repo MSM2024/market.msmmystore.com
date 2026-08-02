@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Package, Store, Star, ChevronRight, Grid3X3, List, Truck, Shield, Zap } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { formatPrice } from "@/lib/marketplace/constants"
@@ -58,7 +59,7 @@ export default function MarketplacePage() {
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES)
   const [stores, setStores] = useState(FALLBACK_STORES)
   const [products, setProducts] = useState<HomeProduct[]>(FALLBACK_PRODUCTS)
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -113,15 +114,15 @@ export default function MarketplacePage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="relative overflow-hidden bg-gradient-to-br from-[#0C3F6A] via-[#197BD2] to-[#0C3F6A] rounded-2xl p-6 md:p-8">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-4 right-4 w-32 h-32 border border-white/20 rounded-full" />
           <div className="absolute bottom-4 left-4 w-24 h-24 border border-white/20 rounded-full" />
         </div>
         <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black mb-2">
-            MSM <span className="text-[#D4AF37]">Marketplace</span>
+          <h1 className="text-2xl md:text-3xl font-black zafiro-gold-text mb-2">
+            MSM <span className="text-[#F1D98C]">Marketplace</span>
           </h1>
           <p className="text-sm text-white/70 mb-4 max-w-md">
             Compra y vende con confianza. Envíos a Cuba, Estados Unidos y Latinoamérica.
@@ -188,9 +189,9 @@ export default function MarketplacePage() {
               className="flex-shrink-0 w-48 p-4 rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all"
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#197BD2] to-[#0C3F6A] flex items-center justify-center text-lg overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#197BD2] to-[#0C3F6A] flex items-center justify-center text-lg overflow-hidden relative">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+                    <Image src={store.logo_url} alt={store.name} fill sizes="80px" className="w-full h-full object-cover" />
                   ) : (
                     COUNTRY_FLAGS[store.country] || "🌍"
                   )}
@@ -230,9 +231,9 @@ export default function MarketplacePage() {
                 href={`/marketplace/productos/${product.slug}`}
                 className={`group rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all overflow-hidden ${viewMode === "list" ? "flex" : ""}`}
               >
-                <div className={`bg-slate-800/30 flex items-center justify-center ${viewMode === "list" ? "w-28 h-28 shrink-0" : "h-36"}`}>
+                <div className={`bg-slate-800/30 flex items-center justify-center relative ${viewMode === "list" ? "w-28 h-28 shrink-0" : "h-36"}`}>
                   {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 50vw, 350px" className="w-full h-full object-cover" />
                   ) : (
                     <Package className="w-10 h-10 text-slate-600" />
                   )}

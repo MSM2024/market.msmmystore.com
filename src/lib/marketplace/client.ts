@@ -3,8 +3,7 @@
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 import type {
   MarketplaceProduct, MarketplaceStore, MarketplaceCategory,
-  MarketplaceProvider, MarketplaceCart, CartItem,
-  MarketplaceOrder, OrderItem, MarketplaceReview,
+  MarketplaceProvider, MarketplaceOrder, OrderItem, MarketplaceReview,
   ProductWithStore, StoreWithStats, OrderWithItems,
 } from "./types"
 
@@ -483,7 +482,9 @@ export async function adminSuspendStore(id: string): Promise<boolean> {
   return true
 }
 
-// --- Margin Config (localStorage) ---
+// --- Margin Config (Supabase feature flags + localStorage fallback) ---
+import { fetchFeatureFlags, saveFeatureFlag } from "@/lib/marketplace/feature-flags"
+
 const MARGIN_CONFIG_KEY = "zafiro_marketplace_margins"
 
 export interface MarginConfig {
@@ -506,18 +507,53 @@ const DEFAULT_MARGIN_CONFIG: MarginConfig = {
   operationalReserve: 2,
 }
 
-export function loadMarginConfig(): MarginConfig {
-  if (typeof window === "undefined") return DEFAULT_MARGIN_CONFIG
-  try {
-    const raw = localStorage.getItem(MARGIN_CONFIG_KEY)
-    if (!raw) return DEFAULT_MARGIN_CONFIG
-    return { ...DEFAULT_MARGIN_CONFIG, ...JSON.parse(raw) }
-  } catch { return DEFAULT_MARGIN_CONFIG }
+const MARGIN_FLAG_KEYS: Record<keyof MarginConfig, string> = {
+  globalCommission: "DEFAULT_COMMISSION_RATE",
+  msmServiceFee: "SERVICE_FEE_RATE",
+  minSellerMargin: "MIN_SELLER_COMMISSION",
+  maxSellerMargin: "MAX_SELLER_COMMISSION",
+  paymentProcessingFee: "PAYMENT_PROCESSING_FEE",
+  paymentFixedFee: "PAYMENT_FIXED_FEE",
+  operationalReserve: "OPERATIONAL_RESERVE",
 }
 
-export function saveMarginConfig(config: MarginConfig) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(MARGIN_CONFIG_KEY, JSON.stringify(config))
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number") return value
+  if (typeof value === "string") {
+    const n = parseFloat(value)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
+
+export async function loadMarginConfig(): Promise<MarginConfig> {
+  let local = DEFAULT_MARGIN_CONFIG
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem(MARGIN_CONFIG_KEY)
+      if (raw) local = { ...DEFAULT_MARGIN_CONFIG, ...JSON.parse(raw) }
+    } catch { /* localStorage no disponible */ }
+  }
+
+  const flags = await fetchFeatureFlags()
+  const merged: MarginConfig = { ...local }
+  for (const key of Object.keys(MARGIN_FLAG_KEYS) as (keyof MarginConfig)[]) {
+    const n = toNumber(flags[MARGIN_FLAG_KEYS[key]])
+    if (n !== null) merged[key] = n
+  }
+  return merged
+}
+
+export async function saveMarginConfig(config: MarginConfig): Promise<boolean> {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(MARGIN_CONFIG_KEY, JSON.stringify(config))
+  }
+  let savedToDb = true
+  for (const key of Object.keys(MARGIN_FLAG_KEYS) as (keyof MarginConfig)[]) {
+    const ok = await saveFeatureFlag(MARGIN_FLAG_KEYS[key], config[key])
+    if (!ok) savedToDb = false
+  }
+  return savedToDb
 }
 
 // --- Admin provider status ---

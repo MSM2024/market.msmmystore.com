@@ -1,19 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo } from "@/lib/knowledge"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
+
+const feedbackSchema = z.object({
+  answer_id: z.string().min(1).max(200),
+  feedback_type: z.enum(["helpful", "not_helpful", "outdated", "incorrect", "incomplete"]),
+  comment: z.string().max(3000).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-feedback" })
+    if (limited) return limited
+
     const body = await request.json()
-    const { answer_id, feedback_type, comment, metadata } = body
-
-    if (!answer_id || !feedback_type) {
-      return NextResponse.json({ error: "Answer ID and feedback type are required" }, { status: 400 })
+    const parsed = feedbackSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de feedback inválidos" }, { status: 400 })
     }
-
-    const validTypes = ["helpful", "not_helpful", "outdated", "incorrect", "incomplete"]
-    if (!validTypes.includes(feedback_type)) {
-      return NextResponse.json({ error: "Invalid feedback type" }, { status: 400 })
-    }
+    const { answer_id, feedback_type, comment, metadata } = parsed.data
 
     const feedback = await knowledgeRepo.addFeedback({
       answer_id,
@@ -27,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ feedback }, { status: 201 })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -55,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const stats = await knowledgeRepo.getFeedbackStats()
     return NextResponse.json({ stats })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

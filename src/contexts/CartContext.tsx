@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 import {
-  getLocalCart, addToLocalCart, removeFromLocalCart,
-  updateLocalCartQuantity, clearLocalCart, getCartTotal,
+  getLocalCart, clearLocalCart, getCartTotal,
   type LocalCartItem,
 } from "@/lib/marketplace/client"
 

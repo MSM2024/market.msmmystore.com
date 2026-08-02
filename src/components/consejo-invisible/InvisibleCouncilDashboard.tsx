@@ -55,7 +55,7 @@ export default function InvisibleCouncilDashboard() {
   // --- GUIDES VIEW ---
   if (activeView === 'guides') {
     return (
-      <div className="min-h-screen bg-[#050816] p-4 md:p-8">
+      <div className="min-h-screen zafiro-page p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
           <button onClick={() => setActiveView('dashboard')} className="text-[#D4AF37] hover:text-[#D4AF37]/80 text-sm mb-6 flex items-center gap-2">
             ← Volver al Dashboard
@@ -96,7 +96,7 @@ export default function InvisibleCouncilDashboard() {
   // --- GUIDE DETAIL VIEW ---
   if (activeView === 'guide-detail' && selectedGuide) {
     return (
-      <div className="min-h-screen bg-[#050816] p-4 md:p-8">
+      <div className="min-h-screen zafiro-page p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <button onClick={() => setActiveView('guides')} className="text-[#D4AF37] hover:text-[#D4AF37]/80 text-sm mb-6 flex items-center gap-2">
             ← Volver a los 22 Guías
@@ -165,7 +165,7 @@ export default function InvisibleCouncilDashboard() {
   // --- SESSIONS VIEW ---
   if (activeView === 'sessions') {
     return (
-      <div className="min-h-screen bg-[#050816] p-4 md:p-8">
+      <div className="min-h-screen zafiro-page p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
           <button onClick={() => setActiveView('dashboard')} className="text-[#D4AF37] hover:text-[#D4AF37]/80 text-sm mb-6 flex items-center gap-2">
             ← Volver al Dashboard
@@ -209,7 +209,7 @@ export default function InvisibleCouncilDashboard() {
 
   // --- MAIN DASHBOARD ---
   return (
-    <div className="min-h-screen bg-[#050816] p-4 md:p-8">
+    <div className="min-h-screen zafiro-page p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Search, MessageSquare, Users, Award, Globe, Shield, BookOpen, Sparkles, Link2, Star, Zap, Target } from "lucide-react"
+import { ArrowLeft, Gem, Search, Users, Award, Globe, Shield, BookOpen, Sparkles, Star, Zap, Target } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import ElianaDiamond from "@/components/ElianaDiamond"
 
@@ -36,7 +36,7 @@ export default function HowItWorksPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO

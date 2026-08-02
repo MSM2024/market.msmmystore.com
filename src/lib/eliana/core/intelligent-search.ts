@@ -22,7 +22,6 @@ function tokenize(text: string): string[] {
 function scoreDocument(query: string, doc: KnowledgeDoc): ScoredDoc {
   const queryTerms = tokenize(query)
   const titleTerms = tokenize(doc.title)
-  const contentTerms = tokenize(doc.content)
   const tagTerms = doc.tags.map(t => t.toLowerCase())
 
   let score = 0

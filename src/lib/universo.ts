@@ -1,6 +1,7 @@
 'use client'
 
-import { getProfile, type UserProfile } from "./profile"
+import { getProfile, getProfileByUsername } from "./profile"
+import type { UserProfile } from "./profile"
 
 export type PlatformType =
   | "youtube" | "instagram" | "tiktok" | "twitter" | "facebook"
@@ -145,21 +146,10 @@ export function reorderPlatforms(userId: string, orderedIds: string[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...others, ...reordered, ...remaining]))
 }
 
-export function importFromLinktree(userId: string, username: string): ConnectedPlatform[] {
-  const now = new Date().toISOString()
-  const name = username || "user"
-  const links: ConnectedPlatform[] = [
-    { id: `lt_facebook_${userId}`, type: "facebook", url: `https://facebook.com/${name}`, title: `${name} en Facebook`, description: "Síguenos en Facebook", image: "", category: "Redes Sociales", tags: ["facebook", "redes"], summary: `Perfil de ${name} en Facebook.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "social", elianaAnalysis: { summary: `Perfil social de ${name} en Facebook.`, categories: ["Redes Sociales"], tags: ["facebook", name], topics: ["Redes Sociales"], keywords: [name, "facebook"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-    { id: `lt_instagram_${userId}`, type: "instagram", url: `https://instagram.com/${name}`, title: `@${name}`, description: "Contenido visual", image: "", category: "Redes Sociales", tags: ["instagram", "visual"], summary: `Feed de Instagram de ${name}.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "photo", elianaAnalysis: { summary: `Galería visual de ${name} en Instagram.`, categories: ["Redes Sociales"], tags: ["instagram", name], topics: ["Contenido Visual"], keywords: [name, "instagram"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-    { id: `lt_tiktok_${userId}`, type: "tiktok", url: `https://tiktok.com/@${name}`, title: `@${name}`, description: "Videos cortos", image: "", category: "Redes Sociales", tags: ["tiktok", "viral"], summary: `TikTok de ${name}.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "video", elianaAnalysis: { summary: `Contenido de ${name} en TikTok.`, categories: ["Redes Sociales"], tags: ["tiktok", name], topics: ["Tendencias"], keywords: [name, "tiktok"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-    { id: `lt_x_${userId}`, type: "twitter", url: `https://x.com/${name}`, title: `@${name}`, description: "Actualizaciones", image: "", category: "Redes Sociales", tags: ["x", "twitter"], summary: `Perfil en X de ${name}.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "social", elianaAnalysis: { summary: `Presencia en X de ${name}.`, categories: ["Redes Sociales"], tags: ["x", name], topics: ["Actualizaciones"], keywords: [name, "x"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-  ]
-
-  const all: ConnectedPlatform[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
-  const filtered = all.filter(p => p.userId !== userId || !p.id.startsWith("lt_"))
-  filtered.push(...links)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
-  return links
+export function importFromLinktree(_userId: string, _username: string): ConnectedPlatform[] {
+  // Integración con Linktree pendiente: requiere API/credenciales externas.
+  // No se fabrican conexiones falsas; devuelve lista vacía hasta que exista integración real.
+  return []
 }
 
 export function analyzeWithEliana(platform: ConnectedPlatform): ElianaAnalysis {
@@ -184,31 +174,68 @@ export function getAllConnectedUsers(): { userId: string; name: string; username
   }
 }
 
-export async function getCreatorProfile(username: string): Promise<{
-  name: string; username: string; bio: string; image: string;
-  joinedAt: string; location: string; title: string;
-  points: number; streak: number; achievements: number;
-  followers: number; communities: number;
-  platforms: ConnectedPlatform[];
-} | null> {
-  const profile = await getProfile()
-  if (!profile) return null
+export interface CreatorProfile {
+  name: string
+  username: string
+  bio: string
+  image: string
+  joinedAt: string
+  location: string
+  title: string
+  points: number
+  streak: number
+  achievements: number
+  followers: number
+  communities: number
+  platforms: ConnectedPlatform[]
+  isOwn: boolean
+}
+
+function buildOwnProfile(profile: UserProfile) {
   const platforms: ConnectedPlatform[] = typeof window !== "undefined"
     ? JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").filter((p: ConnectedPlatform) => p.userId === profile.userId)
     : []
   return {
     name: profile.publicName || profile.name,
     username: profile.username,
-    bio: profile.bioShort || profile.bioLong,
-    image: profile.avatar,
-    joinedAt: profile.joinedAt,
-    location: profile.location,
-    title: profile.title,
-    points: profile.points,
-    streak: profile.streak,
-    achievements: profile.achievements,
-    followers: profile.followers,
-    communities: profile.communities,
+    bio: profile.bioShort || profile.bioLong || "",
+    image: profile.avatar || "",
+    joinedAt: profile.joinedAt || "",
+    location: profile.location || "",
+    title: profile.title || "",
+    points: profile.points ?? 0,
+    streak: profile.streak ?? 0,
+    achievements: profile.achievements ?? 0,
+    followers: profile.followers ?? 0,
+    communities: profile.communities ?? 0,
     platforms,
+  }
+}
+
+export async function getCreatorProfile(username?: string): Promise<CreatorProfile | null> {
+  const profile = await getProfile()
+
+  if (profile && (!username || profile.username?.toLowerCase() === username.toLowerCase())) {
+    return { ...buildOwnProfile(profile), isOwn: true }
+  }
+
+  const pub = await getProfileByUsername(username || "")
+  if (!pub) return null
+
+  return {
+    name: pub.name || pub.username,
+    username: pub.username,
+    bio: "",
+    image: pub.avatar || "",
+    joinedAt: pub.created_at ? pub.created_at.slice(0, 10) : "",
+    location: "",
+    title: pub.role && pub.role !== "customer" ? pub.role : "Miembro de ZAFIRO",
+    points: 0,
+    streak: 0,
+    achievements: 0,
+    followers: 0,
+    communities: 0,
+    platforms: [],
+    isOwn: false,
   }
 }

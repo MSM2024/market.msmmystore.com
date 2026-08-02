@@ -11,14 +11,14 @@ import type { OrderWithItems } from "@/lib/marketplace/types"
 
 export default function DashboardGananciasPage() {
   usePageTitle("Ganancias — Dashboard")
-  const session = getSession()
+  const userId = getSession()?.id
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!session?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     const supabase = getSupabaseClient()
     if (!supabase || !isSupabaseAvailable()) { setLoading(false); return }
 
@@ -27,7 +27,7 @@ export default function DashboardGananciasPage() {
         const { data: storeData } = await supabase!
           .from("marketplace_stores")
           .select("id")
-          .eq("owner_id", session!.id)
+          .eq("owner_id", userId!)
           .single()
         if (!storeData) { setLoading(false); return }
         const data = await fetchStoreOrders(storeData.id)
@@ -36,7 +36,7 @@ export default function DashboardGananciasPage() {
       setLoading(false)
     }
     load()
-  }, [session?.id])
+  }, [userId])
 
   const completedOrders = orders.filter(o => ["paid", "completed", "delivered"].includes(o.status))
   const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
@@ -56,7 +56,7 @@ export default function DashboardGananciasPage() {
     <div>
       <div className="flex items-center gap-2 mb-6">
         <DollarSign className="w-5 h-5 text-[#D4AF37]" />
-        <h1 className="text-lg font-black text-white">Ganancias</h1>
+        <h1 className="text-lg font-black zafiro-gold-text">Ganancias</h1>
       </div>
 
       {error && (

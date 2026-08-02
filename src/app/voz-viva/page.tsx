@@ -32,7 +32,7 @@ const VISIBILITY_OPTIONS = [
 export default function VozVivaPage() {
   const [content, setContent] = useState("")
   const [classification, setClassification] = useState("")
-  const [visibility, setVisibility] = useState("privado")
+  const [, setVisibility] = useState("privado")
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
@@ -101,7 +101,7 @@ export default function VozVivaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white flex flex-col">
+    <div className="min-h-screen zafiro-page text-white flex flex-col">
       <div className="border-b border-slate-800/60 bg-[#0B1220]/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">

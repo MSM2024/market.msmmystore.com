@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Save, Camera, Plus, Trash2, Globe, AlertCircle, RefreshCw } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession } from "@/lib/auth"
@@ -22,7 +23,7 @@ export default function EditProfilePage() {
   })
   const [rolesText, setRolesText] = useState("")
   const [editingLinks, setEditingLinks] = useState<SocialLink[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const [, setLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const mountedRef = useRef(true)
@@ -144,7 +145,7 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 rounded-full border-2 border-[#00D9FF] border-t-transparent animate-spin mx-auto mb-3" />
           <p className="text-sm text-slate-400">Cargando perfil...</p>
@@ -155,7 +156,7 @@ export default function EditProfilePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center max-w-xs">
           <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
           <p className="text-sm text-slate-300 mb-4">{error}</p>
@@ -170,7 +171,7 @@ export default function EditProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-sm text-slate-400">Debes iniciar sesión para editar tu perfil.</p>
           <Link href="/auth/login" className="mt-4 inline-block px-4 py-2 rounded-xl bg-gradient-to-r from-[#00D9FF] to-blue-600 text-white text-xs font-bold hover:opacity-90 transition-all">
@@ -182,7 +183,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <Link href="/profile-page" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
@@ -210,9 +211,9 @@ export default function EditProfilePage() {
             <div className="flex gap-4">
               <div className="relative group">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#00D9FF] to-blue-600 p-0.5">
-                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden relative">
                     {profile.avatar ? (
-                      <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
+                      <Image src={profile.avatar} alt="" fill sizes="192px" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-2xl font-black text-white/60">
                         {profile.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}

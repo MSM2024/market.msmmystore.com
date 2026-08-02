@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
 
 export async function GET() {
   try {
@@ -23,6 +25,9 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "user-profile" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
 
@@ -30,13 +35,21 @@ export async function PUT(request: Request) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = await request.json()
-    const { name, username, phone, avatar } = body
+    const profileSchema = z.object({
+      name: z.string().min(1).max(120).optional(),
+      username: z.string().min(2).max(50).regex(/^[a-zA-Z0-9_]+$/).optional(),
+      phone: z.string().max(30).optional(),
+      avatar: z.string().max(500).optional(),
+    })
+    const parsed = profileSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de perfil inválidos" }, { status: 400 })
+    }
 
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
-    if (name !== undefined) update.name = name
-    if (username !== undefined) update.username = username
-    if (phone !== undefined) update.phone = phone
-    if (avatar !== undefined) update.avatar = avatar
+    for (const [key, value] of Object.entries(parsed.data)) {
+      if (value !== undefined) update[key] = value
+    }
 
     const { data, error } = await supabase
       .from("profiles")
@@ -52,8 +65,11 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 5, windowMs: 60_000, keyPrefix: "user-profile-delete" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
 

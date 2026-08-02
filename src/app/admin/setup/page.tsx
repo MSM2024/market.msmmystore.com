@@ -36,7 +36,7 @@ export default function AdminSetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center p-4">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Link href="/admin" className="text-slate-400 hover:text-white text-xs mb-6 inline-block">
           ← Volver al Admin

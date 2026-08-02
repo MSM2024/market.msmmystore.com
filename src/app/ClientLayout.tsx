@@ -3,10 +3,11 @@
 import { usePathname } from "next/navigation"
 import Footer from "@/components/Footer"
 import ElianaUniversalLauncher from "@/components/ElianaUniversalLauncher"
-import NetworkBackground from "@/components/ui/NetworkBackground"
+import ZafiroBackground, { type ZafiroVariant } from "@/components/ZafiroBackground"
+import OfflineBanner from "@/components/ui/OfflineBanner"
 import { CartProvider } from "@/contexts/CartContext"
 import { AuthProvider } from "@/lib/AuthContext"
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 
 function useIsMarketplaceDomain(): boolean {
   if (typeof window === "undefined") return false
@@ -33,22 +34,67 @@ function getContextFromPath(pathname: string) {
   return { source_app: "zafiro", source_module: "home" }
 }
 
+// Variación sutil del mismo universo ZAFIRO por módulo/ruta
+function getZafiroVariant(pathname: string): ZafiroVariant {
+  if (pathname === "/") return "home"
+  if (pathname.startsWith("/auth")) return "auth"
+  if (pathname.startsWith("/eliana")) return "eliana"
+  if (pathname.startsWith("/biblioteca") || pathname.startsWith("/libros") || pathname.startsWith("/admin/knowledge")) return "knowledge"
+  if (pathname.startsWith("/album") || pathname.startsWith("/historias") || pathname.startsWith("/mis-historias")) return "legado"
+  if (pathname.startsWith("/dashboard/ganancias") || pathname.startsWith("/ecosystem/payments")) return "economia"
+  if (pathname.startsWith("/marketplace")) return "marketplace"
+  if (pathname.startsWith("/rutas") || pathname.startsWith("/zafiro-rutas") || pathname.startsWith("/mapas")) return "rutas"
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) return "control"
+  if (
+    pathname.startsWith("/profile-page") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/organizacion") ||
+    pathname.startsWith("/memberships") ||
+    pathname.startsWith("/referidos") ||
+    pathname.startsWith("/rewards") ||
+    pathname.startsWith("/messages") ||
+    pathname.startsWith("/universo")
+  ) return "control"
+  return "default"
+}
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isHome = pathname === "/" || pathname.startsWith("/api/")
   const isMarketplace = useIsMarketplaceDomain()
   const isEliana = useIsElianaDomain()
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return
+    if (typeof window === "undefined") return
+    const { hostname } = window.location
+    if (hostname === "localhost" || hostname === "127.0.0.1") return
+    if (!("serviceWorker" in navigator)) return
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // El registro del service worker no debe romper la aplicación
+    })
+  }, [])
+
   const context = useMemo(() => getContextFromPath(pathname), [pathname])
+  const zafiroVariant = useMemo(() => getZafiroVariant(pathname), [pathname])
 
   const showLauncher = !isEliana && !pathname.startsWith("/auth/")
 
   return (
     <AuthProvider>
     <CartProvider>
-      <NetworkBackground />
+      <OfflineBanner />
+      <a
+        href="#contenido"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-lg focus:bg-[#D4AF37] focus:text-[#050816] focus:text-xs focus:font-bold"
+      >
+        Saltar al contenido
+      </a>
+      <ZafiroBackground variant={zafiroVariant} />
       <div className="relative z-10">
-        {children}
+        <main id="contenido" className="flex flex-col flex-1 min-w-0">
+          {children}
+        </main>
       </div>
       {!isHome && !isMarketplace && !isEliana && <Footer />}
       {showLauncher && (

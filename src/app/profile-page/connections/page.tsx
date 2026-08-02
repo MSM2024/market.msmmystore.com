@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Globe, ExternalLink, Plus, Trash2, Save, Edit3, X, Shield, Camera, MessageSquare, Video, Music2, Send, Store, Briefcase, Code2, MessageCircle, Music, BookOpen } from "lucide-react"
+import Image from "next/image"
+import { ArrowLeft, Globe, ExternalLink, Plus, Trash2, Save, Shield, Camera, MessageSquare, Video, Music2, Send, Store, Briefcase, Code2, MessageCircle, Music, BookOpen } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getProfile, updateProfile, type SocialLink, type UserProfile } from "@/lib/profile"
 import { getPlatforms, PLATFORM_META, addPlatform, removePlatform, importFromLinktree, type ConnectedPlatform, type PlatformType } from "@/lib/universo"
@@ -21,6 +22,7 @@ export default function ConnectionsPage() {
   const [showAddPlatform, setShowAddPlatform] = useState(false)
   const [showAddLink, setShowAddLink] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [importNote, setImportNote] = useState("")
   const [newPlatform, setNewPlatform] = useState({ type: "website" as PlatformType, url: "", title: "", description: "" })
   const [newLink, setNewLink] = useState({ platform: "", url: "", label: "" })
   const [editingLinks, setEditingLinks] = useState<SocialLink[]>([])
@@ -39,6 +41,7 @@ export default function ConnectionsPage() {
   const handleImportLinktree = () => {
     if (!profile) return
     const imported = importFromLinktree(profile.userId, "msmmystore")
+    setImportNote(imported.length > 0 ? "" : "La importación desde Linktree requiere una integración externa que aún no está configurada.")
     if (imported.length > 0) {
       setPlatforms(getPlatforms(profile.userId))
       setSaved(true)
@@ -102,14 +105,14 @@ export default function ConnectionsPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <p className="text-sm text-slate-400">Cargando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <Link href="/profile-page" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
@@ -185,6 +188,9 @@ export default function ConnectionsPage() {
                   <Plus className="w-3 h-3" /> Agregar
                 </button>
               </div>
+              {importNote && (
+                <p className="text-[9px] text-amber-400/90 mt-2">{importNote}</p>
+              )}
             </div>
 
             {platforms.length === 0 ? (
@@ -204,8 +210,8 @@ export default function ConnectionsPage() {
                   return (
                     <div key={p.id} className="group relative rounded-2xl border border-slate-800 bg-[#0B1220]/40 hover:border-slate-700 transition-all backdrop-blur-sm">
                       {p.image && (
-                        <div className="h-16 sm:h-20 bg-slate-800/30 overflow-hidden rounded-t-2xl">
-                          <img src={p.image} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none" }} />
+                        <div className="h-16 sm:h-20 bg-slate-800/30 overflow-hidden rounded-t-2xl relative">
+                          <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 400px" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none" }} />
                         </div>
                       )}
                       <div className="p-3">

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, BookOpen, TreePine, FileText, Heart, Clock, Users, Shield, Globe, Lock, Sparkles } from "lucide-react"
+import { ArrowLeft, BookOpen, TreePine, FileText, Heart, Clock, Users, Shield, Lock, Sparkles } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function AlbumDeLaVidaPage() {
@@ -17,7 +17,7 @@ export default function AlbumDeLaVidaPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO
@@ -28,15 +28,18 @@ export default function AlbumDeLaVidaPage() {
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">Álbum de la Vida</h1>
+            <h1 className="text-2xl font-black zafiro-gold-text">Álbum de la Vida</h1>
             <p className="text-sm text-slate-400">Tu Legado — Preserva la Historia de Tu Familia</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold text-amber-400 uppercase tracking-wider">
-            <Clock className="w-3 h-3" /> Próximamente
-          </span>
+          <Link
+            href="/album"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-[10px] font-bold text-white uppercase tracking-wider hover:opacity-90 transition"
+          >
+            <Sparkles className="w-3 h-3" /> Explorar el Álbum
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-slate-800/60 glass-strong p-6 glow-border mb-8">

@@ -36,7 +36,7 @@ export default function ContactPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
             <Send className="w-8 h-8 text-emerald-400" />
@@ -52,7 +52,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO

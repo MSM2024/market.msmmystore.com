@@ -62,10 +62,11 @@ async function getOrCreateSupabaseConversation(userId: string): Promise<string> 
     .from('eliana_conversations')
     .select('id')
     .eq('user_id', userId)
+    .eq('channel', 'eliana_domain')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (existing) return existing.id
 
@@ -77,9 +78,10 @@ async function getOrCreateSupabaseConversation(userId: string): Promise<string> 
       channel: 'eliana_domain',
       status: 'active',
       risk_level: 'low',
+      metadata: { user_id: userId },
     })
     .select('id')
-    .single()
+    .maybeSingle()
 
   return newConvo?.id || ''
 }
@@ -149,6 +151,7 @@ export async function saveMessage(message: PersistedMessage): Promise<void> {
         if (conversationId) {
           await supabase.from('eliana_messages').insert({
             conversation_id: conversationId,
+            user_id: session.id,
             role: message.role,
             content: message.text,
             channel: 'eliana_domain',

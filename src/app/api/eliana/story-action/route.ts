@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server"
 import { GoogleGenAI } from "@google/genai"
+import { isUsableApiKey } from "@/lib/eliana/provider"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
+const GEMINI_API_KEY = isUsableApiKey(process.env.GEMINI_API_KEY)
+  ? process.env.GEMINI_API_KEY
+  : isUsableApiKey(process.env.GOOGLE_API_KEY)
+    ? process.env.GOOGLE_API_KEY
+    : undefined
 const AI_MODEL = "gemini-2.0-flash"
 
 const SYSTEM_PROMPTS: Record<string, string> = {
@@ -13,7 +19,10 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
-    if (!GOOGLE_API_KEY) {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-story-action" })
+    if (limited) return limited
+
+    if (!GEMINI_API_KEY) {
       return NextResponse.json({ error: "ELIANA no está configurada (API key faltante)" }, { status: 503 })
     }
 
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
       ? `Contenido de la historia:\n\n${content.slice(0, 8000)}`
       : `Título: ${title || "Sin título"}\n\nContenido:\n\n${content.slice(0, 8000)}`
 
-    const genAI = new GoogleGenAI({ apiKey: GOOGLE_API_KEY })
+    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY })
     const result = await genAI.models.generateContent({
       model: AI_MODEL,
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
@@ -47,7 +56,7 @@ export async function POST(request: Request) {
     const text = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ""
 
     if (!text) {
-      return NextResponse.json({ error: "ELIANA no generó respuesta" }, { status: 500 })
+      return NextResponse.json({ error: "ELIANA no generó respuesta. Inténtalo de nuevo." }, { status: 502 })
     }
 
     const response: Record<string, string> = {}

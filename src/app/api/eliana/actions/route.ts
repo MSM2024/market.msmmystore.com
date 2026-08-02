@@ -1,8 +1,30 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
 
-export async function GET() {
+const ACTION_STATUSES = ["pending_confirmation", "confirmed", "executed", "failed"] as const
+
+const actionPostSchema = z.object({
+  conversation_id: z.string().uuid(),
+  action_type: z.string().min(1).max(100),
+  parameters: z.record(z.string(), z.unknown()).optional(),
+  status: z.enum(ACTION_STATUSES).optional(),
+})
+
+const actionPutSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(ACTION_STATUSES).optional(),
+  result: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  action_type: z.string().min(1).max(100).optional(),
+  parameters: z.record(z.string(), z.unknown()).optional(),
+})
+
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-actions" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ actions: [] })
     const { data: { user } } = await supabase.auth.getUser()
@@ -25,18 +47,26 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-actions" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    const { conversation_id, action_type, parameters, status } = await request.json()
+    const body = await request.json().catch(() => null)
+    const parsed = actionPostSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de acción inválidos", issues: parsed.error.issues }, { status: 400 })
+    }
     const { data: action, error } = await supabase
       .from("eliana_actions")
       .insert({
-        conversation_id,
-        action_type,
-        parameters: parameters || {},
-        status: status || "pending_confirmation",
+        conversation_id: parsed.data.conversation_id,
+        user_id: user.id,
+        action_type: parsed.data.action_type,
+        parameters: parsed.data.parameters ?? {},
+        status: parsed.data.status ?? "pending_confirmation",
       })
       .select("*")
       .single()
@@ -50,20 +80,27 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-actions" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    const { id, status, result, action_type, parameters } = await request.json()
-    if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 })
-    const update: Record<string, unknown> = {}
-    if (status !== undefined) {
-      update.status = status
-      if (status === "executed") update.executed_at = new Date().toISOString()
+    const body = await request.json().catch(() => null)
+    const parsed = actionPutSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de acción inválidos", issues: parsed.error.issues }, { status: 400 })
     }
-    if (result !== undefined) update.result = result
-    if (action_type !== undefined) update.action_type = action_type
-    if (parameters !== undefined) update.parameters = parameters
+    const { id, ...fields } = parsed.data
+    const update: Record<string, unknown> = {}
+    if (fields.status !== undefined) {
+      update.status = fields.status
+      if (fields.status === "executed") update.executed_at = new Date().toISOString()
+    }
+    if (fields.result !== undefined) update.result = fields.result
+    if (fields.action_type !== undefined) update.action_type = fields.action_type
+    if (fields.parameters !== undefined) update.parameters = fields.parameters
     const { data: action, error } = await supabase
       .from("eliana_actions")
       .update(update)

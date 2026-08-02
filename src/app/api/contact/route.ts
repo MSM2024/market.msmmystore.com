@@ -1,25 +1,42 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
+import { rateLimitByIp } from "@/lib/rate-limit"
+import { z } from "zod"
+
+const contactSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email().max(200),
+  subject: z.string().max(200).optional(),
+  message: z.string().min(1).max(5000),
+})
 
 export async function POST(request: Request) {
   try {
-    const { name, email, subject, message } = await request.json()
+    const limited = rateLimitByIp(request, { max: 10, windowMs: 60_000, keyPrefix: "contact" })
+    if (limited) return limited
 
-    if (!name || !email || !message) {
-      return NextResponse.json({ error: "Nombre, email y mensaje son requeridos" }, { status: 400 })
+    const body = await request.json().catch(() => null)
+    const parsed = contactSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de contacto inválidos" }, { status: 400 })
     }
+    const { name, email, subject, message } = parsed.data
 
     const admin = getSupabaseAdminClient()
-    if (admin) {
-      const { error } = await admin.from("contact_messages").insert({
-        name,
-        email,
-        subject: subject || "Sin asunto",
-        message,
-        created_at: new Date().toISOString(),
-      })
-      if (error) throw error
+    if (!admin) {
+      return NextResponse.json(
+        { error: "El servicio de contacto no está disponible: Supabase no está configurado." },
+        { status: 503 }
+      )
     }
+    const { error } = await admin.from("contact_messages").insert({
+      name,
+      email,
+      subject: subject || "Sin asunto",
+      message,
+      created_at: new Date().toISOString(),
+    })
+    if (error) throw error
 
     return NextResponse.json({ ok: true })
   } catch (err) {

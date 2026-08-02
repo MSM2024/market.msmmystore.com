@@ -1,4 +1,5 @@
-import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import { getSupabaseClient } from "@/lib/supabase"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import type {
   LibraryBook, LibrarySource, LibraryVersion, LibraryChapter, LibraryChunk,
   LibraryPerson, LibraryPlace, LibraryTopic, LibraryRelationship,
@@ -7,8 +8,14 @@ import type {
 } from "./types"
 
 export class BibliotecaRepository {
-  private get client() { return getSupabaseClient() }
-  private get available() { return isSupabaseAvailable() }
+  private readonly serverClient: SupabaseClient | null
+
+  constructor(serverClient?: SupabaseClient | null) {
+    this.serverClient = serverClient ?? null
+  }
+
+  private get client() { return this.serverClient ?? getSupabaseClient() }
+  private get available() { return !!this.client }
 
   async getBook(id: string): Promise<LibraryBook | null> {
     if (!this.available) return null
@@ -225,12 +232,31 @@ export class BibliotecaRepository {
   async listApprovals(): Promise<LibraryApproval[]> {
     if (!this.available) return []
     const { data } = await this.client.from("library_approvals").select("*").order("requested_at", { ascending: false })
-    return data || []
+    const approvals: LibraryApproval[] = (data || []) as LibraryApproval[]
+    if (approvals.length === 0) return approvals
+    const ids = approvals.map((a) => a.book_id).filter(Boolean)
+    if (ids.length === 0) return approvals
+    const { data: books } = await this.client
+      .from("library_books")
+      .select("id, title, author, status")
+      .in("id", ids)
+    const bookMap = new Map<string, Pick<LibraryBook, "id" | "title" | "author" | "status">>(
+      ((books || []) as Pick<LibraryBook, "id" | "title" | "author" | "status">[]).map((b) => [b.id, b]),
+    )
+    return approvals.map((a) => ({ ...a, book: bookMap.get(a.book_id) || null }))
   }
 
-  async logAccess(entry: Partial<LibraryAccessLog>): Promise<LibraryAccessLog | null> {
+  async logAccess(entry: Partial<LibraryAccessLog>, request?: Request): Promise<LibraryAccessLog | null> {
     if (!this.available) return null
-    const { data } = await this.client.from("library_access_logs").insert(entry).select().single()
+    const ip = entry.ip_address ||
+      request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers.get("x-real-ip") ||
+      ""
+    const userAgent = entry.user_agent || request?.headers.get("user-agent") || ""
+    const row: Record<string, unknown> = { ...entry }
+    if (ip) row.ip_address = ip
+    if (userAgent) row.user_agent = userAgent
+    const { data } = await this.client.from("library_access_logs").insert(row).select().single()
     return data
   }
 

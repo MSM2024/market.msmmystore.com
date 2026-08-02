@@ -11,10 +11,10 @@ export default function ReferidosPage() {
   usePageTitle("Mis Referidos — ZAFIRO")
   const session = getSession()
   const [copied, setCopied] = useState(false)
-  const [code, setCode] = useState(() => session ? generateReferralCode(session.id).code : "")
-  const [referralCount, setReferralCount] = useState(() => session ? getReferralCount(session.id) : 0)
-  const [earnings, setEarnings] = useState(() => session ? getReferralEarnings(session.id) : 0)
-  const [referrals, setReferrals] = useState<ReferralRecord[]>(() => session ? getReferrals(session.id) : [])
+  const [code] = useState(() => session ? generateReferralCode(session.id).code : "")
+  const [referralCount] = useState(() => session ? getReferralCount(session.id) : 0)
+  const [earnings] = useState(() => session ? getReferralEarnings(session.id) : 0)
+  const [referrals] = useState<ReferralRecord[]>(() => session ? getReferrals(session.id) : [])
 
   const shareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/auth/register?ref=${code}`
@@ -27,7 +27,7 @@ export default function ReferidosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO

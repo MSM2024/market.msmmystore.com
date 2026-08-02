@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Search, Star, Store, Shield, MapPin, Package, Loader2, StoreIcon } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { fetchStores } from "@/lib/marketplace/client"
@@ -35,7 +36,7 @@ export default function MarketplaceStoresPage() {
   const loadStores = useCallback(async () => {
     setLoading(true)
     try {
-      const { stores: data, total } = await fetchStores({
+      const { stores: data } = await fetchStores({
         status: "active",
         country: countryFilter || undefined,
         search: search || undefined,
@@ -69,7 +70,7 @@ export default function MarketplaceStoresPage() {
   }, [loadStores])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -164,7 +165,7 @@ export default function MarketplaceStoresPage() {
                   {/* Cover gradient */}
                   <div className="h-20 bg-gradient-to-br from-[#0C3F6A] to-[#197BD2] relative">
                     {store.cover_url && (
-                      <img src={store.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <Image src={store.cover_url} alt="" fill sizes="100vw" className="w-full h-full object-cover" />
                     )}
                   </div>
 

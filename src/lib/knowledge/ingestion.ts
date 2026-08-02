@@ -1,8 +1,6 @@
 import { knowledgeRepo } from "./repository"
 import type {
   KnowledgeDocument,
-  KnowledgeChunk,
-  KnowledgeIngestionJob,
   KnowledgeStatus,
 } from "./types"
 
@@ -200,9 +198,6 @@ export class KnowledgeIngestion {
         errors: ["Source not found"],
       }
     }
-
-    const config = source.config as Record<string, unknown>
-    const folder = config.folder as string
 
     await knowledgeRepo.updateSource(sourceId, {
       sync_status: "syncing",

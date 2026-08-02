@@ -1,7 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import { getSession, loginUser, logout, refreshSession, getUserRole, hasRole, type ZafiroSession, type UserRole } from "@/lib/auth"
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from "react"
+import { getSession, loginUser, logout, refreshSession, ROLE_HIERARCHY, type ZafiroSession, type UserRole } from "@/lib/auth"
 
 interface AuthContextValue {
   session: ZafiroSession | null
@@ -75,9 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const userRole = session ? getUserRole() : "customer"
-  const isAdmin = hasRole("admin") || hasRole("superadmin") || hasRole("owner")
-  const isOwner = hasRole("owner")
+  const activeRoles = useMemo<UserRole[]>(() => {
+    if (session?.roles?.length) return session.roles
+    if (session?.role) return [session.role]
+    return []
+  }, [session])
+
+  const userRole: UserRole = useMemo(() => {
+    if (activeRoles.length === 0) return "customer"
+    return [...activeRoles].sort((a, b) => ROLE_HIERARCHY[b] - ROLE_HIERARCHY[a])[0]
+  }, [activeRoles])
+
+  const hasRole = useCallback((role: UserRole) => activeRoles.includes(role), [activeRoles])
+
+  const isAdmin = useMemo(() => activeRoles.some(r => r === "admin" || r === "superadmin" || r === "owner"), [activeRoles])
+  const isOwner = useMemo(() => activeRoles.includes("owner"), [activeRoles])
 
   return (
     <AuthContext.Provider

@@ -3,7 +3,6 @@
 // Fórmula: precio_proveedor + envío + impuesto + comisión + cargo_MSM + margen + reserva
 // ================================================================
 
-import type { MarketplaceProduct, MarketplaceCategory, MarketplaceProvider } from "./types"
 import { getFlag } from "./feature-flags"
 
 export interface PricingBreakdown {
@@ -46,15 +45,11 @@ export async function calculateFinalPrice(
     taxRate = 0,
     margin = 0,
     marginRule,
-    storeCommissionRate,
-    categoryCommissionRate,
-    providerCommissionRate,
     currency = "USD",
     applyReserve = true,
   } = options
 
   const serviceFeeRate = await getFlag<number>("SERVICE_FEE_RATE")
-  const defaultCommission = await getFlag<number>("DEFAULT_COMMISSION_RATE")
 
   // 1. Precio del proveedor
   const baseProviderPrice = providerPrice
@@ -130,9 +125,9 @@ export async function calculateCouponDiscount(
   couponType: string,
   couponValue: number,
   maxDiscount: number = 0,
-  productIds: string[] = [],
-  applicableProducts: string[] = [],
-  applicableCategories: string[] = []
+  _productIds: string[] = [],
+  _applicableProducts: string[] = [],
+  _applicableCategories: string[] = []
 ): Promise<{ discount: number; finalSubtotal: number }> {
   let discount = 0
 

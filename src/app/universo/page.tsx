@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Plus, Trash2, ExternalLink, Search, Gem, Globe, Link2, X, Check, AlertCircle, Shield, Download, MessageSquare, Heart, Send, Eye, EyeOff, ArrowUp, ArrowDown, Edit3 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSession } from "@/lib/auth"
@@ -85,6 +86,7 @@ export default function UniversoPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"conexiones" | "ecosistema">("conexiones")
   const [imported, setImported] = useState(false)
+  const [importNote, setImportNote] = useState("")
 
   const [formType, setFormType] = useState<PlatformType>("other")
   const [formUrl, setFormUrl] = useState("")
@@ -130,6 +132,7 @@ export default function UniversoPage() {
     const session = getSession()
     if (!session) return
     const imported_ = importFromLinktree(session.id, "msmmystore")
+    setImportNote(imported_.length > 0 ? "" : "La importación desde Linktree requiere una integración externa que aún no está configurada.")
     if (imported_.length > 0) {
       setImported(true)
       loadPlatforms()
@@ -193,7 +196,7 @@ export default function UniversoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
@@ -219,6 +222,9 @@ export default function UniversoPage() {
               <Plus className="w-3.5 h-3.5" /> Conectar
             </button>
           </div>
+          {importNote && (
+            <p className="text-[10px] text-amber-400/90 mt-2">{importNote}</p>
+          )}
         </div>
 
         <div className="flex gap-1 mb-5 border-b border-slate-800">
@@ -262,13 +268,13 @@ export default function UniversoPage() {
                 <div key={category} className="mb-8">
                   <h3 className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-3">{category}</h3>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {(items as (ConnectedPlatform & { _order?: number })[]).map((p, idx) => {
+                    {(items as (ConnectedPlatform & { _order?: number })[]).map((p, _idx) => {
                       const meta = PLATFORM_META[p.type]
                       return (
                         <div key={p.id} className="group rounded-2xl glass hover:border-slate-700 transition-all overflow-hidden">
                           {p.image && (
-                            <div className="h-20 sm:h-24 bg-slate-800/30 overflow-hidden">
-                              <img src={p.image} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            <div className="h-20 sm:h-24 bg-slate-800/30 overflow-hidden relative">
+                              <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 400px" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                             </div>
                           )}
                           <div className="p-4">

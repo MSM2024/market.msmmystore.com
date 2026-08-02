@@ -2,16 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
-  ArrowLeft, Settings, MessageSquare, User, Award, Flame, Gem, Calendar, MapPin, Globe, Users, Star, BookOpen, Share2, Mail, ExternalLink, Plus, Shield, Heart, MessageCircle, Trophy, Layers, Eye, TrendingUp, Sparkles, Zap, Cpu, Target, Clock, Gift, DollarSign, Bot, Edit3, Camera, ChevronRight, Activity, CheckCircle, X, Send, RefreshCw
+  ArrowLeft, MessageSquare, User, Award, Flame, Gem, Calendar, MapPin, Globe, Users, Star, BookOpen, Share2, Mail, ExternalLink, Plus, Shield, Heart, MessageCircle, Trophy, Layers, Eye, TrendingUp, Sparkles, Zap, Cpu, Target, Clock, Gift, DollarSign, Bot, Edit3, Camera, ChevronRight, Activity, X, Send, RefreshCw
 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession } from "@/lib/auth"
-import { getProfile, updateProfile, type UserProject, type SocialLink, type UserProfile } from "@/lib/profile"
+import { updateProfile, type UserProfile } from "@/lib/profile"
 import { type ConnectedPlatform, getPlatforms, PLATFORM_META } from "@/lib/universo"
 import { getPTSAccount, getStreak } from "@/lib/rewards"
-import { DEFAULT_ECOSYSTEM } from "@/lib/ecosistema"
 import ElianaDiamond from "@/components/ElianaDiamond"
 
 const PROFILE_TIMEOUT_MS = 10000
@@ -76,7 +76,7 @@ export default function ProfileFullPage() {
   const [elianaInput, setElianaInput] = useState("")
   const [ptsAccount, setPtsAccount] = useState<{ balance: number; level: number; levelProgress: number } | null>(null)
   const [currentStreak, setCurrentStreak] = useState(0)
-  const [showAvatarUpload, setShowAvatarUpload] = useState(false)
+  const [, setShowAvatarUpload] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -183,7 +183,7 @@ export default function ProfileFullPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <Gem className="w-12 h-12 text-slate-700 mx-auto mb-4 animate-pulse" />
           <p className="text-sm text-slate-400">Cargando perfil...</p>
@@ -194,7 +194,7 @@ export default function ProfileFullPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center max-w-xs">
           <Gem className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <p className="text-sm text-slate-300 mb-4">{error}</p>
@@ -215,7 +215,7 @@ export default function ProfileFullPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+      <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-sm text-slate-400">No se encontró el perfil.</p>
           <button onClick={loadProfile}
@@ -251,7 +251,7 @@ export default function ProfileFullPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       {/* ELIANA widget */}
       <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
         {showEliana && (
@@ -297,7 +297,7 @@ export default function ProfileFullPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#00D9FF]/5 via-transparent to-purple-600/5 pointer-events-none" />
           <div className="h-40 sm:h-48 bg-gradient-to-r from-[#00D9FF]/10 via-indigo-600/15 to-purple-600/15 relative">
             {profile.coverImage && (
-              <img src={profile.coverImage} alt="" className="w-full h-full object-cover" />
+              <Image src={profile.coverImage} alt="" fill sizes="100vw" className="w-full h-full object-cover" />
             )}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMEQ5RkYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
           </div>
@@ -308,7 +308,7 @@ export default function ProfileFullPage() {
                 <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-gradient-to-br from-[#00D9FF] via-blue-500 to-purple-600 p-0.5 shadow-[0_0_30px_rgba(0,217,255,0.2)]">
                   <div className="w-full h-full rounded-2xl bg-[#050816] flex items-center justify-center overflow-hidden backdrop-blur-sm relative">
                     {profile.avatar ? (
-                      <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+                      <Image src={profile.avatar} alt={profile.name} fill sizes="144px" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl sm:text-4xl font-black text-white/80 select-none">
                         {profile.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}

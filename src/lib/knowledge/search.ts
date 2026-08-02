@@ -7,7 +7,6 @@ import type {
   RAGOptions,
   KnowledgeDocument,
   KnowledgeChunk,
-  KnowledgeQuery,
 } from "./types"
 
 const STOP_WORDS = new Set([

@@ -2,6 +2,7 @@
 
 import { Expert } from '@/lib/zafiro-data'
 import { Award } from 'lucide-react'
+import Image from 'next/image'
 
 interface ExpertLeaderboardProps {
   experts: Expert[]
@@ -20,15 +21,17 @@ export default function ExpertLeaderboard({ experts }: ExpertLeaderboardProps) {
             key={expert.rank}
             className="p-3 rounded-xl border border-slate-800 bg-slate-950/20 flex items-center justify-between"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 relative">
               <span
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${expert.color}`}
               >
                 {expert.rank}
               </span>
-              <img
+              <Image
                 src={expert.avatar}
                 alt={expert.name}
+                fill
+                sizes="64px"
                 className="w-8 h-8 rounded-full object-cover"
               />
               <div>

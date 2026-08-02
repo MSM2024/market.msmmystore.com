@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo } from "@/lib/knowledge"
-import { checkInputSafety, checkOutputSafety } from "@/lib/knowledge"
+import { checkInputSafety } from "@/lib/knowledge"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-documents" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
-    const { data: { user } } = await supabase.auth.getUser()
-    const userId = user?.id
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
@@ -46,13 +48,16 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(result)
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-documents" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -80,6 +85,8 @@ export async function POST(request: NextRequest) {
       metadata: body.metadata || {},
       priority: body.priority || 0,
       source_id: body.source_id,
+      created_by: user.id,
+      updated_by: user.id,
     })
 
     if (!doc) {
@@ -95,13 +102,16 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ document: doc }, { status: 201 })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-documents" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -119,7 +129,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    const doc = await knowledgeRepo.updateDocument(id, updates)
+    const doc = await knowledgeRepo.updateDocument(id, {
+      ...updates,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
     if (!doc) {
       return NextResponse.json({ error: "Failed to update document" }, { status: 500 })
     }
@@ -134,13 +148,16 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json({ document: doc })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-documents" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -172,7 +189,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

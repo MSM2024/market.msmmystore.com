@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Database, Upload, Search, CheckCircle, XCircle, Clock, AlertTriangle, FileText, RefreshCw } from "lucide-react"
+import { Database, Upload, CheckCircle, XCircle, Clock, FileText, RefreshCw, BookCheck, FileUp, ShieldAlert } from "lucide-react"
 
 interface ImportJob {
   id: string
@@ -35,6 +35,18 @@ interface Book {
   updated_at: string
 }
 
+interface Approval {
+  id: string
+  book_id: string
+  version_number?: number
+  status: string
+  requested_by?: string
+  reviewed_by?: string
+  review_notes?: string
+  requested_at: string
+  reviewed_at?: string
+}
+
 const STATUS_COLORS: Record<string, string> = {
   descubierto: "bg-yellow-500/20 text-yellow-400",
   pendiente_revision: "bg-orange-500/20 text-orange-400",
@@ -46,19 +58,35 @@ const STATUS_COLORS: Record<string, string> = {
   actualizado: "bg-cyan-500/20 text-cyan-400",
 }
 
+const APPROVAL_COLORS: Record<string, string> = {
+  pending: "bg-yellow-500/20 text-yellow-400",
+  approved: "bg-green-500/20 text-green-400",
+  rejected: "bg-red-500/20 text-red-400",
+  revision_needed: "bg-orange-500/20 text-orange-400",
+}
+
 export default function AdminBibliotecaImportacionPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [jobs, setJobs] = useState<ImportJob[]>([])
+  const [approvals, setApprovals] = useState<Approval[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<"catalogo" | "importaciones">("catalogo")
+  const [tab, setTab] = useState<"catalogo" | "importaciones" | "aprobaciones" | "ingesta">("catalogo")
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState("")
+  const [ingest, setIngest] = useState({ title: "", author: "", category: "interno", file: null as File | null })
+  const [ingestBusy, setIngestBusy] = useState(false)
+  const [ingestResult, setIngestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => {
     Promise.all([
       fetch("/api/biblioteca/books?limit=200").then(r => r.json()),
       fetch("/api/biblioteca/imports").then(r => r.json()),
-    ]).then(([booksData, jobsData]) => {
+      fetch("/api/biblioteca/approvals").then(r => r.json()),
+    ]).then(([booksData, jobsData, approvalsData]) => {
       setBooks(booksData.books || [])
       setJobs(jobsData.jobs || [])
+      setApprovals(approvalsData.approvals || [])
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
@@ -71,8 +99,67 @@ export default function AdminBibliotecaImportacionPage() {
     excluido: books.filter(b => b.status === "excluido").length,
   }
 
+  const pendingApprovals = approvals.filter(a => a.status === "pending")
+  const reviewedApprovals = approvals.filter(a => a.status !== "pending")
+
+  const bookTitle = (id: string) => books.find(b => b.id === id)?.title || id.slice(0, 8)
+
+  async function submitIngest(e: React.FormEvent) {
+    e.preventDefault()
+    if (!ingest.file) return
+    setIngestBusy(true)
+    setIngestResult(null)
+    try {
+      const form = new FormData()
+      form.append("file", ingest.file)
+      form.append("title", ingest.title)
+      form.append("author", ingest.author)
+      form.append("privacy_category", ingest.category)
+      const res = await fetch("/api/biblioteca/ingest", { method: "POST", body: form })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setIngestResult({ ok: false, message: data?.error || "No se pudo ingestar el archivo" })
+        return
+      }
+      setIngestResult({
+        ok: true,
+        message: `"${data.book?.title}" ingestado · ${data.chapters_created} capítulos · ${data.chunks_created} fragmentos${data.warnings?.length ? ` · ${data.warnings.join(" · ")}` : ""}`,
+      })
+      setIngest({ title: "", author: "", category: "interno", file: null })
+      const booksData = await fetch("/api/biblioteca/books?limit=200").then(r => r.json())
+      setBooks(booksData.books || [])
+    } catch {
+      setIngestResult({ ok: false, message: "Error de red al ingestar el archivo" })
+    } finally {
+      setIngestBusy(false)
+    }
+  }
+
+  async function decideApproval(id: string, status: string) {
+    setBusyId(id)
+    setFeedback("")
+    try {
+      const res = await fetch("/api/biblioteca/approvals", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status, review_notes: notes[id] || undefined }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setFeedback(data?.error || "No se pudo procesar la solicitud")
+        return
+      }
+      const refreshed = await fetch("/api/biblioteca/approvals").then(r => r.json())
+      setApprovals(refreshed.approvals || [])
+    } catch {
+      setFeedback("Error de red al procesar la solicitud")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Database className="w-8 h-8 text-[#00D9FF]" />
@@ -125,6 +212,27 @@ export default function AdminBibliotecaImportacionPage() {
             }`}
           >
             <RefreshCw className="w-4 h-4 inline mr-1" /> Importaciones
+          </button>
+          <button
+            onClick={() => setTab("aprobaciones")}
+            className={`px-4 py-2 rounded-xl text-sm transition-colors ${
+              tab === "aprobaciones" ? "bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40" : "bg-white/10 text-white/70 border border-white/10"
+            }`}
+          >
+            <BookCheck className="w-4 h-4 inline mr-1" /> Aprobaciones
+            {pendingApprovals.length > 0 && (
+              <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-400">
+                {pendingApprovals.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab("ingesta")}
+            className={`px-4 py-2 rounded-xl text-sm transition-colors ${
+              tab === "ingesta" ? "bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40" : "bg-white/10 text-white/70 border border-white/10"
+            }`}
+          >
+            <FileUp className="w-4 h-4 inline mr-1" /> Ingesta manual
           </button>
         </div>
 
@@ -201,6 +309,159 @@ export default function AdminBibliotecaImportacionPage() {
                   )}
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {tab === "aprobaciones" && (
+          <div className="space-y-3">
+            {feedback && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">{feedback}</div>
+            )}
+            {loading ? (
+              <div className="text-center text-white/50 py-12">Cargando aprobaciones...</div>
+            ) : pendingApprovals.length === 0 ? (
+              <div className="text-center text-white/50 py-12">
+                <Clock className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p>No hay solicitudes de aprobación pendientes</p>
+              </div>
+            ) : (
+              pendingApprovals.map(a => (
+                <div key={a.id} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-center justify-between mb-1">
+                    <Link href={`/biblioteca/${a.book_id}`} className="text-white hover:text-[#00D9FF] font-medium">
+                      {bookTitle(a.book_id)}
+                    </Link>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${APPROVAL_COLORS[a.status] || "bg-white/10 text-white/50"}`}>
+                      {a.status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-white/30 mb-3">
+                    Solicitada: {new Date(a.requested_at).toLocaleString()}
+                    {a.version_number ? ` · v${a.version_number}` : ""}
+                  </div>
+                  <textarea
+                    value={notes[a.id] || ""}
+                    onChange={e => setNotes(prev => ({ ...prev, [a.id]: e.target.value }))}
+                    placeholder="Notas de revisión (opcional)..."
+                    className="w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00D9FF]/50"
+                    rows={2}
+                  />
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => decideApproval(a.id, "approved")}
+                      disabled={busyId === a.id}
+                      className="px-4 py-2 rounded-lg text-sm bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30 disabled:opacity-50 transition-colors"
+                    >
+                      <CheckCircle className="w-4 h-4 inline mr-1" /> Aprobar
+                    </button>
+                    <button
+                      onClick={() => decideApproval(a.id, "rejected")}
+                      disabled={busyId === a.id}
+                      className="px-4 py-2 rounded-lg text-sm bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 disabled:opacity-50 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4 inline mr-1" /> Rechazar
+                    </button>
+                    <button
+                      onClick={() => decideApproval(a.id, "revision_needed")}
+                      disabled={busyId === a.id}
+                      className="px-4 py-2 rounded-lg text-sm bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500/30 disabled:opacity-50 transition-colors"
+                    >
+                      <Clock className="w-4 h-4 inline mr-1" /> Requiere revisión
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {!loading && reviewedApprovals.length > 0 && (
+              <div className="pt-6">
+                <h2 className="text-sm font-semibold text-white/50 mb-3">Historial de revisiones</h2>
+                <div className="space-y-2">
+                  {reviewedApprovals.map(a => (
+                    <div key={a.id} className="p-3 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium">{bookTitle(a.book_id)}</div>
+                        <div className="text-xs text-white/30">
+                          Revisada: {a.reviewed_at ? new Date(a.reviewed_at).toLocaleString() : "—"}
+                          {a.review_notes ? ` · ${a.review_notes}` : ""}
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${APPROVAL_COLORS[a.status] || "bg-white/10 text-white/50"}`}>
+                        {a.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {tab === "ingesta" && (
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-sm font-semibold text-white/70 mb-3">Subir obra (txt / markdown)</h2>
+              <form onSubmit={submitIngest} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-xs text-white/50">Título (opcional)</span>
+                    <input
+                      type="text"
+                      value={ingest.title}
+                      onChange={e => setIngest(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Se detecta del archivo si se omite"
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00D9FF]/50"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-white/50">Autor *</span>
+                    <input
+                      type="text"
+                      value={ingest.author}
+                      onChange={e => setIngest(prev => ({ ...prev, author: e.target.value }))}
+                      placeholder="Autor de la obra"
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00D9FF]/50"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-white/50">Categoría de privacidad</span>
+                    <select
+                      value={ingest.category}
+                      onChange={e => setIngest(prev => ({ ...prev, category: e.target.value }))}
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-[#00D9FF]/50"
+                    >
+                      <option value="publico">Público</option>
+                      <option value="interno">Interno</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-white/50">Archivo (.txt / .md / .markdown, máx 5 MB)</span>
+                    <input
+                      type="file"
+                      accept=".txt,.md,.markdown,text/plain,text/markdown"
+                      onChange={e => setIngest(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
+                      className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white file:mr-3 file:px-3 file:py-1 file:rounded-lg file:border-0 file:bg-[#00D9FF]/20 file:text-[#00D9FF] file:text-sm"
+                    />
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={ingestBusy || !ingest.file || !ingest.author}
+                    className="px-4 py-2 rounded-lg text-sm bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40 hover:bg-[#00D9FF]/30 disabled:opacity-50 transition-colors"
+                  >
+                    <Upload className="w-4 h-4 inline mr-1" /> {ingestBusy ? "Ingestando..." : "Ingestar"}
+                  </button>
+                  <span className="text-xs text-white/40 flex items-center gap-1">
+                    <ShieldAlert className="w-3 h-3" /> Solo se permiten obras públicas o internas; la obra queda pendiente de revisión.
+                  </span>
+                </div>
+              </form>
+            </div>
+            {ingestResult && (
+              <div className={`p-3 rounded-lg border text-sm ${ingestResult.ok ? "bg-green-500/10 border-green-500/30 text-green-300" : "bg-red-500/10 border-red-500/30 text-red-300"}`}>
+                {ingestResult.message}
+              </div>
             )}
           </div>
         )}

@@ -26,15 +26,9 @@ const PRIVACY_OPTIONS = [
   { value: "comunidad", label: "Comunidad" },
   { value: "publica", label: "Pública" },
 ]
-const STATUS_OPTIONS = [
-  { value: "borrador", label: "Borrador" },
-  { value: "publicada", label: "Publicada" },
-  { value: "archivada", label: "Archivada" },
-]
-
 export default function NuevaHistoriaWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black text-white flex items-center justify-center">Cargando...</div>}>
+    <Suspense fallback={<div className="min-h-screen zafiro-page text-white flex items-center justify-center">Cargando...</div>}>
       <NuevaHistoriaPage />
     </Suspense>
   )
@@ -191,7 +185,7 @@ function NuevaHistoriaPage() {
   }, [form.title, form.content])
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">{editSlug ? "Editar Historia" : "Nueva Historia"}</h1>

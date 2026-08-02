@@ -80,7 +80,7 @@ export default function MarketplaceProvidersPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/marketplace" className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors">

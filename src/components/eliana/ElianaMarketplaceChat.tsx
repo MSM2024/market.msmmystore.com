@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useRef, useEffect } from "react"
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Send, ChevronDown, Headphones, RotateCcw } from "lucide-react"
 import ElianaDiamond from "@/components/ElianaDiamond"
@@ -84,19 +84,23 @@ export default function ElianaMarketplaceChat({
   const machine = useRef(getStateMachine())
   const greetingSent = useRef(false)
 
-  const context: ElianaContext = {
-    userId: getSession()?.id || "guest",
-    page: "marketplace_product",
-    section: "product_detail",
-    itemId: productSlug,
-    metadata: {
-      product_name: productName,
-      product_slug: productSlug,
-      product_price: String(productPrice),
-      product_currency: productCurrency,
-      store_name: storeName,
-    },
-  }
+  const userId = getSession()?.id || "guest"
+  const context = useMemo<ElianaContext>(
+    () => ({
+      userId,
+      page: "marketplace_product",
+      section: "product_detail",
+      itemId: productSlug,
+      metadata: {
+        product_name: productName,
+        product_slug: productSlug,
+        product_price: String(productPrice),
+        product_currency: productCurrency,
+        store_name: storeName,
+      },
+    }),
+    [userId, productName, productSlug, productPrice, productCurrency, storeName]
+  )
 
   const priceFormatted = formatCurrency(productPrice, productCurrency)
 

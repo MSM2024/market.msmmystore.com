@@ -1,14 +1,10 @@
 'use client'
 
-import { getSupabaseClient, isSupabaseAvailable } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 import type { CouncilGuide, CouncilTeaching, CouncilSession, CouncilGoal, CouncilJournalEntry, CouncilPrayer, CouncilAudioFile } from './types'
 
 function getClient() {
   return getSupabaseClient()
-}
-
-function hasDb(): boolean {
-  return isSupabaseAvailable() && !!getClient()
 }
 
 // ================================================================

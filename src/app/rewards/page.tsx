@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Gem, Star, Zap, Trophy, Gift, Flame, Users, Target, Award, Compass, ChevronRight } from "lucide-react"
+import { ArrowLeft, Star, Trophy, Flame, Users, Target, Award, Compass } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSession } from "@/lib/auth"
 import { getPTSAccount, getStreak, checkAndAwardBadges, getEarnedBadges, markDailyLogin, ACTION_REWARDS, BADGE_DEFS, type RewardAction, type PTSAccount } from "@/lib/rewards"
@@ -19,7 +19,7 @@ export default function RewardsPage() {
   usePageTitle("MSM Rewards")
   const session = getSession()
   const userId = session?.id || ""
-  const [account, setAccount] = useState<PTSAccount>(() => {
+  const [account] = useState<PTSAccount>(() => {
     if (userId && userId !== "guest") {
       markDailyLogin(userId)
       checkAndAwardBadges(userId)
@@ -27,10 +27,10 @@ export default function RewardsPage() {
     }
     return { userId, balance: 0, totalEarned: 0, totalSpent: 0, level: 1, levelProgress: 0, nextLevelAt: 1000 }
   })
-  const [streak, setStreak] = useState(() => userId && userId !== "guest" ? getStreak(userId) : 0)
-  const [earnedBadges, setEarnedBadges] = useState<string[]>(() => userId && userId !== "guest" ? getEarnedBadges(userId) : [])
+  const [streak] = useState(() => userId && userId !== "guest" ? getStreak(userId) : 0)
+  const [earnedBadges] = useState<string[]>(() => userId && userId !== "guest" ? getEarnedBadges(userId) : [])
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO

@@ -58,6 +58,7 @@ export interface LibraryBook {
   format?: string
   status: LibraryBookStatus
   privacy_level: LibraryPrivacyLevel
+  privacy_category?: "publico" | "interno" | "privado" | "confidencial"
   version: number
   checksum?: string
   owner_id?: string
@@ -191,6 +192,7 @@ export interface LibraryApproval {
   review_notes?: string
   requested_at: string
   reviewed_at?: string
+  book?: Pick<LibraryBook, "id" | "title" | "author" | "status"> | null
 }
 
 export interface LibraryAccessLog {

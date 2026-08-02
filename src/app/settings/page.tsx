@@ -1,12 +1,14 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Bell, Eye, Globe, Shield, Palette, Moon, Volume2, User, ChevronRight, LogOut, Trash2, Monitor, Sun, Type, Check, AlertTriangle, Lock, Camera, EyeOff, Languages, Clock, Mic, Accessibility, Loader2, RefreshCw, Home } from "lucide-react"
+import { ArrowLeft, Bell, Eye, Globe, Shield, Palette, Moon, Volume2, User, ChevronRight, LogOut, Trash2, Monitor, Sun, Check, AlertTriangle, Camera, Accessibility, Loader2, RefreshCw, Home, Building2 } from "lucide-react"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession, logout as authLogout } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import MfaSection from "@/components/ui/MfaSection"
+import SessionsSection from "@/components/ui/SessionsSection"
 
 const SETTINGS_TIMEOUT_MS = 10000
 
@@ -89,7 +91,7 @@ export default function SettingsPage() {
   const requestRef = useRef<AbortController | null>(null)
 
   const [status, setStatus] = useState<PageStatus>("idle")
-  const [errorMessage, setErrorMessage] = useState("")
+  const [, setErrorMessage] = useState("")
   const [activeSection, setActiveSection] = useState("perfil")
   const [saving, setSaving] = useState(false)
 
@@ -237,7 +239,7 @@ export default function SettingsPage() {
   }
 
   if (status === "idle" || status === "loading") return (
-    <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+    <div className="min-h-screen zafiro-page flex items-center justify-center">
       <Loader2 className="w-6 h-6 text-[#00D9FF] animate-spin" />
     </div>
   )
@@ -245,7 +247,7 @@ export default function SettingsPage() {
   if (status === "unauthorized") return null
 
   if (status === "error") return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center">
       <div className="text-center max-w-xs">
         <Loader2 className="w-10 h-10 text-slate-600 mx-auto mb-4" />
         <p className="text-sm text-slate-300 mb-1">No pudimos cargar la configuración</p>
@@ -269,7 +271,7 @@ export default function SettingsPage() {
   const userInitial = displayName.charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a ZAFIRO
@@ -296,6 +298,10 @@ export default function SettingsPage() {
             <Link href={`/perfil/${displayUsername}`}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#00D9FF] hover:bg-[#00D9FF]/10 transition-all">
               <Eye className="w-4 h-4" /> Perfil Público
+            </Link>
+            <Link href="/organizacion"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#00D9FF] hover:bg-[#00D9FF]/10 transition-all">
+              <Building2 className="w-4 h-4" /> Organización
             </Link>
             <button onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer">
@@ -495,6 +501,16 @@ export default function SettingsPage() {
                   </button>
                   {passwordMsg === "ok" && <span className="text-[10px] text-emerald-400 font-bold"><Check className="w-3 h-3 inline" /> Contraseña actualizada</span>}
                   {passwordMsg === "error" && <span className="text-[10px] text-red-400 font-bold"><AlertTriangle className="w-3 h-3 inline" /> Error</span>}
+                </div>
+                <hr className="border-slate-800" />
+                <div className="space-y-3">
+                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Verificación en dos pasos</p>
+                  <MfaSection />
+                </div>
+                <hr className="border-slate-800" />
+                <div className="space-y-3">
+                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Dispositivos y sesiones</p>
+                  <SessionsSection />
                 </div>
               </div>
             )}

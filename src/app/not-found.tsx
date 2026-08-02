@@ -3,7 +3,7 @@ import { ArrowLeft, Gem } from "lucide-react"
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-[#050816] text-white flex items-center justify-center p-4">
+    <div className="min-h-screen zafiro-page text-white flex items-center justify-center p-4">
       <div className="text-center max-w-md">
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#00D9FF]/10 to-blue-600/10 border border-[#00D9FF]/20 flex items-center justify-center mx-auto mb-6">
           <Gem className="w-10 h-10 text-[#00D9FF] opacity-50" />

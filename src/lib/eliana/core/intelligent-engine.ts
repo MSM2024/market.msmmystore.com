@@ -80,7 +80,6 @@ function tokenize(text: string): string[] {
 
 function extractEntities(text: string): string[] {
   const entities: string[] = []
-  const lower = text.toLowerCase()
 
   const productPatterns = [
     { pattern: /nevera|refrigerador|frigorifico/i, entity: "nevera" },
@@ -195,7 +194,6 @@ function detectSentiment(text: string, history: ConversationTurn[]): Sentiment {
 
 function classifyIntent(text: string, entities: string[]): ClassifiedIntent {
   const lower = text.toLowerCase().trim()
-  const words = tokenize(text)
 
   // Greetings
   if (/^(hola|buenos|buenas|saludos|hey|hello|hi\b|bendiciones|que tal)/.test(lower)) {
@@ -380,7 +378,7 @@ function synthesizeResponse(
   scoredDocs: ScoredDoc[],
   intent: ClassifiedIntent,
   sentiment: Sentiment,
-  history: ConversationTurn[]
+  _history: ConversationTurn[]
 ): string {
   if (scoredDocs.length === 0) return ""
 
@@ -413,8 +411,7 @@ function synthesizeResponse(
   const sections: string[] = []
 
   for (let i = 0; i < scoredDocs.length; i++) {
-    const { doc, score, matchedTerms, relevanceSections } = scoredDocs[i]
-    const relevance = score >= 30 ? "alta" : score >= 15 ? "media" : "baja"
+    const { doc, relevanceSections } = scoredDocs[i]
     const title =
       i === 0
         ? `**${doc.title}**`
@@ -444,7 +441,7 @@ function generateFollowUps(
   topics: string[],
   intent: ClassifiedIntent,
   sentiment: Sentiment,
-  scoredDocs: ScoredDoc[]
+  _scoredDocs: ScoredDoc[]
 ): string[] {
   const suggestions: string[] = []
 
@@ -572,7 +569,6 @@ function scoreDocumentAdvanced(
 ): ScoredDoc {
   const queryTerms = tokenize(query)
   const titleTerms = tokenize(doc.title)
-  const contentTerms = tokenize(doc.content)
   const tagTerms = doc.tags.map((t) => t.toLowerCase())
 
   let score = 0
