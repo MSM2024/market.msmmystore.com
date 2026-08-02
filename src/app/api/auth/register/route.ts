@@ -1,26 +1,12 @@
 import { NextResponse } from "next/server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 const PASSWORD_RULES = /^(?=.*[A-Z])(?=.*\d).{8,}$/
-const RATE_LIMIT_MAP = new Map<string, number>()
-const RATE_LIMIT_MAX = 5
-const RATE_LIMIT_WINDOW = 60_000
-
-function checkRateLimit(ip: string): boolean {
-  const count = RATE_LIMIT_MAP.get(ip) || 0
-  if (count >= RATE_LIMIT_MAX) return false
-  RATE_LIMIT_MAP.set(ip, count + 1)
-  setTimeout(() => {
-    const c = RATE_LIMIT_MAP.get(ip) || 1
-    if (c <= 1) RATE_LIMIT_MAP.delete(ip)
-    else RATE_LIMIT_MAP.set(ip, c - 1)
-  }, RATE_LIMIT_WINDOW)
-  return true
-}
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown"
-    if (!checkRateLimit(ip)) {
+    const limited = rateLimitByIp(request, { max: 5, windowMs: 60_000, keyPrefix: "auth-register" })
+    if (limited) {
       return NextResponse.json(
         { success: false, code: "RATE_LIMITED", message: "Has realizado varios intentos. Espera unos minutos antes de intentar de nuevo." },
         { status: 429 }
