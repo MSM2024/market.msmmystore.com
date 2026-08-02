@@ -11,10 +11,10 @@ export default function ReferidosPage() {
   usePageTitle("Mis Referidos — ZAFIRO")
   const session = getSession()
   const [copied, setCopied] = useState(false)
-  const [code, setCode] = useState(() => session ? generateReferralCode(session.id).code : "")
-  const [referralCount, setReferralCount] = useState(() => session ? getReferralCount(session.id) : 0)
-  const [earnings, setEarnings] = useState(() => session ? getReferralEarnings(session.id) : 0)
-  const [referrals, setReferrals] = useState<ReferralRecord[]>(() => session ? getReferrals(session.id) : [])
+  const [code] = useState(() => session ? generateReferralCode(session.id).code : "")
+  const [referralCount] = useState(() => session ? getReferralCount(session.id) : 0)
+  const [earnings] = useState(() => session ? getReferralEarnings(session.id) : 0)
+  const [referrals] = useState<ReferralRecord[]>(() => session ? getReferrals(session.id) : [])
 
   const shareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/auth/register?ref=${code}`

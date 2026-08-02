@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/api-auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -14,7 +15,10 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "auth-sessions" })
+  if (limited) return limited
+
   const auth = await requireAuth()
   if (!auth.ok) return auth.response
 
@@ -58,6 +62,9 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
+  const limited = rateLimitByIp(req, { max: 30, windowMs: 60_000, keyPrefix: "auth-sessions" })
+  if (limited) return limited
+
   const auth = await requireAuth()
   if (!auth.ok) return auth.response
 

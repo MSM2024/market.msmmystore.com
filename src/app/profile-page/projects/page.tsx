@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Layers, Plus, Trash2, Save, ExternalLink, Edit3, X, Globe } from "lucide-react"
+import { ArrowLeft, Layers, Plus, Trash2, Save, ExternalLink, Edit3 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getProfile, updateProfile, type UserProject, type UserProfile } from "@/lib/profile"
 
@@ -36,7 +36,7 @@ export default function ProjectsPage() {
   usePageTitle("Mis Proyectos")
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [projects, setProjects] = useState<UserProject[]>([])
-  const [saved, setSaved] = useState(false)
+  const [, setSaved] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: "", description: "", url: "", status: "activo" as UserProject["status"], icon: "💎", color: "text-[#00D9FF]", tags: "" })

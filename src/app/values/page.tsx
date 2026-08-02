@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Heart, Shield, Brain, Users, Sparkles, Globe, BookOpen, Award, Zap, Eye } from "lucide-react"
+import { ArrowLeft, Heart, Shield, Brain, Users, Sparkles, Globe, BookOpen, Award, Zap, Eye } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function ValuesPage() {

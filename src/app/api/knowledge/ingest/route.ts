@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { knowledgeIngestion, knowledgeRepo, checkInputSafety } from "@/lib/knowledge"
 import { requireAdmin } from "@/lib/api-auth"
 import { writeAuditLog } from "@/lib/audit"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import { z } from "zod"
 import type { KnowledgeIngestionJob } from "@/lib/knowledge/types"
 
@@ -34,6 +35,9 @@ const ingestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 10, windowMs: 60_000, keyPrefix: "knowledge-ingest" })
+    if (limited) return limited
+
     const auth = await requireAdmin()
     if (!auth.ok) return auth.response
 
@@ -85,13 +89,16 @@ export async function POST(request: NextRequest) {
       errors: result.errors,
       success: result.errors.length === 0,
     })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 10, windowMs: 60_000, keyPrefix: "knowledge-ingest" })
+    if (limited) return limited
+
     const auth = await requireAdmin()
     if (!auth.ok) return auth.response
 
@@ -109,7 +116,7 @@ export async function GET(request: NextRequest) {
 
     const jobs = await knowledgeRepo.listJobs()
     return NextResponse.json({ jobs })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

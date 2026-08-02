@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Send, Search, Check, MoreHorizontal, Phone, Video } from "lucide-react"
+import { ArrowLeft, Send, Search, MoreHorizontal, Phone, Video } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
@@ -24,7 +24,7 @@ export default function MessagesPage() {
     }
     return {}
   })
-  const [isInitialized, setIsInitialized] = useState(true)
+  const [isInitialized] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

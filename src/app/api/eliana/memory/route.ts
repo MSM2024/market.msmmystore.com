@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 const MEMORY_TYPES = ["short_term", "long_term", "preference", "fact"] as const
 const MAX_ROWS = 500
@@ -27,8 +28,11 @@ function unavailableError() {
   return NextResponse.json({ error: "Unavailable" }, { status: 503 })
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-memory" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ rows: [] })
     const { data: { user } } = await supabase.auth.getUser()
@@ -48,6 +52,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-memory" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return unavailableError()
     const { data: { user } } = await supabase.auth.getUser()
@@ -92,6 +99,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-memory" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return unavailableError()
     const { data: { user } } = await supabase.auth.getUser()

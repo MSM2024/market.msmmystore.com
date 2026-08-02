@@ -14,13 +14,13 @@ doc_form: text_model
 
 ## Completado
 
-### Auth Funcional (Demo)
-- `src/lib/auth.ts` con `registerUser`, `loginUser`, `getSession`, `logout`, `getUsers`
-- Formularios de registro y login escriben/leen de localStorage
-- Validación de errores y redirección al home
-- Recuperación de contraseña valida existencia del email
-- Perfil en homepage muestra nombre del usuario logueado
-- Settings tiene botón de Cerrar Sesión funcional
+### Auth (Supabase)
+- `src/lib/auth.ts` con `registerUser`, `loginUser`, `getSession`, `refreshSession`, `logout`, `getUserRoles`
+- Registro y login autentican contra Supabase Auth (sin proyecto configurado devuelven error honesto)
+- Sesión y roles con caché local sincronizada (`zafiro_session`, `zafiro_user_roles`)
+- Recuperación de contraseña real vía `/api/auth/reset-password` (requiere Supabase)
+- Guardas del servidor `requireAuth` / `requireAdmin` / `requireOwner` en `src/lib/api-auth.ts`
+- 60 migraciones Supabase (RLS activo en ~570 políticas) listas para aplicar
 
 ### Títulos SEO Únicos
 - Hook `usePageTitle` agregado a las 16 páginas standalone
@@ -57,10 +57,8 @@ doc_form: text_model
 
 ## Próximos Pasos
 
-1. Ejecutar plan de Knowledge Pack v1: recolectar fuentes, limpiar, canonizar, generar manifiesto y hashes
-2. Desplegar Dify CE + Qdrant con Docker Compose
-3. Crear scripts de importación y prueba de retrieval
-4. Conectar los datasets a la app ELIANA en Dify
-5. Migrar auth de localStorage a Supabase Auth
-6. Integrar Stripe real para membresías y sponsors
-7. Implementar Supabase DB completa
+1. Aplicar las 60 migraciones Supabase en un proyecto real y setear las credenciales en el entorno
+2. Configurar Stripe real (price IDs + webhook secret) para membresías y sponsors
+3. Aumentar cuota de Gemini para desbloquear las respuestas de ELIANA
+4. Conectar los datasets de Knowledge Pack v1 (retrieval con Qdrant/Dify) cuando estén desplegados
+5. Desplegar en Vercel y validar PWA/service worker en el dominio real

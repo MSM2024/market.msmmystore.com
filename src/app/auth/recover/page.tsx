@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Gem, Mail, ArrowLeft, AlertCircle, RefreshCw, CheckCircle } from "lucide-react"
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Store, Package, Truck, ShoppingCart, DollarSign, AlertTriangle, Settings, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, Store, Package, Truck, ShoppingCart, DollarSign, AlertTriangle, ArrowLeft } from "lucide-react"
 
 const ADMIN_LINKS = [
   { href: "/admin/marketplace", label: "Dashboard", icon: LayoutDashboard },

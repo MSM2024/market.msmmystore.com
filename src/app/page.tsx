@@ -11,8 +11,8 @@ import {
 import Link from "next/link"
 
 import {
-  stories as defaultStories, questions as defaultQuestions, trends, communities, experts,
-  defaultSponsors, nobleSponsors, getContextualAdMatch, loadPersistedSponsors,
+  stories as defaultStories, trends, communities, experts,
+  nobleSponsors, loadPersistedSponsors,
   saveSponsors, loadPersistedQuestions, saveQuestions,
   type Question, type SponsorCampaign, type Story
 } from "@/lib/zafiro-data"
@@ -48,7 +48,7 @@ export default function Home() {
   const [selectedTag, setSelectedTag] = useState("Todas")
   const [activeNav, setActiveNav] = useState("Inicio")
   const [currentTime, setCurrentTime] = useState("18:30")
-  const [userSession, setUserSession] = useState<{ name: string; email: string } | null>(() => getSession())
+  const [userSession] = useState<{ name: string; email: string } | null>(() => getSession())
 
   const [streak] = useState(18)
   const [points, setPoints] = useState(4820)
@@ -83,7 +83,6 @@ export default function Home() {
     { id: "2", text: "Ganaste 50 PTS por sintonizar con la comunidad IA", time: "hace 1 hora" }
   ])
 
-  const [isElianaExpanded, setIsElianaExpanded] = useState(false)
   const [chatInput, setChatInput] = useState("")
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "model"; text: string; time: string }>>(() => {
@@ -300,13 +299,6 @@ export default function Home() {
       return true
     })
   }, [selectedTag, searchQuery, qs])
-
-  const sortedSponsors = useMemo(() => {
-    return [...sponsors].sort((a, b) => {
-      return getContextualAdMatch(b, selectedTag, searchQuery, joinedCommunities).percentage -
-        getContextualAdMatch(a, selectedTag, searchQuery, joinedCommunities).percentage
-    })
-  }, [sponsors, selectedTag, searchQuery, joinedCommunities])
 
   return (
     <div className="min-h-screen zafiro-page text-white overflow-hidden relative">

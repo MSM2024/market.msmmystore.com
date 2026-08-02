@@ -32,7 +32,7 @@ const VISIBILITY_OPTIONS = [
 export default function VozVivaPage() {
   const [content, setContent] = useState("")
   const [classification, setClassification] = useState("")
-  const [visibility, setVisibility] = useState("privado")
+  const [, setVisibility] = useState("privado")
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")

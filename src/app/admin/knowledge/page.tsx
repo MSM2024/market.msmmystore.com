@@ -50,7 +50,6 @@ interface KnowledgeApproval {
 }
 
 const DOC_TYPES = ["policy", "faq", "guide", "tutorial", "reference", "changelog", "identity", "operations", "legal", "marketing"]
-const STATUSES = ["draft", "review", "published", "archived", "rejected"]
 const VISIBILITIES = ["public", "internal", "confidential", "restricted"]
 const GAP_TYPES = ["missing_topic", "outdated_info", "low_coverage", "contradiction", "user_request"]
 
@@ -102,7 +101,7 @@ export default function KnowledgeAdminPage() {
         const data = await approvalsRes.json()
         setApprovals(data.approvals || [])
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Error fetching data")
     } finally {
       setLoading(false)
@@ -125,7 +124,7 @@ export default function KnowledgeAdminPage() {
         setNewDoc({ title: "", content: "", doc_type: "reference", visibility: "internal", summary: "" })
         fetchData()
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Error creating document")
     }
   }
@@ -143,7 +142,7 @@ export default function KnowledgeAdminPage() {
         setNewGap({ gap_type: "missing_topic", title: "", description: "", priority: 0 })
         fetchData()
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Error creating gap")
     }
   }
@@ -156,7 +155,7 @@ export default function KnowledgeAdminPage() {
         body: JSON.stringify({ id, status }),
       })
       if (res.ok) fetchData()
-    } catch (err) {
+    } catch (_err) {
       setError("Error updating document")
     }
   }
@@ -169,7 +168,7 @@ export default function KnowledgeAdminPage() {
         body: JSON.stringify({ id, status }),
       })
       if (res.ok) fetchData()
-    } catch (err) {
+    } catch (_err) {
       setError("Error updating approval")
     }
   }
@@ -179,7 +178,7 @@ export default function KnowledgeAdminPage() {
     try {
       const res = await fetch(`/api/knowledge/documents?id=${id}`, { method: "DELETE" })
       if (res.ok) fetchData()
-    } catch (err) {
+    } catch (_err) {
       setError("Error deleting document")
     }
   }

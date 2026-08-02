@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, ShoppingCart, Package } from "lucide-react"
+import { Search, ShoppingCart } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { useCart } from "@/contexts/CartContext"
 

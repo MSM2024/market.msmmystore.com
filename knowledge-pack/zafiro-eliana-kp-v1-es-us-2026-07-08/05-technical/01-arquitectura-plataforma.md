@@ -29,9 +29,9 @@ doc_form: text_model
 - **Base de Datos**: Supabase (PostgreSQL) — en integración
 
 ### Estado Actual (MVP)
-- **Autenticación**: localStorage (mock hasta Supabase Auth)
-- **Persistencia**: localStorage para usuarios, sesiones, mensajes, contactos, perfil, campañas
-- **IA**: Gemini API con fallback local gemológico
+- **Autenticación**: Supabase Auth (login/registro/roles); sesión en caché local sincronizada
+- **Persistencia**: Supabase (PostgreSQL) con 60 migraciones y RLS; caché local para UI (carrito, configuración, campañas)
+- **IA**: Gemini API (requiere cuota disponible; sin ella devuelve error honesto)
 
 ## Estructura del Proyecto
 
@@ -81,7 +81,7 @@ src/
 │   ├── StripeModal.tsx
 │   └── TrendsSection.tsx
 ├── lib/                   # Utilities and shared logic
-│   ├── auth.ts            # Auth mock (localStorage)
+│   ├── auth.ts            # Auth (Supabase Auth + caché de sesión)
 │   ├── stripe.ts          # Stripe client
 │   ├── supabase.ts        # Supabase client
 │   ├── usePageTitle.ts    # SEO title hook
@@ -95,4 +95,4 @@ src/
 - Tema oscuro: `#050816` (fondo), `#00D9FF` (acento)
 - Fuente: Geist (monoespaciada)
 - Mobile-first con BottomNav en homepage, Footer en páginas standalone
-- Persistencia en localStorage con claves: `zafiro_messages`, `zafiro_contact_messages`, `zafiro_profile`, `zafiro_campaigns`, `zafiro_users`, `zafiro_session`
+- Persistencia principal en Supabase (PostgreSQL con RLS); caché local en localStorage para UI (`zafiro_messages`, `zafiro_contact_messages`, `zafiro_profile`, `zafiro_campaigns`, `zafiro_session`, `zafiro_user_roles`)

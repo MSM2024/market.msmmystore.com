@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSession, hasRole, refreshSession } from '@/lib/auth'
+import { hasRole, refreshSession } from '@/lib/auth'
 import ElianaAdminDashboard from '@/components/eliana/ElianaAdminDashboard'
 
 export default function ElianaAdminPage() {

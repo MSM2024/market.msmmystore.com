@@ -1,8 +1,8 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Shield, Users, FileText, BarChart3, Activity, Settings, AlertTriangle, MessageSquare, UserCheck, Eye, TrendingUp, Cpu, Zap, Bot, CheckCircle, XCircle, Clock, RefreshCw, DollarSign, Gem, Sparkles, Search, Store, Package, X, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, BookOpen, Database, Server, ShoppingCart } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { ArrowLeft, Shield, Users, FileText, BarChart3, Activity, Settings, AlertTriangle, MessageSquare, Eye, Cpu, Bot, CheckCircle, XCircle, RefreshCw, Gem, Search, Store, Package, X, Check, ChevronLeft, ChevronRight, BookOpen, Database, Server, ShoppingCart } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { hasRole, refreshSession } from "@/lib/auth"

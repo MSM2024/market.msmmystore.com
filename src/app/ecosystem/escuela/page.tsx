@@ -1,9 +1,8 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, GraduationCap, BookOpen, Code2, Megaphone, Briefcase, Clock, Users, Star, ChevronRight, Mail, Sparkles } from "lucide-react"
+import { ArrowLeft, GraduationCap, BookOpen, Code2, Megaphone, Briefcase, Clock, Users, Star, Mail, Sparkles } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
-import ElianaDiamond from "@/components/ElianaDiamond"
 
 const courses = [
   {

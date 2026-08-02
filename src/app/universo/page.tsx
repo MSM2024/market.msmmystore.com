@@ -267,7 +267,7 @@ export default function UniversoPage() {
                 <div key={category} className="mb-8">
                   <h3 className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-3">{category}</h3>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {(items as (ConnectedPlatform & { _order?: number })[]).map((p, idx) => {
+                    {(items as (ConnectedPlatform & { _order?: number })[]).map((p, _idx) => {
                       const meta = PLATFORM_META[p.type]
                       return (
                         <div key={p.id} className="group rounded-2xl glass hover:border-slate-700 transition-all overflow-hidden">

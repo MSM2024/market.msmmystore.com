@@ -1,5 +1,4 @@
 import { knowledgeIngestion } from "./ingestion"
-import { knowledgeRepo } from "./repository"
 import type { KnowledgeTag } from "./types"
 
 export interface SeedDocument {

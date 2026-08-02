@@ -22,7 +22,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
-  if (request.method !== "GET" || !url.origin === self.location.origin) return
+  if (request.method !== "GET" || url.origin !== self.location.origin) return
   // Nunca cachear llamadas API
   if (url.pathname.startsWith("/api/")) return
 

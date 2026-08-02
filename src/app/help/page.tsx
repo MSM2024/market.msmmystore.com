@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Brain, Users, Award, Globe, Shield, Star, MessageSquare, BookOpen, CreditCard, Zap, Sparkles, HelpCircle } from "lucide-react"
+import { ArrowLeft, HelpCircle } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function HelpPage() {

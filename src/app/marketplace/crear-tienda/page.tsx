@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, Store, Upload, Info, Globe, MessageCircle, Mail,
-  LinkIcon, RotateCcw, Truck, Check, Loader2, AlertCircle,
+  LinkIcon, RotateCcw, Truck, Loader2, AlertCircle,
 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { createStore } from "@/lib/marketplace/client"

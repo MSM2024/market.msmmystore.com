@@ -4,42 +4,14 @@ import { useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, ShoppingBag, Trash2, Plus, Minus, Package,
-  Clock, CheckCircle, Truck, XCircle, CreditCard,
+  XCircle, CreditCard,
   MapPin, Phone, User, FileText, Check, ArrowRight, Shield,
 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { useCart } from "@/contexts/CartContext"
 import { createOrder } from "@/lib/marketplace/client"
-import { formatPrice, ORDER_STATUS_LABELS, generateOrderNumber } from "@/lib/marketplace/constants"
+import { formatPrice, generateOrderNumber } from "@/lib/marketplace/constants"
 import type { OrderStatus } from "@/lib/marketplace/types"
-
-const STATUS_ICONS: Record<string, typeof Package> = {
-  pending_confirmation: Clock,
-  pending_payment: Clock,
-  paid: CheckCircle,
-  shipped: Truck,
-  delivered: CheckCircle,
-  completed: CheckCircle,
-  cancelled: XCircle,
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  completed: "text-emerald-400",
-  delivered: "text-emerald-400",
-  shipped: "text-blue-400",
-  cancelled: "text-red-400",
-  paid: "text-emerald-400",
-  pending_confirmation: "text-amber-400",
-  pending_payment: "text-amber-400",
-}
-
-const STATUS_BG: Record<string, string> = {
-  completed: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-  delivered: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-  shipped: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-  cancelled: "bg-red-500/10 text-red-400 border border-red-500/20",
-  paid: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-}
 
 interface CheckoutForm {
   nombre: string

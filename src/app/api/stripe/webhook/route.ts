@@ -3,12 +3,16 @@ import { getStripe, getWebhookSecret, isStripeAvailable } from "@/lib/stripe/ser
 import { isEventProcessed, markEventProcessed } from "@/lib/stripe/idempotency"
 import { getPlanByPriceId, getPlanById } from "@/lib/stripe/config"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import type Stripe from "stripe"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 60, windowMs: 60_000, keyPrefix: "stripe-webhook" })
+  if (limited) return limited
+
   if (!isStripeAvailable()) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 503 })
   }

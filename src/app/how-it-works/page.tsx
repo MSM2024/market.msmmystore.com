@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Search, MessageSquare, Users, Award, Globe, Shield, BookOpen, Sparkles, Link2, Star, Zap, Target } from "lucide-react"
+import { ArrowLeft, Gem, Search, Users, Award, Globe, Shield, BookOpen, Sparkles, Star, Zap, Target } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import ElianaDiamond from "@/components/ElianaDiamond"
 

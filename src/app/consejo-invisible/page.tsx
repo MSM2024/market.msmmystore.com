@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSession, getUserRole, refreshSession } from '@/lib/auth'
+import { getUserRole, refreshSession } from '@/lib/auth'
 import InvisibleCouncilDashboard from '@/components/consejo-invisible/InvisibleCouncilDashboard'
 
 export default function ConsejoInvisiblePage() {

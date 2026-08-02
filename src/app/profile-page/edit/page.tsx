@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Save, Camera, Plus, Trash2, Globe, AlertCircle, RefreshCw } from "lucide-react"
@@ -22,7 +22,7 @@ export default function EditProfilePage() {
   })
   const [rolesText, setRolesText] = useState("")
   const [editingLinks, setEditingLinks] = useState<SocialLink[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const [, setLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const mountedRef = useRef(true)

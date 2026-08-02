@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { GoogleGenAI } from "@google/genai"
 import { isUsableApiKey } from "@/lib/eliana/provider"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 const GEMINI_API_KEY = isUsableApiKey(process.env.GEMINI_API_KEY)
   ? process.env.GEMINI_API_KEY
@@ -18,6 +19,9 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-story-action" })
+    if (limited) return limited
+
     if (!GEMINI_API_KEY) {
       return NextResponse.json({ error: "ELIANA no está configurada (API key faltante)" }, { status: 503 })
     }

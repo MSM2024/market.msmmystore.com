@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   if (!isStripeAvailable()) {
     return NextResponse.json(
-      { error: "Stripe no está configurado. Contacta al administrador." },
+      { error: "Stripe no está configurado. Contacta al administrador.", code: "STRIPE_NOT_CONFIGURED" },
       { status: 503 }
     )
   }

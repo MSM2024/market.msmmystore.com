@@ -17,12 +17,12 @@ doc_form: hierarchy_model
 ### No puedo iniciar sesión
 - Verifica que el correo esté registrado (prueba con "¿Olvidaste tu contraseña?")
 - La contraseña distingue mayúsculas y minúsculas
-- Si usas el demo local, los datos se almacenan en localStorage del navegador
+- El login requiere que el servidor de autenticación (Supabase) esté configurado; si no, verás un mensaje claro de "no configurado"
 
 ### No recibo el correo de recuperación
-- En el demo actual, la recuperación es simulada (datos locales)
-- Verifica que el correo esté registrado en el sistema
-- La función `getUsers()` busca en localStorage con clave `zafiro_users`
+- El envío de correos de recuperación depende del servicio de email configurado en Supabase
+- Revisa la carpeta de spam; si el servicio no está configurado, la app lo indica
+- Si el correo no llega, contacta soporte para validar tu cuenta
 
 ### Error "Correo ya registrado"
 - Cada correo electrónico solo puede tener una cuenta

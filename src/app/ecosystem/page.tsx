@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Globe, ShoppingCart, CreditCard, BookOpen, Code2, Store, BarChart3, Users, Zap, MessageSquare, Brain, Shield, Link2, Truck, GraduationCap } from "lucide-react"
+import { ArrowLeft, Gem, Globe, ShoppingCart, CreditCard, BookOpen, Store, BarChart3, Users, Zap, MessageSquare, Brain, Shield, Link2, Truck, GraduationCap } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function EcosystemPage() {

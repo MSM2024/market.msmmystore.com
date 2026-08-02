@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/api-auth"
 import { isUsableApiKey } from "@/lib/eliana/provider"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-health" })
+  if (limited) return limited
+
   const auth = await requireAuth()
   if (!auth.ok) return auth.response
 

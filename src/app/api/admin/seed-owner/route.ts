@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdminClient } from "@/lib/supabase-admin"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 5, windowMs: 60_000, keyPrefix: "admin-seed-owner" })
+    if (limited) return limited
+
     const { targetEmail, targetId, setupToken } = await request.json()
     const identifier = targetId || targetEmail
 

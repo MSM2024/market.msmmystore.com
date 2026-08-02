@@ -2,13 +2,12 @@
 
 import { useState, Suspense, useCallback } from "react"
 import Link from "next/link"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Gem, Mail, CheckCircle, AlertCircle, RefreshCw, ArrowLeft } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 function VerifyContent() {
   usePageTitle("Verificar Cuenta — ZAFIRO")
-  const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get("email") || ""
   const [resent, setResent] = useState(false)

@@ -4,14 +4,13 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  ArrowLeft, Settings, MessageSquare, User, Award, Flame, Gem, Calendar, MapPin, Globe, Users, Star, BookOpen, Share2, Mail, ExternalLink, Plus, Shield, Heart, MessageCircle, Trophy, Layers, Eye, TrendingUp, Sparkles, Zap, Cpu, Target, Clock, Gift, DollarSign, Bot, Edit3, Camera, ChevronRight, Activity, CheckCircle, X, Send, RefreshCw
+  ArrowLeft, MessageSquare, User, Award, Flame, Gem, Calendar, MapPin, Globe, Users, Star, BookOpen, Share2, Mail, ExternalLink, Plus, Shield, Heart, MessageCircle, Trophy, Layers, Eye, TrendingUp, Sparkles, Zap, Cpu, Target, Clock, Gift, DollarSign, Bot, Edit3, Camera, ChevronRight, Activity, X, Send, RefreshCw
 } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession } from "@/lib/auth"
-import { getProfile, updateProfile, type UserProject, type SocialLink, type UserProfile } from "@/lib/profile"
+import { updateProfile, type UserProfile } from "@/lib/profile"
 import { type ConnectedPlatform, getPlatforms, PLATFORM_META } from "@/lib/universo"
 import { getPTSAccount, getStreak } from "@/lib/rewards"
-import { DEFAULT_ECOSYSTEM } from "@/lib/ecosistema"
 import ElianaDiamond from "@/components/ElianaDiamond"
 
 const PROFILE_TIMEOUT_MS = 10000
@@ -76,7 +75,7 @@ export default function ProfileFullPage() {
   const [elianaInput, setElianaInput] = useState("")
   const [ptsAccount, setPtsAccount] = useState<{ balance: number; level: number; levelProgress: number } | null>(null)
   const [currentStreak, setCurrentStreak] = useState(0)
-  const [showAvatarUpload, setShowAvatarUpload] = useState(false)
+  const [, setShowAvatarUpload] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)

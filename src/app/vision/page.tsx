@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Eye, Target, Globe, Zap, Infinity } from "lucide-react"
+import { ArrowLeft, Eye, Target, Zap, Infinity } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function VisionPage() {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import { z } from "zod"
 
 const ACTION_STATUSES = ["pending_confirmation", "confirmed", "executed", "failed"] as const
@@ -19,8 +20,11 @@ const actionPutSchema = z.object({
   parameters: z.record(z.string(), z.unknown()).optional(),
 })
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-actions" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ actions: [] })
     const { data: { user } } = await supabase.auth.getUser()
@@ -43,6 +47,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-actions" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -73,6 +80,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-actions" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()

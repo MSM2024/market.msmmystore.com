@@ -2,8 +2,12 @@ import { NextResponse } from "next/server"
 import { getStripe, isStripeAvailable } from "@/lib/stripe/server"
 import { STRIPE_CONFIG } from "@/lib/stripe/config"
 import { requireAuth } from "@/lib/api-auth"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
-export async function POST() {
+export async function POST(request: Request) {
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "stripe-portal" })
+  if (limited) return limited
+
   const authResult = await requireAuth()
   if (!authResult.ok) return authResult.response
   const auth = authResult.auth

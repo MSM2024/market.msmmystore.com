@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Shield, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react'
+import { X, Shield, CheckCircle, AlertTriangle } from 'lucide-react'
 
 interface StripeModalProps {
   isOpen: boolean
@@ -34,7 +34,7 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
-      } else if (data.error === "Stripe no configurado") {
+      } else if (res.status === 503 && data.code === "STRIPE_NOT_CONFIGURED") {
         setStripeDemoMode(true)
         setStripeSuccess(true)
       } else {
@@ -50,6 +50,8 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
   const handleClose = () => {
     if (stripePaying) return
     setStripeError(null)
+    setStripeDemoMode(false)
+    setStripeSuccess(false)
     onClose()
   }
 
@@ -99,16 +101,18 @@ export const StripeModal = ({ isOpen, onClose, budget, companyName, onSuccess }:
                     <p className="text-xs text-red-300">{stripeError}</p>
                   </div>
                 )}
-                <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-amber-300 font-medium">Stripe no configurado</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      El procesador de pagos real estará disponible cuando se configuren las claves de Stripe en producción.
-                      Por ahora la campaña se creará sin cargo.
-                    </p>
+                {stripeDemoMode && (
+                  <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-amber-300 font-medium">Stripe no configurado</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        El procesador de pagos real estará disponible cuando se configuren las claves de Stripe en producción.
+                        Por ahora la campaña se creará sin cargo.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="text-xs text-slate-500 leading-relaxed">
                   Al confirmar aceptas los{' '}
                   <a href="/terms" className="text-[#00D9FF] hover:underline">términos del servicio</a>.

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import { z } from "zod"
 
 const conversationPostSchema = z.object({
@@ -8,8 +9,11 @@ const conversationPostSchema = z.object({
   source_app: z.string().max(100).optional(),
 })
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-conversations" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
 
@@ -47,6 +51,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-conversations" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
 
@@ -85,6 +92,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-conversations" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
 

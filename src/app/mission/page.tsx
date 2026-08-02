@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Target, Globe, Users, Shield, Sparkles } from "lucide-react"
+import { ArrowLeft, Target, Globe, Users, Shield, Sparkles } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function MissionPage() {

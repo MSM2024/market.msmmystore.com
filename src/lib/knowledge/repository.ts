@@ -126,7 +126,6 @@ export class KnowledgeRepository {
 
     const query = options.query.trim()
     const limit = options.limit || 10
-    const threshold = options.threshold || 0.3
 
     let dbQuery = this.client
       .from("knowledge_documents")

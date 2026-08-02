@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Suspense } from "react"
-import { Gem, Mail, Lock, User, Eye, EyeOff, CheckCircle, AlertCircle, Gift } from "lucide-react"
+import { Gem, Mail, Lock, User, Eye, EyeOff, AlertCircle, Gift } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"

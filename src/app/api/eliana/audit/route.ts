@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import { z } from "zod"
 
 // ================================================================
@@ -38,6 +39,9 @@ const AuditLogQuerySchema = z.object({
 // --- POST: Insert audit log ---
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-audit" })
+  if (limited) return limited
+
   const apiKey = process.env.ELIANA_API_KEY
   const authHeader = request.headers.get("authorization")
 
@@ -114,6 +118,9 @@ export async function POST(request: NextRequest) {
 // --- GET: Query recent audit logs ---
 
 export async function GET(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "eliana-audit" })
+  if (limited) return limited
+
   const apiKey = process.env.ELIANA_API_KEY
   const authHeader = request.headers.get("authorization")
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 const RETURN_URL_ALLOWLIST = [
   "https://msmmystore.com",
@@ -71,6 +72,9 @@ function sanitizePayload(payload: HandoffPayload): HandoffPayload {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "eliana-context-handoff" })
+    if (limited) return limited
+
     const body = await request.json()
     const payload = sanitizePayload(body)
 
@@ -118,6 +122,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "eliana-context-handoff" })
+  if (limited) return limited
+
   const handoffId = request.nextUrl.searchParams.get("id")
 
   if (!handoffId) {

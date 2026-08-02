@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Package, Plus, Eye, Edit, Pause, Trash2, Loader2, AlertCircle } from "lucide-react"
+import { Package, Plus, Eye, Pause, Trash2, Loader2, AlertCircle } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getSession } from "@/lib/auth"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"

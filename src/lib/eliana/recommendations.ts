@@ -1,17 +1,13 @@
 import type { Recommendation } from "./types"
 import { getElianaMemory } from "./memory"
 import { getAllPlatformAnalyses } from "./analysis"
-import { getKnowledgeGraph } from "./knowledge"
 import { questions, experts, communities as defaultCommunities, defaultSponsors } from "@/lib/zafiro-data"
-import { getSession } from "@/lib/auth"
 
 const STORAGE_KEY = "zafiro_recommendations_cache"
 
 export function getPersonalizedRecommendations(userId: string, page: string): Recommendation[] {
-  const session = getSession()
   const memory = getElianaMemory(userId)
   const analyses = getAllPlatformAnalyses(userId)
-  const graph = getKnowledgeGraph(userId)
   const interests = analyses.flatMap(a => a.categories)
   const topics = analyses.flatMap(a => a.topics)
   const cacheKey = `${userId}:${page}`

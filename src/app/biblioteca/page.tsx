@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { BookOpen, Search, Filter, Sparkles, Layers, Users, MapPin } from "lucide-react"
+import { BookOpen, Search, Sparkles, Layers } from "lucide-react"
 import EmptyState from "@/components/ui/EmptyState"
 
 interface Book {

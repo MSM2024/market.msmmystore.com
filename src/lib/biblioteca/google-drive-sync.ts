@@ -1,5 +1,5 @@
 import { bibliotecaRepo } from "./repository"
-import type { LibrarySource, LibraryBook, LibraryImportJob } from "./types"
+import type { LibrarySource, LibraryBook } from "./types"
 
 interface DriveFileInfo {
   id: string
@@ -13,11 +13,6 @@ interface DriveFileInfo {
   md5Checksum?: string
   webViewLink?: string
   ownedByMe?: boolean
-}
-
-interface DriveFolderInfo {
-  id: string
-  name: string
 }
 
 export class GoogleDriveSyncService {

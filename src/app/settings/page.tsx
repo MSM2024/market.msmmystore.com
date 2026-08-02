@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Bell, Eye, Globe, Shield, Palette, Moon, Volume2, User, ChevronRight, LogOut, Trash2, Monitor, Sun, Type, Check, AlertTriangle, Lock, Camera, EyeOff, Languages, Clock, Mic, Accessibility, Loader2, RefreshCw, Home, Building2 } from "lucide-react"
+import { ArrowLeft, Bell, Eye, Globe, Shield, Palette, Moon, Volume2, User, ChevronRight, LogOut, Trash2, Monitor, Sun, Check, AlertTriangle, Camera, Accessibility, Loader2, RefreshCw, Home, Building2 } from "lucide-react"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { refreshSession, logout as authLogout } from "@/lib/auth"
@@ -91,7 +91,7 @@ export default function SettingsPage() {
   const requestRef = useRef<AbortController | null>(null)
 
   const [status, setStatus] = useState<PageStatus>("idle")
-  const [errorMessage, setErrorMessage] = useState("")
+  const [, setErrorMessage] = useState("")
   const [activeSection, setActiveSection] = useState("perfil")
   const [saving, setSaving] = useState(false)
 

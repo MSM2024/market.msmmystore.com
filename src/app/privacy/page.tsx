@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Shield, Lock, Eye, Database } from "lucide-react"
+import { ArrowLeft, Shield, Lock } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function PrivacyPage() {

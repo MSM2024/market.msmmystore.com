@@ -1,10 +1,10 @@
 ---
 id: technical-04-auth-persistencia
 title: Autenticación y Persistencia
-description: Sistema de autenticación mock con localStorage y estrategia de persistencia
+description: Sistema de autenticación con Supabase Auth y persistencia en la base de datos
 category: technical
-tags: [auth, persistencia, localstorage, sesion, usuarios]
-version: 1.0
+tags: [auth, persistencia, supabase, sesion, usuarios]
+version: 1.1
 date: 2026-07-08
 language: es
 doc_form: text_model
@@ -12,65 +12,34 @@ doc_form: text_model
 
 # Autenticación y Persistencia
 
-## Sistema de Autenticación (Demo)
+## Sistema de Autenticación (Supabase Auth)
 
-Actualmente, ZAFIRO usa un sistema de autenticación mock basado en localStorage mientras se integra Supabase Auth.
+ZAFIRO usa **Supabase Auth** para registrar, autenticar y gestionar sesiones. El login exige un proyecto Supabase configurado: sin él, las rutas de autenticación devuelven un error honesto ("El servidor de autenticación no está configurado") en lugar de simular una sesión.
 
 ### Funciones Principales (src/lib/auth.ts)
 
 | Función | Propósito |
 |---------|-----------|
-| `registerUser(name, email, password)` | Registra nuevo usuario y crea sesión |
-| `loginUser(email, password)` | Autentica usuario y crea sesión |
-| `getSession()` | Obtiene sesión activa desde localStorage |
-| `logout()` | Elimina la sesión |
-| `getUsers()` | Obtiene lista de usuarios registrados |
-| `isLoggedIn()` | Verifica si hay sesión activa |
+| `registerUser(name, email, password)` | Registra usuario vía `/api/auth/register` (Supabase) |
+| `loginUser(email, password)` | Autentica con `supabase.auth.signInWithPassword` |
+| `getSession()` | Lee la sesión activa en caché local |
+| `refreshSession()` | Valida la sesión contra Supabase y repersiste |
+| `logout()` | Cierra sesión en Supabase y limpia la caché |
+| `getUserRoles()` / `hasRole()` | Roles de usuario (caché local sincronizada con Supabase) |
 
-### Interfaz ZafiroUser
-
-```typescript
-interface ZafiroUser {
-  name: string
-  email: string
-  password: string
-  createdAt: string
-  avatar?: string
-  id: string
-}
-```
-
-### Claves de localStorage
+### Claves de localStorage (caché de sesión)
 
 | Clave | Propósito | Formato |
 |-------|-----------|---------|
-| `zafiro_users` | Lista de usuarios registrados | JSON array |
-| `zafiro_session` | Sesión activa | `{ email, name, id }` |
+| `zafiro_session` | Caché de la sesión activa (token/usuario) | `{ accessToken?, email, name, id }` |
+| `zafiro_user_roles` | Caché de roles (admin/owner/member) | JSON array |
 | `zafiro_messages` | Mensajes de chat | `Record<chatId, Message[]>` |
-| `zafiro_contact_messages` | Mensajes de contacto | Array de formularios |
+| `zafiro_contact_messages` | Mensajes de contacto (respaldo local) | Array de formularios |
 | `zafiro_profile` | Datos de perfil editados | Objeto con campos |
 | `zafiro_campaigns` | Campañas sponsor creadas | Array de campañas |
 
-## Estrategia de Transición a Supabase
+> Nota: `zafiro_session` y `zafiro_user_roles` son solo una **caché**. La fuente de verdad es Supabase; sin proyecto configurado no se puede iniciar sesión.
 
-1. **Fase 1 (Actual)**: Auth mock con localStorage
-   - `registerUser` y `loginUser` usan `localStorage.getItem/setItem`
-   - Sesión simulada con objeto JSON
-   - Recuperación de contraseña validando existencia del email
+## Persistencia en la Base de Datos (Supabase)
 
-2. **Fase 2 (Supabase Auth)**
-   - Migrar a `supabase.auth.signUp()` y `supabase.auth.signInWithPassword()`
-   - Reemplazar `getSession()` con `supabase.auth.getSession()`
-   - Manejo de tokens JWT reales
-   - Sesión persistente con refresh tokens
-
-3. **Fase 3 (Supabase DB completa)**
-   - Migrar perfiles a tabla `profiles`
-   - Migrar preguntas a tabla `questions`
-   - Migrar respuestas a tabla `replies`
-   - Migrar comunidades a tabla `communities`
-   - Migrar membresías a tabla `memberships`
-   - Migrar sponsors a tabla `sponsors`
-   - Migrar notificaciones a tabla `notifications`
-   - Migrar referidos a tabla `referrals`
-   - Migrar recompensas a tabla `rewards`
+El esquema (60 migraciones, ~90 tablas con RLS activo) cubre: `profiles`, `auth` (Supabase Auth), `questions`, `replies`, `communities`, `memberships`, `sponsors`, `notifications`, `referrals`, `rewards`, marketplace, biblioteca, knowledge y auditoría. Las tablas se aplican al proyecto Supabase mediante migraciones; los datos no se fabrican localmente.

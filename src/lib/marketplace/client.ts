@@ -3,8 +3,7 @@
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 import type {
   MarketplaceProduct, MarketplaceStore, MarketplaceCategory,
-  MarketplaceProvider, MarketplaceCart, CartItem,
-  MarketplaceOrder, OrderItem, MarketplaceReview,
+  MarketplaceProvider, MarketplaceOrder, OrderItem, MarketplaceReview,
   ProductWithStore, StoreWithStats, OrderWithItems,
 } from "./types"
 

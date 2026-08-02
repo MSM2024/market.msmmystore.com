@@ -35,7 +35,7 @@ export default function MarketplaceStoresPage() {
   const loadStores = useCallback(async () => {
     setLoading(true)
     try {
-      const { stores: data, total } = await fetchStores({
+      const { stores: data } = await fetchStores({
         status: "active",
         country: countryFilter || undefined,
         search: search || undefined,

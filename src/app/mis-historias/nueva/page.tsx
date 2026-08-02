@@ -26,12 +26,6 @@ const PRIVACY_OPTIONS = [
   { value: "comunidad", label: "Comunidad" },
   { value: "publica", label: "Pública" },
 ]
-const STATUS_OPTIONS = [
-  { value: "borrador", label: "Borrador" },
-  { value: "publicada", label: "Publicada" },
-  { value: "archivada", label: "Archivada" },
-]
-
 export default function NuevaHistoriaWrapper() {
   return (
     <Suspense fallback={<div className="min-h-screen zafiro-page text-white flex items-center justify-center">Cargando...</div>}>

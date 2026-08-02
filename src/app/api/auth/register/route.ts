@@ -6,7 +6,6 @@ const RATE_LIMIT_MAX = 5
 const RATE_LIMIT_WINDOW = 60_000
 
 function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
   const count = RATE_LIMIT_MAP.get(ip) || 0
   if (count >= RATE_LIMIT_MAX) return false
   RATE_LIMIT_MAP.set(ip, count + 1)

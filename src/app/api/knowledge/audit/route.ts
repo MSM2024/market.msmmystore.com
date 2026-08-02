@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo } from "@/lib/knowledge"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "knowledge-audit" })
+    if (limited) return limited
+
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get("limit") || "50")
     const action = searchParams.get("action") || undefined
@@ -18,13 +22,16 @@ export async function GET(request: NextRequest) {
       logs,
       total: logs.length,
     })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 30, windowMs: 60_000, keyPrefix: "knowledge-audit" })
+    if (limited) return limited
+
     const body = await request.json()
     const { action, resource_type, resource_id, resource_title, previous_value, new_value, metadata } = body
 
@@ -47,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ log }, { status: 201 })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

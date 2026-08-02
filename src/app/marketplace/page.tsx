@@ -58,7 +58,7 @@ export default function MarketplacePage() {
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES)
   const [stores, setStores] = useState(FALLBACK_STORES)
   const [products, setProducts] = useState<HomeProduct[]>(FALLBACK_PRODUCTS)
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {

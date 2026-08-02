@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Globe, ExternalLink, Plus, Trash2, Save, Edit3, X, Shield, Camera, MessageSquare, Video, Music2, Send, Store, Briefcase, Code2, MessageCircle, Music, BookOpen } from "lucide-react"
+import { ArrowLeft, Globe, ExternalLink, Plus, Trash2, Save, Shield, Camera, MessageSquare, Video, Music2, Send, Store, Briefcase, Code2, MessageCircle, Music, BookOpen } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { getProfile, updateProfile, type SocialLink, type UserProfile } from "@/lib/profile"
 import { getPlatforms, PLATFORM_META, addPlatform, removePlatform, importFromLinktree, type ConnectedPlatform, type PlatformType } from "@/lib/universo"

@@ -138,22 +138,29 @@ Criterio de inclusión: todo lo que NO puede resolverse desde el repositorio (de
 
 ## GRUPO C — Calidad (mecánico, sin bloqueo)
 
-### C1. E2E de flujos críticos
-- **Motivo:** la suite E2E cubre solo páginas públicas (10 smoke tests); no hay tests de pago, checkout, chat o marketplace con datos.
+### C1. E2E de flujos con datos (pagos, checkout, chat, marketplace)
+- **Motivo:** la suite E2E ahora cubre 28 smoke tests (10 auth/públicas + 18 páginas públicas añadidas en esta etapa), pero no hay tests de pago, checkout, chat o marketplace con datos.
 - **Dependencia:** Supabase/Stripe configurados.
 - **Tiempo estimado:** 2–3 días.
 - **Riesgo:** MEDIO.
 - **Acción necesaria:** escribir E2E de los flujos críticos una vez configurada la infraestructura.
 
-### C2. 229 warnings de lint (variables sin uso)
-- **Motivo:** vars/params muertos no prefijados con `_`. No bloquean (0 errores) pero ensucian la salida.
+### C2. 31 warnings de lint restantes (sin bloqueo)
+- **Motivo:** en esta etapa se eliminaron los 229 warnings de `no-unused-vars` (quedan 0). Persisten **31 warnings de otras reglas**: 12 `react-hooks/exhaustive-deps` y 19 `@next/next/no-img-element` (`<img>` sin `next/image`).
 - **Dependencia:** código.
 - **Tiempo estimado:** 2–3 h.
-- **Riesgo:** BAJO.
-- **Acción necesaria:** limpiar o renombrar con prefijo `_` (trabajo mecánico).
+- **Riesgo:** BAJO (los `exhaustive-deps` no se tocaron para no alterar el comportamiento de los hooks).
+- **Acción necesaria:** migrar `<img>` a `next/image` (19) y revisar las deps de hooks una por una (12).
 
-### C3. Verificación offline/PWA en producción
-- **Motivo:** se añadió `public/sw.js` (network-first para navegación, stale-while-revalidate para estáticos) con registro solo en producción y fuera de localhost; falta validarlo en el dominio real.
+### C3. Rate limiting persistente en producción
+- **Motivo:** el limitador `src/lib/rate-limit.ts` es en memoria (`Map`): ahora cubre **todas las rutas de escritura y lectura sensibles** (25 rutas añadidas en esta etapa + las que ya tenían), pero el contador vive por instancia y se reinicia en cada redeploy; no es compartido entre instancias.
+- **Dependencia:** infraestructura (Upstash/Redis) o límites en el edge/Vercel.
+- **Tiempo estimado:** 1 día.
+- **Riesgo:** BAJO (en single-instance funciona bien).
+- **Acción necesaria:** migrar a un store distribuido cuando haya múltiples instancias.
+
+### C4. Verificación offline/PWA en producción
+- **Motivo:** el service worker tiene un bug de precedencia corregido en esta etapa (`sw.js:25`), la PWA está configurada (manifest + 9 íconos + registro solo en producción); falta validarla en el dominio real.
 - **Dependencia:** deploy.
 - **Tiempo estimado:** 30 min.
 - **Riesgo:** BAJO.
@@ -163,7 +170,9 @@ Criterio de inclusión: todo lo que NO puede resolverse desde el repositorio (de
 
 ## Resumen de la etapa de cierre
 
-- **Funcional y verificado:** suite completa `pnpm install` + `lint` (0 errores/229 warnings) + `typecheck` (0) + `test` (88/88) + `build` (140 páginas) + `playwright` (10/10).
-- **Corregido:** falsos éxitos (StripeModal, contacto, pedidos sin DB), delay falso en reset-password, datos falsos de Linktree, teléfonos placeholder en seed de conocimiento, config eslint para `_params`.
-- **Eliminado:** cluster económico simulado (6 archivos) y directorio huérfano de proveedores de marketplace (5 archivos); dependencia `rehype-raw`.
-- **Completado desde código:** PWA (service worker + registro), márgenes del admin persistidos en `marketplace_config` (las mismas flags que usa el pricing real), feature flags del admin persistidos en `marketplace_config`.
+- **Funcional y verificado:** suite completa `pnpm install` + `lint` (0 errores/31 warnings) + `typecheck` (0) + `test` (88/88) + `build` (140 páginas) + `playwright` (28/28).
+- **Corregido (errores reales):** bug de precedencia en `public/sw.js:25` (la comprobación de origen era código muerto); rama demo muerta en `StripeModal.tsx` por desalineación de cadena con el 503 de checkout (ahora usa `code: "STRIPE_NOT_CONFIGURED"` y el aviso ámbar solo se muestra en modo demo); documentación de autenticación obsoleta en el Knowledge Pack (decía "auth mock/localStorage" cuando ya es Supabase Auth).
+- **Seguridad:** rate limiting añadido a las 25 rutas API que no tenían (auth, eliana, knowledge, stripe, voz-viva, admin/seed-owner); el limitador en memoria cubre ahora todas las rutas sensibles.
+- **Calidad:** 229 warnings de `no-unused-vars` eliminados (0 restantes); suite E2E ampliada de 10 a 28 tests de páginas públicas.
+- **Eliminado (etapa anterior):** cluster económico simulado (6 archivos), directorio de proveedores huérfano (5 archivos), dependencia `rehype-raw`.
+- **Completado desde código:** PWA (service worker + registro), márgenes/flags del admin persistidos en `marketplace_config`.

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
-import { ArrowLeft, Gem, Globe, Microscope, Network, BookOpen, Sparkles, Zap, Users, Target, Search, Shield, ExternalLink, Brain, Activity, Eye, Cpu, Database, MessageSquare, TrendingUp, Clock, Bot } from "lucide-react"
+import { ArrowLeft, Globe, Network, Sparkles, Zap, Shield, ExternalLink, Brain, Activity, Eye, Cpu, Database, MessageSquare, TrendingUp, Clock } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import ElianaDiamond from "@/components/ElianaDiamond"

@@ -55,7 +55,6 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
   }
 
   interface OrderRow { id: string; status: string; total_amount: number | null }
-  interface ReportRow extends AdminReport { reporter_id: string }
 
   const [totalUsers, totalQuestions, totalCommunities, pendingReports, pendingStoreApprovals, pendingProductApprovals, orders] = await Promise.all([
     safeCount("profiles"),

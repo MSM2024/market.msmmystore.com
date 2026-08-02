@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { knowledgeRepo, knowledgeIngestion } from "@/lib/knowledge"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import type { KnowledgeApproval } from "@/lib/knowledge/types"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-approvals" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -16,20 +20,23 @@ export async function GET() {
       total: approvals.length,
       pending: approvals.filter((a: KnowledgeApproval) => a.status === "pending").length,
     })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-approvals" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = await request.json()
-    const { document_id, version_number, review_notes } = body
+    const { document_id, version_number } = body
 
     if (!document_id) {
       return NextResponse.json({ error: "Document ID is required" }, { status: 400 })
@@ -60,13 +67,16 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ approval }, { status: 201 })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "knowledge-approvals" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     const { data: { user } } = await supabase.auth.getUser()
@@ -108,7 +118,7 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json({ approval })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

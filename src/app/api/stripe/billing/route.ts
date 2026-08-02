@@ -3,6 +3,7 @@ import type Stripe from "stripe"
 import { getStripe, isStripeAvailable } from "@/lib/stripe/server"
 import { STRIPE_PLANS, STRIPE_CONFIG, getPlanById } from "@/lib/stripe/config"
 import { requireAuth, type AuthContext } from "@/lib/api-auth"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 async function findCustomerId(stripe: Stripe, email: string): Promise<string | null> {
   if (!email) return null
@@ -30,7 +31,10 @@ async function ownsSubscription(
   return false
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "stripe-billing" })
+  if (limited) return limited
+
   if (!isStripeAvailable()) {
     return NextResponse.json(
       { error: "Stripe no está configurado" },
@@ -60,6 +64,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitByIp(request, { max: 20, windowMs: 60_000, keyPrefix: "stripe-billing" })
+  if (limited) return limited
+
   const authResult = await requireAuth()
   if (!authResult.ok) return authResult.response
   const auth = authResult.auth

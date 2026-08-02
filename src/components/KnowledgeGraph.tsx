@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useMemo } from "react"
-import { Atom, Network } from "lucide-react"
+import { Network } from "lucide-react"
 import { getKnowledgeGraph, getRelatedNodes } from "@/lib/eliana/knowledge"
 import { getSession } from "@/lib/auth"
-import type { KnowledgeGraph as KG, KnowledgeNode, KnowledgeEdge } from "@/lib/eliana/types"
+import type { KnowledgeGraph as KG } from "@/lib/eliana/types"
 
 const NODE_COLORS: Record<string, string> = {
   user: "#00D9FF", platform: "#7c3aed", concept: "#2563eb",
@@ -14,7 +14,7 @@ const NODE_COLORS: Record<string, string> = {
 export default function KnowledgeGraphView({ className = "" }: { className?: string }) {
   const session = getSession()
   const userId = session?.id || ""
-  const [graph, setGraph] = useState<KG>(() => userId ? getKnowledgeGraph(userId) : { nodes: [], edges: [] })
+  const [graph] = useState<KG>(() => userId ? getKnowledgeGraph(userId) : { nodes: [], edges: [] })
   const [selected, setSelected] = useState<string>("")
   const [hovered, setHovered] = useState<string>("")
 

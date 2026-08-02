@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Gem, Shield, FileText, AlertCircle } from "lucide-react"
+import { ArrowLeft, FileText } from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 
 export default function TermsPage() {

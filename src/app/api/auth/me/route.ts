@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const limited = rateLimitByIp(request, { max: 60, windowMs: 60_000, keyPrefix: "auth-me" })
+    if (limited) return limited
+
     const supabase = await getSupabaseServerClient()
     if (!supabase) {
       return NextResponse.json({ user: null, roles: [] }, { status: 503 })
