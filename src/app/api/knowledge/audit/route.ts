@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       total: logs.length,
     })
   } catch (_error) {
+    console.error("KNOWLEDGE_AUDIT_ERROR", _error instanceof Error ? _error.stack || _error.message : _error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

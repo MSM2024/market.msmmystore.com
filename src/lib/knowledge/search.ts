@@ -97,7 +97,9 @@ function buildSearchContext(
 
 export class KnowledgeSearchEngine {
   private get client() {
-    return getSupabaseClient()
+    const c = getSupabaseClient()
+    if (!c) throw new Error("Supabase no configurado")
+    return c
   }
 
   private get available() {

@@ -8,13 +8,42 @@ export default function OfflineBanner() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
+    let active = true
+
+    const probe = async () => {
+      if (!active) return
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setOffline(true)
+        return
+      }
+      try {
+        const res = await fetch("/api/health", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(8000),
+        })
+        if (active) setOffline(!res.ok)
+      } catch {
+        if (active) setOffline(true)
+      }
+    }
+
     const onOffline = () => setOffline(true)
-    const onOnline = () => setOffline(false)
+    const onOnline = () => {
+      setOffline(false)
+      probe()
+    }
+
     window.addEventListener("offline", onOffline)
     window.addEventListener("online", onOnline)
+
+    probe()
+    const id = setInterval(probe, 30000)
+
     return () => {
+      active = false
       window.removeEventListener("offline", onOffline)
       window.removeEventListener("online", onOnline)
+      clearInterval(id)
     }
   }, [])
 

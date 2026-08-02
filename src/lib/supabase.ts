@@ -1,6 +1,5 @@
-'use client'
-
 import { createBrowserClient } from "@supabase/ssr"
+import { createClient } from "@supabase/supabase-js"
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const rawAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -27,12 +26,25 @@ function isConfigured(): boolean {
   return !!(getSupabaseUrl() && getSupabaseKey())
 }
 
-let client: ReturnType<typeof createBrowserClient> | null = null
+type Client = ReturnType<typeof createBrowserClient>
 
-export function getSupabaseClient() {
+let client: Client | null = null
+let serverClient: Client | null = null
+
+export function getSupabaseClient(): Client | null {
   if (!isConfigured()) return null
   const url = getSupabaseUrl()!
   const key = getSupabaseKey()!
+
+  // Server-side (API routes, server components, libs): use a plain data client
+  // so client-only code from @supabase/ssr is never invoked from the server.
+  if (typeof window === "undefined") {
+    if (!serverClient) {
+      serverClient = createClient(url, key) as unknown as Client
+    }
+    return serverClient
+  }
+
   if (!client) {
     client = createBrowserClient(url, key)
   }
