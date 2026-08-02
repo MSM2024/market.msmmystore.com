@@ -9,7 +9,6 @@ const PAGES: Array<{ path: string; name: string }> = [
   { path: "/vision", name: "Nuestra Visión" },
   { path: "/what-we-do", name: "Qué Hacemos" },
   { path: "/how-it-works", name: "Cómo Funciona ZAFIRO" },
-  { path: "/biblioteca", name: "Biblioteca Viva de Don Miguel" },
   { path: "/historias", name: "Historias" },
   { path: "/sponsors-page", name: "Sponsors" },
   { path: "/ecosystem", name: "Ecosistema MSM" },
@@ -39,4 +38,9 @@ test("universo page renders the digital universe section", async ({ page }) => {
 test("voz-viva page renders", async ({ page }) => {
   await page.goto("/voz-viva")
   await expect(page.locator("text=La Voz Viva").first()).toBeVisible({ timeout: 15000 })
+})
+
+test("biblioteca is owner-only and redirects unauthenticated users home", async ({ page }) => {
+  await page.goto("/biblioteca")
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 })
 })
