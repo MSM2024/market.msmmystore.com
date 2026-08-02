@@ -157,7 +157,7 @@ export async function POST(request: Request) {
     }
 
     // Auto-confirm if SMTP is not configured
-    let isConfirmed = result?.email_confirmed_at !== null
+    let isConfirmed = Boolean(result?.email_confirmed_at) || Boolean(result?.confirmed_at)
     if (!isConfirmed) {
       try {
         const confirmHeaders: Record<string, string> = {
@@ -192,7 +192,7 @@ export async function POST(request: Request) {
       code: "ACCOUNT_CREATED",
       message: isConfirmed
         ? "Cuenta creada correctamente. Ya puedes iniciar sesión."
-        : "Cuenta creada. Si el correo de verificación no llega, intenta iniciar sesión directamente.",
+        : "Cuenta creada. Te enviamos un enlace de verificación a tu correo. Si no llega, usa la opción de reenviar en /auth/verify.",
       userId: result.id,
       auto_confirmed: isConfirmed,
     })
