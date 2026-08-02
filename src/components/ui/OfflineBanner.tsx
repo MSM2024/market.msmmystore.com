@@ -4,46 +4,42 @@ import { useEffect, useState } from "react"
 import { WifiOff } from "lucide-react"
 
 export default function OfflineBanner() {
-  const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine)
+  const [offline, setOffline] = useState(false)
 
   useEffect(() => {
     if (typeof window === "undefined") return
     let active = true
+    let timer: ReturnType<typeof setTimeout> | null = null
 
     const probe = async () => {
       if (!active) return
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        setOffline(true)
-        return
-      }
       try {
         const res = await fetch("/api/health", {
           cache: "no-store",
           signal: AbortSignal.timeout(8000),
         })
-        if (active) setOffline(!res.ok)
+        if (!active) return
+        setOffline(!res.ok)
+        timer = setTimeout(probe, res.ok ? 30000 : 10000)
       } catch {
-        if (active) setOffline(true)
+        if (!active) return
+        setOffline(true)
+        timer = setTimeout(probe, 10000)
       }
     }
 
     const onOffline = () => setOffline(true)
-    const onOnline = () => {
-      setOffline(false)
-      probe()
-    }
+    const onOnline = () => probe()
 
     window.addEventListener("offline", onOffline)
     window.addEventListener("online", onOnline)
-
     probe()
-    const id = setInterval(probe, 30000)
 
     return () => {
       active = false
+      if (timer) clearTimeout(timer)
       window.removeEventListener("offline", onOffline)
       window.removeEventListener("online", onOnline)
-      clearInterval(id)
     }
   }, [])
 
