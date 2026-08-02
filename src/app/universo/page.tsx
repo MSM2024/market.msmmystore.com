@@ -85,6 +85,7 @@ export default function UniversoPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"conexiones" | "ecosistema">("conexiones")
   const [imported, setImported] = useState(false)
+  const [importNote, setImportNote] = useState("")
 
   const [formType, setFormType] = useState<PlatformType>("other")
   const [formUrl, setFormUrl] = useState("")
@@ -130,6 +131,7 @@ export default function UniversoPage() {
     const session = getSession()
     if (!session) return
     const imported_ = importFromLinktree(session.id, "msmmystore")
+    setImportNote(imported_.length > 0 ? "" : "La importación desde Linktree requiere una integración externa que aún no está configurada.")
     if (imported_.length > 0) {
       setImported(true)
       loadPlatforms()
@@ -219,6 +221,9 @@ export default function UniversoPage() {
               <Plus className="w-3.5 h-3.5" /> Conectar
             </button>
           </div>
+          {importNote && (
+            <p className="text-[10px] text-amber-400/90 mt-2">{importNote}</p>
+          )}
         </div>
 
         <div className="flex gap-1 mb-5 border-b border-slate-800">

@@ -23,16 +23,20 @@ export async function POST(request: Request) {
     const { name, email, subject, message } = parsed.data
 
     const admin = getSupabaseAdminClient()
-    if (admin) {
-      const { error } = await admin.from("contact_messages").insert({
-        name,
-        email,
-        subject: subject || "Sin asunto",
-        message,
-        created_at: new Date().toISOString(),
-      })
-      if (error) throw error
+    if (!admin) {
+      return NextResponse.json(
+        { error: "El servicio de contacto no está disponible: Supabase no está configurado." },
+        { status: 503 }
+      )
     }
+    const { error } = await admin.from("contact_messages").insert({
+      name,
+      email,
+      subject: subject || "Sin asunto",
+      message,
+      created_at: new Date().toISOString(),
+    })
+    if (error) throw error
 
     return NextResponse.json({ ok: true })
   } catch (err) {

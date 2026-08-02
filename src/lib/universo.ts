@@ -146,21 +146,10 @@ export function reorderPlatforms(userId: string, orderedIds: string[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...others, ...reordered, ...remaining]))
 }
 
-export function importFromLinktree(userId: string, username: string): ConnectedPlatform[] {
-  const now = new Date().toISOString()
-  const name = username || "user"
-  const links: ConnectedPlatform[] = [
-    { id: `lt_facebook_${userId}`, type: "facebook", url: `https://facebook.com/${name}`, title: `${name} en Facebook`, description: "Síguenos en Facebook", image: "", category: "Redes Sociales", tags: ["facebook", "redes"], summary: `Perfil de ${name} en Facebook.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "social", elianaAnalysis: { summary: `Perfil social de ${name} en Facebook.`, categories: ["Redes Sociales"], tags: ["facebook", name], topics: ["Redes Sociales"], keywords: [name, "facebook"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-    { id: `lt_instagram_${userId}`, type: "instagram", url: `https://instagram.com/${name}`, title: `@${name}`, description: "Contenido visual", image: "", category: "Redes Sociales", tags: ["instagram", "visual"], summary: `Feed de Instagram de ${name}.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "photo", elianaAnalysis: { summary: `Galería visual de ${name} en Instagram.`, categories: ["Redes Sociales"], tags: ["instagram", name], topics: ["Contenido Visual"], keywords: [name, "instagram"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-    { id: `lt_tiktok_${userId}`, type: "tiktok", url: `https://tiktok.com/@${name}`, title: `@${name}`, description: "Videos cortos", image: "", category: "Redes Sociales", tags: ["tiktok", "viral"], summary: `TikTok de ${name}.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "video", elianaAnalysis: { summary: `Contenido de ${name} en TikTok.`, categories: ["Redes Sociales"], tags: ["tiktok", name], topics: ["Tendencias"], keywords: [name, "tiktok"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-    { id: `lt_x_${userId}`, type: "twitter", url: `https://x.com/${name}`, title: `@${name}`, description: "Actualizaciones", image: "", category: "Redes Sociales", tags: ["x", "twitter"], summary: `Perfil en X de ${name}.`, stats: {}, connectedAt: now, lastSync: now, isActive: true, isVerified: false, contentType: "social", elianaAnalysis: { summary: `Presencia en X de ${name}.`, categories: ["Redes Sociales"], tags: ["x", name], topics: ["Actualizaciones"], keywords: [name, "x"], knowledgeMapConnections: [], lastAnalysis: now }, userId },
-  ]
-
-  const all: ConnectedPlatform[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
-  const filtered = all.filter(p => p.userId !== userId || !p.id.startsWith("lt_"))
-  filtered.push(...links)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
-  return links
+export function importFromLinktree(_userId: string, _username: string): ConnectedPlatform[] {
+  // Integración con Linktree pendiente: requiere API/credenciales externas.
+  // No se fabrican conexiones falsas; devuelve lista vacía hasta que exista integración real.
+  return []
 }
 
 export function analyzeWithEliana(platform: ConnectedPlatform): ElianaAnalysis {

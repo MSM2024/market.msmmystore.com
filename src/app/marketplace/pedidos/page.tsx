@@ -56,6 +56,7 @@ export default function CartPage() {
   const { items, subtotal, removeItem, updateQuantity, clearCart } = useCart()
   const [showCheckout, setShowCheckout] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null)
+  const [orderError, setOrderError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState<CheckoutForm>({
     nombre: "", telefono: "", direccion: "", ciudad: "", pais: "US", notas: "",
@@ -71,6 +72,7 @@ export default function CartPage() {
     setSubmitting(true)
 
     try {
+      setOrderError(null)
       const orderNumber = generateOrderNumber()
       const order = await createOrder(
         {
@@ -112,12 +114,10 @@ export default function CartPage() {
         setOrderSuccess(order.order_number || orderNumber)
         clearCart()
       } else {
-        setOrderSuccess(orderNumber)
-        clearCart()
+        setOrderError("No se pudo registrar el pedido: la base de datos no está configurada. Conecta Supabase para crear pedidos reales.")
       }
     } catch {
-      setOrderSuccess(generateOrderNumber())
-      clearCart()
+      setOrderError("Error al crear el pedido. Inténtalo de nuevo.")
     } finally {
       setSubmitting(false)
     }
@@ -147,6 +147,26 @@ export default function CartPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (orderError) {
+    return (
+      <div className="min-h-screen zafiro-page text-white">
+        <div className="max-w-2xl mx-auto px-4 py-12 text-center">
+          <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-6">
+            <XCircle className="w-10 h-10 text-red-400" />
+          </div>
+          <h1 className="text-xl font-black mb-2">No se pudo crear el pedido</h1>
+          <p className="text-sm text-slate-400 mb-6">{orderError}</p>
+          <button
+            onClick={() => setOrderError(null)}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors"
+          >
+            Volver al carrito
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (orderSuccess) {

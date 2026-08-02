@@ -7,6 +7,7 @@ import { usePageTitle } from "@/lib/usePageTitle"
 import { formatPrice } from "@/lib/marketplace/constants"
 import { hasRole, refreshSession } from "@/lib/auth"
 import { fetchAdminMarketplaceStats, adminFetchPendingStores, adminFetchPendingProducts, adminApproveStore, adminRejectStore, adminApproveProduct, adminRejectProduct } from "@/lib/marketplace/client"
+import { fetchFeatureFlags, saveFeatureFlag } from "@/lib/marketplace/feature-flags"
 import type { StoreWithStats, ProductWithStore } from "@/lib/marketplace/types"
 
 
@@ -57,7 +58,19 @@ export default function AdminMarketplacePage() {
 
   useEffect(() => {
     loadData()
+    loadFlags()
   }, [])
+
+  async function loadFlags() {
+    const remote = await fetchFeatureFlags()
+    setFlags(prev => {
+      const next = { ...prev }
+      for (const key of Object.keys(prev)) {
+        if (typeof remote[key] === "boolean") next[key] = remote[key] as boolean
+      }
+      return next
+    })
+  }
 
   async function loadData() {
     setLoading(true)
@@ -119,8 +132,11 @@ export default function AdminMarketplacePage() {
     }
   }
 
-  function toggleFlag(key: string) {
+  async function toggleFlag(key: string) {
     setFlags(prev => ({ ...prev, [key]: !prev[key] }))
+    const next = !flags[key]
+    const saved = await saveFeatureFlag(key, next)
+    showToast(saved ? `Flag ${key} actualizado` : "Flag guardado solo localmente (Supabase no disponible)")
   }
 
   if (loading) {

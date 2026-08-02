@@ -7,7 +7,7 @@ import ZafiroBackground, { type ZafiroVariant } from "@/components/ZafiroBackgro
 import OfflineBanner from "@/components/ui/OfflineBanner"
 import { CartProvider } from "@/contexts/CartContext"
 import { AuthProvider } from "@/lib/AuthContext"
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 
 function useIsMarketplaceDomain(): boolean {
   if (typeof window === "undefined") return false
@@ -63,6 +63,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isHome = pathname === "/" || pathname.startsWith("/api/")
   const isMarketplace = useIsMarketplaceDomain()
   const isEliana = useIsElianaDomain()
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return
+    if (typeof window === "undefined") return
+    const { hostname } = window.location
+    if (hostname === "localhost" || hostname === "127.0.0.1") return
+    if (!("serviceWorker" in navigator)) return
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // El registro del service worker no debe romper la aplicación
+    })
+  }, [])
 
   const context = useMemo(() => getContextFromPath(pathname), [pathname])
   const zafiroVariant = useMemo(() => getZafiroVariant(pathname), [pathname])

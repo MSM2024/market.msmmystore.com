@@ -87,9 +87,7 @@ export default function ResetPasswordPage() {
           }
         }
 
-        await new Promise(r => setTimeout(r, 500))
         if (!mountedRef.current) return
-
         const { data: sessionCheck } = await supabase.auth.getSession()
         if (sessionCheck.session) {
           if (mountedRef.current) {

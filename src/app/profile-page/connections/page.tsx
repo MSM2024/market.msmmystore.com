@@ -21,6 +21,7 @@ export default function ConnectionsPage() {
   const [showAddPlatform, setShowAddPlatform] = useState(false)
   const [showAddLink, setShowAddLink] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [importNote, setImportNote] = useState("")
   const [newPlatform, setNewPlatform] = useState({ type: "website" as PlatformType, url: "", title: "", description: "" })
   const [newLink, setNewLink] = useState({ platform: "", url: "", label: "" })
   const [editingLinks, setEditingLinks] = useState<SocialLink[]>([])
@@ -39,6 +40,7 @@ export default function ConnectionsPage() {
   const handleImportLinktree = () => {
     if (!profile) return
     const imported = importFromLinktree(profile.userId, "msmmystore")
+    setImportNote(imported.length > 0 ? "" : "La importación desde Linktree requiere una integración externa que aún no está configurada.")
     if (imported.length > 0) {
       setPlatforms(getPlatforms(profile.userId))
       setSaved(true)
@@ -185,6 +187,9 @@ export default function ConnectionsPage() {
                   <Plus className="w-3 h-3" /> Agregar
                 </button>
               </div>
+              {importNote && (
+                <p className="text-[9px] text-amber-400/90 mt-2">{importNote}</p>
+              )}
             </div>
 
             {platforms.length === 0 ? (
