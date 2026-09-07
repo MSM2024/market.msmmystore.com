@@ -1,7 +1,7 @@
 # ZAFIRO — ESTADO DEL PROYECTO (PROJECT_STATUS)
 
 > Documento de continuidad. Cualquier IA/desarrollador debe leer esto antes de tocar código.
-> Última auditoría: 2026-08-02 (rama `main`, HEAD `e7f8308`).
+> Última auditoría: 2026-09-07 (rama `main`, ZAFIRO 1.0.1 FASE 1 + FASE 2 completadas).
 
 ## 1. OBJETIVO ACTUAL
 
@@ -29,6 +29,7 @@ declararse DONE.
 | Banner "Sin conexión" | ✅ COMPLETADO | `/api/health` como única señal (commit `2cb4e72`) |
 | Panel admin `/admin` | 🟡 COMPLETADO (acceso) | Rol `owner` asignado a `donmiguel.zafiro2026@gmail.com`; tablas de datos faltan |
 | ELIANA chat (`/eliana/chat`) | 🔴 BLOQUEADO POR CREDENCIALES | Motor por reglas + gemología OK; responde `503 ai_provider_not_configured` |
+| ELIANA Viva (`/eliana`, ZAFIRO 1.0.1) | ✅ COMPLETADO (FASE 1 + FASE 2) | Entrada Soberana + presencia viva + chat real con estados; ver sección 13 |
 | Autor IA (`/autor-ia`) | 🔴 BLOQUEADO POR CREDENCIALES | Requiere `GEMINI_API_KEY` válida (cuota 429) |
 | Marketplace (`/marketplace`) | 🔴 BLOQUEADO POR MIGRACIONES | Tablas `marketplace_*` no existen (404) |
 | Knowledge Base | 🔴 BLOQUEADO POR MIGRACIONES | Tablas `knowledge_*` no existen (404) |
@@ -121,3 +122,46 @@ Todas las tablas (`knowledge_*`, `eliana_*`, `marketplace_*`, `reports`, `user_r
 - `/api/health` es la señal autoritativa de conectividad (no `navigator.onLine`).
 - ELIANA NO simula IA: sin key válida devuelve `503 ai_provider_not_configured` (honesto por diseño).
 - El perfil se normaliza por API hasta que el schema de prod se alinee con las migraciones.
+
+## 13. ZAFIRO 1.0.1 — ENTRADA SOBERANA + ELIANA VIVA (2026-09-07)
+
+### FASE 1 — Entrada Soberana (`/eliana`, primer estado)
+- Fondo exacto `#050A1A`, dorado exacto `#DAA520`. Sin imágenes ni avatares.
+- Wordmark `ZAFIRO` con texto dorado shimmer + `ELIANA` (mantiene E2E `text=ELIANA` visible).
+- `ENTRAR` funcional (botón dorado con glow) → transición suave a FASE 2.
+- Partículas doradas suaves en canvas (`ZafiroParticles`), reducidas en móvil (<22) y
+  estáticas con `prefers-reduced-motion`.
+- Resplandores radiales lentos (`zaf101-drift-*`). Mobile-first, sin contenido comercial.
+
+### FASE 2 — ELIANA Viva
+- Presencia 100% CSS (diamante abstracto con facetas que "respiran" y "parpadean").
+- Estados reales con la máquina existente (`ElianaStateMachine`): VIVA → ESCUCHANDO →
+  PENSANDO → HABLANDO → VIVA (+ ERROR / DESCONECTADA real por `offline`/`online`).
+  Visuales por estado: ecualizador (ESCUCHANDO), órbita + puntos giratorios (PENSANDO),
+  ondas sonar (HABLANDO), atenuación (ERROR/DESCONECTADA).
+- Chat real conectado al motor (`engine.ts` → `POST /api/chat`): sin clave de IA devuelve la
+  respuesta honesta `ai_provider_not_configured` y muestra el estado "proveedor pendiente".
+- Entrada de texto, Enter para enviar, micrófono (Web Speech API real), voz (speechSynthesis
+  real; sin audio simulado), persistencia (`persistence.ts`), seguridad (`core/security.ts`),
+  limitador de visitante (50 msgs), Reintentar tras error, accesibilidad (aria-live/status).
+
+### Archivos creados
+- `src/components/zafiro101/ZafiroParticles.tsx`
+- `src/components/zafiro101/ElianaEntrance.tsx`
+- `src/components/zafiro101/ElianaPresence.tsx`
+- `src/components/zafiro101/ElianaVivaChat.tsx`
+
+### Archivos modificados
+- `src/app/eliana/page.tsx` — reescrito como flujo FASE 1 → FASE 2 (reemplaza dashboard con
+  métricas y feed de actividad simulados).
+- `src/app/globals.css` — estilos scoped ZAFIRO 1.0.1 (paleta exacta, keyframes, reduced-motion).
+- `src/components/eliana/ElianaAdvancedChat.tsx` — removida afirmación inventada "58 documentos".
+
+### Verificación
+- `pnpm lint` → 0 errores / 0 warnings.
+- `pnpm typecheck` → 0 errores.
+- `pnpm test` → 88/88.
+- `pnpm build` → OK (ruta `/eliana` estática).
+
+### Pendiente (externo, no bloquea la UI)
+- Clave real de Gemini para respuestas IA conectadas (ver sección 10).

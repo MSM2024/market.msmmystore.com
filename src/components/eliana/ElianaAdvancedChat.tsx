@@ -159,7 +159,7 @@ export default function ElianaAdvancedChat() {
         role: "eliana",
         text: session
           ? `**Bendiciones**, ${session.name}. Soy **ELIANA**, la Guía Inteligente Avanzada de **MSM & ZAFIRO**.\n\nConozco todo el ecosistema: Marketplace, Escuela, Servicios Digitales, Álbum de la Vida, Consejo Invisible, Mente Maestra y más.\n\n¿En qué puedo orientarte hoy?`
-          : `**Bendiciones**. Soy **ELIANA**, la Guía Inteligente Avanzada de **MSM & ZAFIRO**.\n\nMi base de conocimiento incluye **58 documentos** sobre todo el ecosistema MSM: productos, servicios, cursos, gemología, pagos, envíos y más.\n\n¿En qué puedo ayudarte hoy?`,
+          : `**Bendiciones**. Soy **ELIANA**, la Guía Inteligente de **MSM & ZAFIRO**.\n\nMi conocimiento cubre el ecosistema MSM: productos, servicios, cursos, gemología, pagos, envíos y más.\n\n¿En qué puedo ayudarte hoy?`,
         timestamp: Date.now(),
       }
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -614,7 +614,7 @@ export default function ElianaAdvancedChat() {
         </div>
         <div className="flex items-center justify-between mt-2 px-1">
           <p className="text-[9px] text-slate-600 flex items-center gap-1">
-            <Zap className="w-2.5 h-2.5" /> IA Avanzada · Base de 58 documentos
+            <Zap className="w-2.5 h-2.5" /> Orientación del ecosistema MSM
           </p>
           <p className="text-[9px] text-slate-600">
             {session ? "Modo autenticado" : `Visitante · ${remaining} msgs restantes`}
