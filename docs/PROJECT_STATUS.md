@@ -544,7 +544,18 @@ migraciones de chat en Supabase. Los módulos son **portales externos** con una 
   sin persistencia de conversación; idempotencia/rate-limit en memoria efímera).
 
 ### Pipeline verificado (REENVIADO el 2026-09-09, tras el cambio)
-- `pnpm lint` → 0 · `pnpm typecheck` → 0 · `pnpm test` → **87/87** · `pnpm build` → **140 páginas**.
+- `pnpm lint` → 0 · `pnpm typecheck` → 0 · `pnpm test` → **87/87** · `pnpm build` → **141 páginas**.
+- 88→87 tests: el commit `bbe71e6` eliminó 4 tests de "memoria en Supabase" (esa capa dejó de
+  existir por decisión de arquitectura) y añadió 3 de sesión efímera + limpieza de legacy:
+  no hubo pérdida de cobertura de funcionalidad existente.
+
+### Despliegue (2026-09-09)
+- **`/` (raíz) = Entrada Soberana ZAFIRO**: `src/app/page.tsx` renderiza `<ElianaExperience />`;
+  el dashboard legacy quedó archivado en **`/inicio`** (`git mv`, sin duplicado).
+- `vercel.json` (framework + headers + rewrites) y `proxy.ts` (`/`, `/inicio`, `/eliana*` públicas)
+  verificados. `sw.js` → **zafiro-v2** (invalida la caché de la raíz legacy).
+- Últimos commits locales: `bbe71e6` (FASE 1+2 + raíz) y `f03862a` (preparación push). Estado de
+  push/deploy: ver sección 13 / informe final de sesión.
 
 ### % funcional real (sin 100% hasta E2E producción)
 - `/eliana` flujo completo (entrada→hub portales→ABRIR externo/interno→chat ELIANA→recomendación
