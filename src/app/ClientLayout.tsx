@@ -36,7 +36,7 @@ function getContextFromPath(pathname: string) {
 
 // Variación sutil del mismo universo ZAFIRO por módulo/ruta
 function getZafiroVariant(pathname: string): ZafiroVariant {
-  if (pathname === "/") return "home"
+  if (pathname === "/") return "eliana"
   if (pathname.startsWith("/auth")) return "auth"
   if (pathname.startsWith("/eliana")) return "eliana"
   if (pathname.startsWith("/biblioteca") || pathname.startsWith("/libros") || pathname.startsWith("/admin/knowledge")) return "knowledge"
@@ -78,7 +78,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const context = useMemo(() => getContextFromPath(pathname), [pathname])
   const zafiroVariant = useMemo(() => getZafiroVariant(pathname), [pathname])
 
-  const showLauncher = !isEliana && !pathname.startsWith("/auth/")
+  // La raíz ahora ES la Entrada Soberana (tiene su propio núcleo ELIANA):
+  // no se superpone el launcher flotante allí. Sí se muestra en el resto
+  // (incluida la interfaz legacy archivada en /inicio).
+  const showLauncher = !isEliana && !pathname.startsWith("/auth/") && pathname !== "/"
 
   return (
     <AuthProvider>

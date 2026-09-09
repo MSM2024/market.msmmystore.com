@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { ChatRequestSchema } from "@/lib/eliana/core/validation"
 import { getSupabaseClient, isSupabaseAvailable } from "@/lib/supabase"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { ragPipeline, knowledgeSearch, extractTopics, detectKnowledgeGaps } from "@/lib/knowledge"
-import { buildKnowledgeContext } from "@/lib/knowledge"
+import { ragPipeline, knowledgeSearch, extractTopics, detectKnowledgeGaps, buildKnowledgeContext, searchKnowledge } from "@/lib/knowledge"
 import { GoogleGenAI } from "@google/genai"
 import { isUsableApiKey, getErrorStatus, isRetryableStatus, callWithRetry } from "@/lib/eliana/provider"
 
-const AI_MODEL = "gemini-2.0-flash"
+const AI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite"
 
 const RATE_LIMIT_WINDOW = 60_000
 const RATE_LIMIT_MAX = 30
@@ -160,6 +159,19 @@ function checkRateLimit(key: string): { allowed: boolean; remaining: number } {
   }
   entry.count++
   return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count }
+}
+
+// --- Respuesta real desde conocimiento local (bundled, sin API externa) ---
+
+function answerFromLocalKnowledge(message: string): string | null {
+  try {
+    const docs = searchKnowledge(message, 3)
+    if (!docs.length) return null
+    const parts = docs.map((d) => `**${d.title}**\n${(d.content || "").slice(0, 900)}`)
+    return `Bendiciones. Te respondo con el conocimiento local del ecosistema ZAFIRO:\n\n${parts.join("\n\n")}\n\n¿Quieres que profundice en alguno de estos temas?`
+  } catch {
+    return null
+  }
 }
 
 // --- Marketplace Supabase Queries ---
@@ -455,10 +467,21 @@ export async function POST(request: NextRequest) {
     const compute = async (): Promise<{ status: number; body: Record<string, unknown> }> => {
       if (!GEMINI_API_KEY) {
         console.error("Chat API: no valid AI provider key configured (GEMINI_API_KEY / GOOGLE_API_KEY ausente o placeholder)")
+        const local = answerFromLocalKnowledge(safeMessage)
+        if (local) {
+          return {
+            status: 200,
+            body: {
+              text: local,
+              source: "knowledge_local",
+              model: "knowledge_local",
+            },
+          }
+        }
         return {
           status: 503,
           body: {
-            text: "Bendiciones. Aún no estoy conectada al proveedor de inteligencia artificial. Contacta al administrador para completar la configuración.",
+            text: "Bendiciones. Aún no estoy conectada al proveedor de inteligencia artificial y no encontré información en el conocimiento local. Contacta al administrador para completar la configuración.",
             error: "ai_provider_not_configured",
           },
         }

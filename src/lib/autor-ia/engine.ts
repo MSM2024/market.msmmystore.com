@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai"
 import { checkInputSafety } from "@/lib/knowledge/guardrails"
 import { isUsableApiKey } from "@/lib/eliana/provider"
 
-export const AUTHOR_MODEL = process.env.AUTOR_IA_MODEL || "gemini-2.0-flash"
+export const AUTHOR_MODEL = process.env.AUTOR_IA_MODEL || "gemini-3.5-flash-lite"
 
 export function getGeminiKey(): string | undefined {
   const gemini = process.env.GEMINI_API_KEY

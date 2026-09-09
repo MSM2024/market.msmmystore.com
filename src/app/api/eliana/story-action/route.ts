@@ -8,7 +8,7 @@ const GEMINI_API_KEY = isUsableApiKey(process.env.GEMINI_API_KEY)
   : isUsableApiKey(process.env.GOOGLE_API_KEY)
     ? process.env.GOOGLE_API_KEY
     : undefined
-const AI_MODEL = "gemini-2.0-flash"
+const AI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite"
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   correct: `Eres un corrector ortográfico y gramatical en español. Corrige errores ortográficos, gramaticales y de puntuación del texto. Preserva el estilo y la voz del autor. Responde SOLO con el texto corregido, sin explicaciones, sin prefacio, sin comentarios, sin markdown.`,

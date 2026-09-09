@@ -27,7 +27,8 @@ export type StateTransition =
 // Valid state transitions
 const VALID_TRANSITIONS: Record<ElianaState, ElianaState[]> = {
   VIVA: ['ESCUCHANDO', 'DESCONECTADA'],
-  ESCUCHANDO: ['PENSANDO', 'DESCONECTADA', 'ERROR'],
+  // ESCUCHANDO → VIVA: el usuario limpia el campo o cancela el micrófono (volver a inactivo)
+  ESCUCHANDO: ['PENSANDO', 'VIVA', 'DESCONECTADA', 'ERROR'],
   PENSANDO: ['HABLANDO', 'ERROR', 'DESCONECTADA'],
   HABLANDO: ['VIVA', 'DESCONECTADA'],
   ERROR: ['VIVA', 'DESCONECTADA'],

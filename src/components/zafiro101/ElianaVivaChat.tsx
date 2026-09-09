@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { Send, Mic, MicOff, Volume2, VolumeX, RotateCcw, AlertTriangle, ArrowLeft } from "lucide-react"
+import { Send, Mic, MicOff, Volume2, VolumeX, RotateCcw, AlertTriangle, ArrowLeft, ChevronDown } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import ElianaPresence from "@/components/zafiro101/ElianaPresence"
+import ZafiroParticles from "@/components/zafiro101/ZafiroParticles"
 import MarkdownRenderer from "@/components/MarkdownRenderer"
 import { processElianaRequest, getElianaContext } from "@/lib/eliana/engine"
 import { getSession } from "@/lib/auth"
@@ -18,15 +19,17 @@ import {
   validateInput,
   filterOutput,
   clientRateCheck,
-  getRemainingMessages,
 } from "@/lib/eliana/core/security"
 import {
   loadMessages,
   saveMessage,
   clearHistory,
   canSendMessage,
+  getVisitorMessageCount,
   type PersistedMessage,
 } from "@/lib/eliana/core/persistence"
+import { recommendPortal, openPortal } from "@/lib/zafiro101/orchestrator"
+import { isOpenable, PORTAL_STATUS_LABEL } from "@/lib/zafiro101/portals"
 
 type ChatMessage = PersistedMessage
 
@@ -75,7 +78,7 @@ const WELCOME = (name?: string) =>
     ? `**Bendiciones**, ${name}. Soy **ELIANA**, la guía inteligente del ecosistema **MSM & ZAFIRO**.\n\nPuedo orientarte sobre productos, servicios digitales, cursos, gemología, pagos, envíos y el mundo ZAFIRO.\n\n¿En qué puedo ayudarte?`
     : `**Bendiciones**. Soy **ELIANA**, la guía inteligente del ecosistema **MSM & ZAFIRO**.\n\nPuedo orientarte sobre productos, servicios digitales, cursos, gemología, pagos, envíos y el mundo ZAFIRO.\n\n¿En qué puedo ayudarte?`
 
-type ProviderStatus = "unknown" | "configured" | "not_configured" | "error"
+type ProviderStatus = "unknown" | "configured" | "not_configured" | "local" | "error"
 
 export default function ElianaVivaChat() {
   const session = getSession()
@@ -87,11 +90,13 @@ export default function ElianaVivaChat() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [securityWarning, setSecurityWarning] = useState<string | null>(null)
-  const [remaining, setRemaining] = useState(50)
+  const [visitorRemaining, setVisitorRemaining] = useState(50)
   const [providerStatus, setProviderStatus] = useState<ProviderStatus>("unknown")
   const [lastFailedText, setLastFailedText] = useState<string | null>(null)
   const chatRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const chatRootRef = useRef<HTMLDivElement>(null)
+  const [nearBottom, setNearBottom] = useState(true)
 
   // Voz (APIs reales del navegador; sin audio simulado)
   const [voiceEnabled, setVoiceEnabled] = useState(false)
@@ -100,6 +105,7 @@ export default function ElianaVivaChat() {
   const [hasSpeech] = useState(() =>
     typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition),
   )
+  const [hasVoice] = useState(() => typeof window !== "undefined" && "speechSynthesis" in window)
   const speechSynthRef = useRef<SpeechSynthesis | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const speechRecogRef = useRef<any>(null)
@@ -130,7 +136,7 @@ export default function ElianaVivaChat() {
         setShowSuggestions(false)
       }
       setIsLoaded(true)
-      setRemaining(getRemainingMessages())
+      setVisitorRemaining(50 - getVisitorMessageCount())
     })
 
     if (typeof window !== "undefined") {
@@ -165,12 +171,40 @@ export default function ElianaVivaChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Auto-scroll
+  // Auto-scroll: se mantiene al final cuando el usuario está cerca de él (no lo arrastra si está leyendo arriba)
   useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight
+    const el = chatRef.current
+    if (!el) return
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 260
+    if (atBottom) {
+      el.scrollTop = el.scrollHeight
     }
   }, [messages, elianaState])
+
+  // Profundidad del scroll → parallax sutil del núcleo + botón "volver abajo"
+  useEffect(() => {
+    const el = chatRef.current
+    if (!el) return
+    const reduced =
+      typeof window !== "undefined" && (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false)
+    let raf = 0
+    const update = () => {
+      raf = 0
+      const max = el.scrollHeight - el.clientHeight
+      const ratio = max > 0 ? el.scrollTop / max : 0
+      if (!reduced) chatRootRef.current?.style.setProperty("--zaf101-depth", ratio.toFixed(3))
+      setNearBottom(max - el.scrollTop < 260)
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+    el.addEventListener("scroll", onScroll, { passive: true })
+    update()
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      el.removeEventListener("scroll", onScroll)
+    }
+  }, [])
 
   // Bienvenida honesta
   useEffect(() => {
@@ -201,6 +235,17 @@ export default function ElianaVivaChat() {
     }
     return map[ctx] || map.general
   }, [messages])
+
+  // Portal recomendado: ELIANA como ORQUESTADORA de accesos. Detecta la
+  // intención de abrir/entrar del último mensaje del usuario y ofrece el
+  // portal correcto (ABRIR externo o "Próximamente" si aún no está vivo).
+  const recommendedPortal = useMemo(() => {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user")
+    if (!lastUser) return null
+    return recommendPortal(lastUser.text)
+  }, [messages])
+  const lastIsEliana = messages.length > 0 && messages[messages.length - 1].role === "eliana"
+  const showPortalCard = lastIsEliana && !!recommendedPortal
 
   const safeIdle = useCallback(() => {
     if (sm.getState() === "HABLANDO") sm.returnToIdle()
@@ -304,6 +349,8 @@ export default function ElianaVivaChat() {
 
       const finalMsg = security.filteredMessage || msg
       setInput("")
+      const inputEl = inputRef.current
+      if (inputEl) inputEl.style.height = "auto"
       setShowSuggestions(false)
       setLastFailedText(null)
 
@@ -319,7 +366,7 @@ export default function ElianaVivaChat() {
       }
       setMessages((prev) => [...prev, userMsg])
       saveMessage(userMsg)
-      setRemaining(getRemainingMessages())
+      setVisitorRemaining(50 - getVisitorMessageCount())
 
       // Pausa corta de UX mientras procesa (estado PENSANDO visible)
       await new Promise((r) => setTimeout(r, 650))
@@ -340,7 +387,7 @@ export default function ElianaVivaChat() {
         }
         setMessages((prev) => [...prev, elianaMsg])
         saveMessage(elianaMsg)
-        setProviderStatus("configured")
+        setProviderStatus(res.source === "knowledge_local" ? "local" : "configured")
 
         if (voiceEnabled) {
           speakText(outputFilter.filtered)
@@ -355,7 +402,7 @@ export default function ElianaVivaChat() {
 
         const honestText =
           e.code === "ai_provider_not_configured"
-            ? "Bendiciones. Aún no estoy conectada a un proveedor de inteligencia artificial. Respuestas provienen del conocimiento local del ecosistema hasta que termine la configuración."
+            ? "Bendiciones. Aún no estoy conectada a un proveedor de inteligencia artificial y no encontré una respuesta en el conocimiento local. Cuando el administrador complete la configuración podré ayudarte con todo el ecosistema."
             : "Bendiciones. No pude obtener una respuesta en este momento. Pulsa Reintentar y lo intento de nuevo."
 
         const errorMsg: ChatMessage = {
@@ -368,6 +415,10 @@ export default function ElianaVivaChat() {
         saveMessage(errorMsg)
         sm.autoRecover(5000)
       }
+
+      // Devuelve el foco al cursor (solo puntero fino)
+      const fine = window.matchMedia?.(`(pointer: fine)`).matches ?? false
+      if (fine) inputRef.current?.focus()
     },
     [input, elianaState, messages, session, voiceEnabled, speakText, safeIdle, sm],
   )
@@ -379,15 +430,33 @@ export default function ElianaVivaChat() {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value
     setInput(v)
+    const el = inputRef.current
+    if (el) {
+      el.style.height = "auto"
+      el.style.height = `${Math.min(el.scrollHeight, 96)}px`
+    }
     if (v.trim() && sm.getState() === "VIVA") {
       sm.startListening()
     } else if (!v.trim() && sm.getState() === "ESCUCHANDO") {
       sm.returnToIdle()
     }
   }
+
+  // Foco inicial: solo puntero fino (desktop), para no abrir el teclado en móvil
+  useEffect(() => {
+    if (!isLoaded) return
+    const fine = window.matchMedia?.(`(pointer: fine)`).matches ?? false
+    if (fine) inputRef.current?.focus()
+  }, [isLoaded])
+
+  const scrollToBottom = useCallback(() => {
+    const el = chatRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+  }, [])
 
   const resetChat = async () => {
     if (isSpeaking) stopSpeaking()
@@ -406,7 +475,7 @@ export default function ElianaVivaChat() {
     setSecurityWarning(null)
     setProviderStatus("unknown")
     setLastFailedText(null)
-    setRemaining(getRemainingMessages())
+    setVisitorRemaining(50)
   }
 
   const chip = CHIP[elianaState]
@@ -415,7 +484,7 @@ export default function ElianaVivaChat() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-[#050A1A]">
+      <div className="flex min-h-dvh items-center justify-center bg-[#050A1A]">
         <div className="text-center">
           <ElianaPresence sm={sm} size="sm" />
           <p className="mt-4 text-[11px] text-neutral-500">Cargando ELIANA...</p>
@@ -426,16 +495,21 @@ export default function ElianaVivaChat() {
 
   const providerNote =
     providerStatus === "not_configured"
-      ? "Modo orientación local · proveedor de IA pendiente de configurar"
-      : providerStatus === "configured"
-        ? "Proveedor de IA conectado"
-        : "Orientación del ecosistema MSM · conversación privada"
+      ? "Proveedor de IA pendiente de configurar"
+      : providerStatus === "local"
+        ? "Orientación · conocimiento local del ecosistema ZAFIRO"
+        : providerStatus === "configured"
+          ? "Proveedor de IA conectado"
+          : "Orientación del ecosistema MSM · conversación privada"
 
   return (
-    <div className="relative flex min-h-svh w-full flex-col overflow-hidden bg-[#050A1A] text-white">
+    <div ref={chatRootRef} className="zaf101-starfield relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#050A1A] text-white">
+      {/* Universo de fondo: red de partículas del núcleo */}
+      <ZafiroParticles density={24} className="zaf101-glows z-0 opacity-40" />
       {/* Resplandores de fondo */}
       <div className="pointer-events-none absolute -top-40 left-1/4 h-[380px] w-[380px] rounded-full bg-[#DAA520] opacity-[0.06] blur-3xl" aria-hidden="true" />
       <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[360px] w-[360px] rounded-full bg-[#B8860B] opacity-[0.05] blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -top-24 right-0 h-[340px] w-[340px] rounded-full bg-[#2563EB] opacity-[0.05] blur-3xl" aria-hidden="true" />
 
       {/* Cabecera */}
       <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[#DAA520]/15 px-4 py-3 sm:px-7">
@@ -460,26 +534,30 @@ export default function ElianaVivaChat() {
             <span className={`h-1.5 w-1.5 rounded-full ${chip.dot} ${elianaState === "VIVA" ? "animate-pulse" : ""}`} />
             {STATE_LABELS[elianaState]}
           </span>
+          {hasVoice && (
           <button
             type="button"
             onClick={() => {
+              if (!hasVoice) return
               setVoiceEnabled((v) => !v)
               if (isSpeaking) stopSpeaking()
             }}
-            className={`cursor-pointer rounded-full p-2 transition-colors ${
+            disabled={!hasVoice}
+            className={`cursor-pointer rounded-full p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/50 disabled:cursor-not-allowed disabled:opacity-40 ${
               voiceEnabled
                 ? "bg-[#DAA520]/15 text-[#E8C766]"
                 : "text-neutral-400 hover:bg-[#DAA520]/10 hover:text-[#E8C766]"
             }`}
-            title={voiceEnabled ? "Desactivar voz" : "Activar voz"}
-            aria-label={voiceEnabled ? "Desactivar voz" : "Activar voz"}
+            title={hasVoice ? (voiceEnabled ? "Desactivar voz" : "Activar voz") : "Voz no disponible en este navegador"}
+            aria-label={hasVoice ? (voiceEnabled ? "Desactivar voz" : "Activar voz") : "Voz no disponible"}
           >
             {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
+          )}
           <button
             type="button"
             onClick={resetChat}
-            className="cursor-pointer rounded-full p-2 text-neutral-400 transition-colors hover:bg-[#DAA520]/10 hover:text-[#E8C766]"
+            className="cursor-pointer rounded-full p-2 text-neutral-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/50 hover:bg-[#DAA520]/10 hover:text-[#E8C766]"
             title="Nueva conversación"
             aria-label="Nueva conversación"
           >
@@ -491,7 +569,8 @@ export default function ElianaVivaChat() {
       {/* Contenido */}
       <main className="relative z-10 flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6 lg:px-8 lg:py-6 lg:pb-8">
         {/* Panel de presencia (escritorio) */}
-        <section className="relative hidden min-h-0 flex-col items-center justify-center overflow-hidden rounded-3xl border border-[#DAA520]/15 bg-[#04081A]/60 lg:flex">
+        <section className="zaf101-glass relative hidden min-h-0 flex-col items-center justify-center overflow-hidden rounded-3xl border border-[#DAA520]/15 lg:flex">
+          <div className="zaf101-glass-edge" aria-hidden="true" />
           <div className="pointer-events-none absolute inset-0" aria-hidden="true" />
           <ElianaPresence sm={sm} size="lg" />
           <h2 className="zaf101-gold-text mt-10 text-2xl font-black tracking-[0.3em]">ELIANA</h2>
@@ -518,9 +597,12 @@ export default function ElianaVivaChat() {
           </div>
 
           {/* Tarjeta de conversación */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-[#DAA520]/20 bg-[#03060F]/70 backdrop-blur-sm">
+          <div className="zaf101-glass relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-[#DAA520]/20">
+            <div className="zaf101-glass-edge" aria-hidden="true" />
+            <div className="zaf101-glass-edge zaf101-glass-edge--bottom" aria-hidden="true" />
             {/* Mensajes */}
-            <div ref={chatRef} className="eliana-chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="relative min-h-0 flex-1">
+              <div ref={chatRef} className="eliana-chat-scroll min-h-0 h-full overflow-y-auto px-4 py-4 sm:px-6">
               {messages.length === 0 && (
                 <p className="py-6 text-center text-[11px] text-neutral-500">Aún no he escrito... envíame tu primera pregunta.</p>
               )}
@@ -535,22 +617,62 @@ export default function ElianaVivaChat() {
                   >
                     {msg.role === "eliana" && (
                       <div className="mr-2 mt-1 flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden="true">
-                        <span className="block h-2.5 w-2.5 rotate-45 rounded-[3px] border border-[#DAA520]/50 bg-gradient-to-br from-[#F1C75B] via-[#DAA520] to-[#B8860B]" />
+                        <span className="block h-2.5 w-2.5 rotate-45 rounded-[3px] border border-[#DAA520]/60 bg-gradient-to-br from-[#9CC5FF] via-[#2563EB] to-[#0B2A5B]" style={{ boxShadow: "0 0 8px rgba(37,99,235,0.5)" }} />
                       </div>
                     )}
                     <div
                       className={`max-w-[78%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${
                         msg.role === "user"
                           ? "rounded-br-md border border-[#DAA520]/25 bg-[#DAA520]/15 text-[#F9E7B0]"
-                          : "rounded-bl-md border border-[#DAA520]/15 bg-[#0B1120] text-neutral-200"
+                          : "rounded-bl-md border border-[#2E64C8]/25 bg-[#0B1A38] text-neutral-200"
                       }`}
                     >
                       <MarkdownRenderer content={msg.text} />
-                      {lastFailedText && msg.role === "eliana" && msg.text.includes("Pulsa Reintentar") && (
+                      {showPortalCard && recommendedPortal && (
+                        <div className="mt-3 rounded-xl border border-[#DAA520]/25 bg-[#050A1A]/70 p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#DAA520]/15 text-[#E8C766]">
+                              {(() => {
+                                const Icon = recommendedPortal.icono
+                                return <Icon className="h-4 w-4" aria-hidden="true" />
+                              })()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold tracking-wide text-[#F5EEDC]">
+                                {recommendedPortal.nombre}
+                                <span className="ml-1.5 text-[8px] font-medium uppercase tracking-widest text-neutral-500">
+                                  {PORTAL_STATUS_LABEL[recommendedPortal.estado]}
+                                </span>
+                              </p>
+                              <p className="mt-0.5 text-[9px] leading-snug text-neutral-400">
+                                {recommendedPortal.descripcion}
+                              </p>
+                            </div>
+                          </div>
+                          {isOpenable(recommendedPortal) ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openPortal(recommendedPortal)
+                              }}
+                              className="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#DAA520]/50 bg-[#DAA520]/15 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#F9E7B0] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/60 hover:bg-[#DAA520]/25"
+                            >
+                              Abrir {recommendedPortal.nombre}
+                              {recommendedPortal.external && <span className="normal-case tracking-normal text-[9px] text-neutral-400">· en el sitio externo</span>}
+                            </button>
+                          ) : (
+                            <p className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg border border-neutral-700/40 px-3 py-2 text-[10px] text-neutral-500">
+                              Próximamente · aún no está publicado
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {i === messages.length - 1 && lastFailedText && msg.role === "eliana" && msg.text.includes("Pulsa Reintentar") && (
                         <button
                           type="button"
                           onClick={() => sendMessage(lastFailedText)}
-                          className="mt-2 cursor-pointer rounded-full border border-[#DAA520]/40 px-3 py-1 text-[10px] font-medium text-[#E8C766] transition-colors hover:bg-[#DAA520]/10"
+                          className="mt-2 cursor-pointer rounded-full border border-[#DAA520]/40 px-3 py-1 text-[10px] font-medium text-[#E8C766] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/60 hover:bg-[#DAA520]/10"
                         >
                           Reintentar
                         </button>
@@ -563,9 +685,9 @@ export default function ElianaVivaChat() {
               {elianaState === "PENSANDO" && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
                   <div className="mr-2 mt-1 flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden="true">
-                    <span className="block h-2.5 w-2.5 rotate-45 rounded-[3px] border border-[#DAA520]/50 bg-gradient-to-br from-[#F1C75B] via-[#DAA520] to-[#B8860B]" />
+                    <span className="block h-2.5 w-2.5 rotate-45 rounded-[3px] border border-[#DAA520]/60 bg-gradient-to-br from-[#9CC5FF] via-[#2563EB] to-[#0B2A5B]" style={{ boxShadow: "0 0 8px rgba(37,99,235,0.5)" }} />
                   </div>
-                  <div className="rounded-2xl rounded-bl-md border border-[#DAA520]/15 bg-[#0B1120] px-4 py-3">
+                  <div className="rounded-2xl rounded-bl-md border border-[#2E64C8]/20 bg-[#0B1A38] px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#E8C766] animate-bounce" style={{ animationDelay: "0ms" }} />
                       <span className="h-1.5 w-1.5 rounded-full bg-[#E8C766] animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -575,6 +697,29 @@ export default function ElianaVivaChat() {
                   </div>
                 </motion.div>
               )}
+              </div>
+
+              {/* Profundidad del chat */}
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-[#03060F]/85 to-transparent" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-[#03060F]/85 to-transparent" />
+
+              {/* Volver al último mensaje */}
+              <AnimatePresence>
+                {!nearBottom && (
+                  <motion.button
+                    type="button"
+                    onClick={scrollToBottom}
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    transition={{ duration: 0.18 }}
+                    aria-label="Ir al último mensaje"
+                    className="absolute bottom-14 right-3 z-20 grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-[#DAA520]/40 bg-[#0B1120]/90 text-[#E8C766] shadow-lg shadow-[#0B1120]/60 backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/70 hover:bg-[#DAA520]/15"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Sugerencias iniciales */}
@@ -594,7 +739,7 @@ export default function ElianaVivaChat() {
                         type="button"
                         onClick={() => sendMessage(s)}
                         disabled={!canCompose}
-                        className="cursor-pointer rounded-lg border border-[#DAA520]/25 bg-[#0B1120] px-2.5 py-1.5 text-[10px] text-neutral-300 transition-colors hover:border-[#DAA520]/50 hover:text-[#F9E7B0] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="cursor-pointer rounded-lg border border-[#DAA520]/25 bg-[#0B1120] px-2.5 py-1.5 text-[10px] text-neutral-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/40 hover:border-[#DAA520]/50 hover:text-[#F9E7B0] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {s}
                       </button>
@@ -620,7 +765,7 @@ export default function ElianaVivaChat() {
                         type="button"
                         onClick={() => sendMessage(s)}
                         disabled={!canCompose}
-                        className="cursor-pointer rounded-lg border border-[#DAA520]/20 bg-[#0B1120] px-2.5 py-1 text-[10px] text-neutral-400 transition-colors hover:border-[#DAA520]/45 hover:text-[#E8C766] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="cursor-pointer rounded-lg border border-[#DAA520]/20 bg-[#0B1120] px-2.5 py-1 text-[10px] text-neutral-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/40 hover:border-[#DAA520]/45 hover:text-[#E8C766] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {s}
                       </button>
@@ -656,14 +801,14 @@ export default function ElianaVivaChat() {
             </AnimatePresence>
 
             {/* Entrada */}
-            <div className="border-t border-[#DAA520]/10 px-4 pb-3 pt-3 sm:px-6">
+            <div className="border-t border-[#DAA520]/10 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:px-6">
               <div className="flex items-center gap-2.5 rounded-2xl border border-[#DAA520]/20 bg-[#0B1120] px-3 py-2.5 transition-colors focus-within:border-[#DAA520]/45">
                 {hasSpeech && (
                   <button
                     type="button"
                     onClick={isListening ? stopListening : startListening}
                     disabled={!canCompose}
-                    className={`cursor-pointer rounded-xl p-2 transition-all ${
+                    className={`grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl p-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/50 ${
                       isListening
                         ? "bg-[#DAA520]/20 text-[#F1C75B] animate-pulse"
                         : "text-neutral-400 hover:bg-[#DAA520]/10 hover:text-[#E8C766]"
@@ -675,22 +820,27 @@ export default function ElianaVivaChat() {
                   </button>
                 )}
 
-                <input
+                <textarea
                   ref={inputRef}
                   value={input}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  rows={1}
+                  maxLength={2000}
                   placeholder={elianaState === "DESCONECTADA" ? "Sin conexión..." : "Escribe tu pregunta..."}
                   disabled={!canCompose}
+                  autoComplete="off"
+                  autoCapitalize="sentences"
+                  enterKeyHint="send"
                   aria-label="Escribe tu pregunta a ELIANA"
-                  className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-neutral-600"
+                  className="max-h-24 min-w-0 flex-1 resize-none bg-transparent py-2.5 text-[13px] leading-relaxed text-white outline-none placeholder:text-neutral-600"
                 />
 
                 {isSpeaking && (
                   <button
                     type="button"
                     onClick={stopSpeaking}
-                    className="cursor-pointer rounded-xl bg-[#DAA520]/15 p-2 text-[#E8C766] transition-colors hover:bg-[#DAA520]/25"
+                    className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl bg-[#DAA520]/15 p-0 text-[#E8C766] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/50 hover:bg-[#DAA520]/25"
                     title="Detener voz"
                     aria-label="Detener voz"
                   >
@@ -703,7 +853,7 @@ export default function ElianaVivaChat() {
                   onClick={() => sendMessage()}
                   disabled={!canCompose || !input.trim()}
                   aria-label="Enviar mensaje"
-                  className="cursor-pointer rounded-xl bg-gradient-to-b from-[#F1C75B] via-[#DAA520] to-[#B8860B] p-2 text-[#0B0A02] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl bg-gradient-to-b from-[#F1C75B] via-[#DAA520] to-[#B8860B] p-0 text-[#0B0A02] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DAA520]/70 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -712,7 +862,7 @@ export default function ElianaVivaChat() {
               <div className="mt-2 flex items-center justify-between gap-2 px-1">
                 <p className="truncate text-[9px] text-neutral-600">{providerNote}</p>
                 <p className="shrink-0 text-[9px] text-neutral-600">
-                  {session ? "Sesión iniciada" : `${remaining} mensajes restantes`} · {DISCLAIMER}
+                  {session ? "Sesión iniciada" : `${visitorRemaining} mensajes restantes`} · {DISCLAIMER}
                 </p>
               </div>
             </div>

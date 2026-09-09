@@ -1,207 +1,107 @@
 'use client'
 
 // ================================================================
-// ELIANA MEMORY LAYER
-// localStorage como caché síncrona (rápida, funciona offline y para
-// visitantes) + persistencia en Supabase (eliana_memory) para
-// usuarios autenticados. Patrón de doble escritura (ver
-// core/persistence.ts). Las lecturas síncronas no cambian de firma;
-// la sincronización con el servidor ocurre en segundo plano.
+// ELIANA MEMORY — SOLO SESIÓN ACTUAL (EFÍMERO, CON EXPIRACIÓN)
+// ZAFIRO no conserva memoria permanente de conversaciones (orden de
+// arquitectura v1.0.1). Este módulo mantiene la MISMA API pública
+// (getElianaMemory / addShortTermMemory / addLongTermFact /
+// setPreference / getContextSummary / clearElianaMemory) pero:
+//   - NADA de Supabase (sin eliana_memory, sin /api/eliana/memory).
+//   - sessionStorage: efímero (se limpia al cerrar la pestaña).
+//   - Garantía de expiración: si la sesión supera MEMORY_TTL_MS
+//     (24 h) se considera vacía y se limpia.
+//   - Al cargar se elimina el almacén permanente legado
+//     (localStorage "zafiro_eliana_memory") del archivo antiguo.
 // ================================================================
 
 import type { ElianaMemory, ElianaMemoryEntry, ElianaMemoryFact } from "./types"
-import { getSession } from "@/lib/auth"
-import { isSupabaseAvailable } from "@/lib/supabase"
 
-const STORAGE_KEY = "zafiro_eliana_memory"
-
-type MemoryType = "short_term" | "long_term" | "preference" | "fact"
-
-interface MemoryRow {
-  id?: string
-  memory_type: MemoryType
-  key?: string | null
-  content: string
-  category?: string
-  confidence?: number
-  metadata?: Record<string, unknown>
-  created_at?: string
-  updated_at?: string
-}
+const STORAGE_KEY = "zafiro_eliana_memory_session_v3"
+const LEGACY_LOCALSTORAGE_KEY = "zafiro_eliana_memory"
+const MEMORY_TTL_MS = 24 * 60 * 60 * 1000 // 1 día como máximo de vida por sesión
 
 function emptyMemory(userId: string): ElianaMemory {
   return { userId, shortTerm: [], longTerm: [], preferences: {}, lastInteraction: Date.now() }
 }
 
-function getMemories(): Record<string, ElianaMemory> {
-  if (typeof window === "undefined") return {}
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") } catch { return {} }
+interface StoredBundle {
+  createdAt: number
+  memories: Record<string, ElianaMemory>
 }
 
-function saveMemories(m: Record<string, ElianaMemory>) {
+// Limpieza del almacén permanente legado (archivo anterior a v1.0.1).
+function cleanupLegacyStorage() {
   if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(m))
+  try {
+    window.localStorage.removeItem(LEGACY_LOCALSTORAGE_KEY)
+  } catch {
+    // ignorar
+  }
 }
 
-function toRows(mem: ElianaMemory): MemoryRow[] {
-  const rows: MemoryRow[] = []
-  for (const e of mem.shortTerm) {
-    rows.push({
-      memory_type: "short_term",
-      content: e.text,
-      category: e.page,
-      confidence: 1,
-      metadata: { role: e.role, timestamp: e.timestamp },
-    })
-  }
-  for (const f of mem.longTerm) {
-    rows.push({
-      memory_type: "long_term",
-      key: f.fact.slice(0, 500),
-      content: f.fact,
-      category: f.category,
-      confidence: f.confidence,
-      metadata: { createdAt: f.createdAt, lastAccessed: f.lastAccessed },
-    })
-  }
-  for (const [k, v] of Object.entries(mem.preferences)) {
-    rows.push({ memory_type: "preference", key: k, content: v, category: "preference", confidence: 1 })
-  }
-  return rows
-}
-
-function memoryFromRows(rows: MemoryRow[], userId: string): ElianaMemory {
-  const mem = emptyMemory(userId)
-  for (const r of rows) {
-    if (r.memory_type === "short_term") {
-      mem.shortTerm.push({
-        role: r.metadata?.role === "eliana" ? "eliana" : "user",
-        text: r.content,
-        page: r.category || "general",
-        timestamp: typeof r.metadata?.timestamp === "number" ? r.metadata.timestamp : Date.now(),
-      })
-    } else if (r.memory_type === "long_term" || r.memory_type === "fact") {
-      mem.longTerm.push({
-        fact: r.content,
-        category: r.category || "general",
-        confidence: typeof r.confidence === "number" ? r.confidence : 1,
-        createdAt: typeof r.metadata?.createdAt === "number" ? r.metadata.createdAt : Date.now(),
-        lastAccessed: typeof r.metadata?.lastAccessed === "number" ? r.metadata.lastAccessed : Date.now(),
-      })
-    } else if (r.memory_type === "preference") {
-      if (r.key) mem.preferences[r.key] = r.content
+function readBundle(): StoredBundle | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as StoredBundle
+    if (!parsed || typeof parsed !== "object" || typeof parsed.createdAt !== "number") return null
+    // Expiración garantizada: fuera de TTL → se descarta y limpia.
+    if (Date.now() - parsed.createdAt > MEMORY_TTL_MS) {
+      window.sessionStorage.removeItem(STORAGE_KEY)
+      return null
     }
+    return parsed
+  } catch {
+    return null
   }
+}
+
+function writeBundle(bundle: StoredBundle) {
+  if (typeof window === "undefined") return
+  try {
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(bundle))
+  } catch {
+    // sessionStorage no disponible: mantenemos solo la caché volátil
+  }
+}
+
+function getMemories(): Record<string, ElianaMemory> {
+  cleanupLegacyStorage()
+  const bundle = readBundle()
+  return bundle?.memories ?? {}
+}
+
+function saveMemories(all: Record<string, ElianaMemory>) {
+  const bundle = readBundle()
+  const createdAt = bundle?.createdAt ?? Date.now()
+  writeBundle({ createdAt, memories: all })
+}
+
+function read(userId: string): ElianaMemory | null {
+  return getMemories()[userId] ?? null
+}
+
+// --- API pública (idéntica para no romper análisis/tests) ---
+
+export function getElianaMemory(userId: string): ElianaMemory {
+  const existing = read(userId)
+  if (existing) return existing
+  const mem = emptyMemory(userId)
+  saveMemories({ ...getMemories(), [userId]: mem })
   return mem
 }
 
-// --- Sincronización con Supabase (fondo) ---
-
-const syncing = new Set<string>()
-const syncQueued: Record<string, boolean> = {}
-
-function shouldSync(userId: string): boolean {
-  const session = getSession()
-  if (!session || session.id !== userId) return false
-  if (!isSupabaseAvailable()) return false
-  return true
-}
-
-function doSync(userId: string): Promise<void> {
-  const mem = getMemories()[userId]
-  if (!mem) return Promise.resolve()
-  return fetch("/api/eliana/memory", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "replace", rows: toRows(mem) }),
-  })
-    .then(() => {})
-    .catch(() => {})
-}
-
-function scheduleSync(userId: string) {
-  if (!shouldSync(userId)) return
-  if (syncing.has(userId)) {
-    syncQueued[userId] = true
-    return
-  }
-  syncing.add(userId)
-  doSync(userId).finally(() => {
-    syncing.delete(userId)
-    if (syncQueued[userId]) {
-      syncQueued[userId] = false
-      scheduleSync(userId)
-    }
-  })
-}
-
-const hydrating = new Set<string>()
-
-function hydrateFromServer(userId: string) {
-  if (!shouldSync(userId)) return
-  if (hydrating.has(userId)) return
-  hydrating.add(userId)
-  fetch("/api/eliana/memory")
-    .then(r => r.json())
-    .then((data: { rows?: MemoryRow[] }) => {
-      if (!Array.isArray(data.rows) || data.rows.length === 0) return
-      const all = getMemories()
-      const local = all[userId]
-      const server = memoryFromRows(data.rows, userId)
-      if (!local) {
-        all[userId] = server
-        saveMemories(all)
-        return
-      }
-      // Fusionar sin perder entradas locales más nuevas (carrera con escrituras síncronas)
-      const seen = new Set(local.shortTerm.map(e => `${e.role}:${e.text}:${e.timestamp}`))
-      for (const e of server.shortTerm) {
-        const k = `${e.role}:${e.text}:${e.timestamp}`
-        if (!seen.has(k)) { local.shortTerm.push(e); seen.add(k) }
-      }
-      local.shortTerm.sort((a, b) => a.timestamp - b.timestamp)
-      local.shortTerm = local.shortTerm.slice(-50)
-      for (const f of server.longTerm) {
-        if (!local.longTerm.some(x => x.fact === f.fact)) local.longTerm.push(f)
-      }
-      local.longTerm = local.longTerm.slice(-200)
-      for (const [k, v] of Object.entries(server.preferences)) {
-        if (!(k in local.preferences)) local.preferences[k] = v
-      }
-      local.lastInteraction = Math.max(local.lastInteraction, server.lastInteraction)
-      all[userId] = local
-      saveMemories(all)
-    })
-    .catch(() => {})
-    .finally(() => hydrating.delete(userId))
-}
-
-// --- API pública ---
-
-export function getElianaMemory(userId: string): ElianaMemory {
-  const all = getMemories()
-  if (!all[userId]) {
-    all[userId] = emptyMemory(userId)
-    saveMemories(all)
-    hydrateFromServer(userId)
-  }
-  return all[userId]
-}
-
 export function addShortTermMemory(userId: string, entry: ElianaMemoryEntry) {
-  const all = getMemories()
-  const mem = all[userId] || emptyMemory(userId)
+  const mem = read(userId) || emptyMemory(userId)
   mem.shortTerm.push(entry)
   if (mem.shortTerm.length > 50) mem.shortTerm = mem.shortTerm.slice(-50)
   mem.lastInteraction = Date.now()
-  all[userId] = mem
-  saveMemories(all)
-  scheduleSync(userId)
+  saveMemories({ ...getMemories(), [userId]: mem })
 }
 
 export function addLongTermFact(userId: string, fact: Omit<ElianaMemoryFact, "createdAt" | "lastAccessed">) {
-  const all = getMemories()
-  const mem = all[userId] || emptyMemory(userId)
+  const mem = read(userId) || emptyMemory(userId)
   const existing = mem.longTerm.find(f => f.fact === fact.fact)
   if (existing) {
     existing.lastAccessed = Date.now()
@@ -210,18 +110,13 @@ export function addLongTermFact(userId: string, fact: Omit<ElianaMemoryFact, "cr
     mem.longTerm.push({ ...fact, createdAt: Date.now(), lastAccessed: Date.now() })
   }
   if (mem.longTerm.length > 200) mem.longTerm = mem.longTerm.slice(-200)
-  all[userId] = mem
-  saveMemories(all)
-  scheduleSync(userId)
+  saveMemories({ ...getMemories(), [userId]: mem })
 }
 
 export function setPreference(userId: string, key: string, value: string) {
-  const all = getMemories()
-  const mem = all[userId] || emptyMemory(userId)
+  const mem = read(userId) || emptyMemory(userId)
   mem.preferences[key] = value
-  all[userId] = mem
-  saveMemories(all)
-  scheduleSync(userId)
+  saveMemories({ ...getMemories(), [userId]: mem })
 }
 
 export function getContextSummary(userId: string): string {
@@ -232,19 +127,14 @@ export function getContextSummary(userId: string): string {
   return `Recent: ${recent}\nFacts: ${facts}\nPrefs: ${prefs}`
 }
 
-/** Olvido: borra la memoria local y la del servidor (si está autenticado). */
+/** Olvido: borra la memoria EFÍMERA de la sesión (no hay servidor). */
 export async function clearElianaMemory(userId: string): Promise<void> {
   const all = getMemories()
   delete all[userId]
   saveMemories(all)
-  if (shouldSync(userId)) {
-    try {
-      await fetch("/api/eliana/memory", { method: "DELETE" })
-    } catch { /* mejor esfuerzo */ }
-  }
 }
 
-/** Fuerza la recarga de la memoria desde el servidor. */
-export function refreshElianaMemory(userId: string) {
-  hydrateFromServer(userId)
+/** No hay memoria permanente que recargar desde el servidor. */
+export function refreshElianaMemory(_userId: string) {
+  // intencionalmente sin operación: no existe histórico persistente
 }

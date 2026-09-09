@@ -17,13 +17,13 @@ import {
   validateInput,
   filterOutput,
   clientRateCheck,
-  getRemainingMessages,
 } from "@/lib/eliana/core/security"
 import {
   loadMessages,
   saveMessage,
   clearHistory,
   canSendMessage,
+  getVisitorMessageCount,
   type PersistedMessage,
 } from "@/lib/eliana/core/persistence"
 
@@ -104,7 +104,7 @@ export default function ElianaAdvancedChat() {
       setIsLoaded(true)
     })
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRemaining(getRemainingMessages())
+    setRemaining(50 - getVisitorMessageCount())
 
     // Init speech APIs
     if (typeof window !== "undefined") {
@@ -269,7 +269,7 @@ export default function ElianaAdvancedChat() {
     }
     setMessages((prev) => [...prev, userMsg])
     saveMessage(userMsg)
-    setRemaining(getRemainingMessages())
+    setRemaining(50 - getVisitorMessageCount())
 
     // State: ESCUCHANDO → PENSANDO
     smRef.current.startThinking()
@@ -351,7 +351,7 @@ export default function ElianaAdvancedChat() {
     saveMessage(welcome)
     setShowSuggestions(true)
     setSecurityWarning(null)
-    setRemaining(getRemainingMessages())
+    setRemaining(50 - getVisitorMessageCount())
   }
 
   const stateColor = STATE_COLORS[elianaState]

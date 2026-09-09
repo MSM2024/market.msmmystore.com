@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
-const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/recover", "/auth/verify", "/auth/update-password", "/auth/reset-password", "/auth/callback", "/eliana", "/eliana/chat", "/eliana/conversaciones", "/eliana/memoria", "/eliana/tareas", "/eliana/configuracion"]
+const publicRoutes = ["/", "/inicio", "/auth/login", "/auth/register", "/auth/recover", "/auth/verify", "/auth/update-password", "/auth/reset-password", "/auth/callback", "/eliana", "/eliana/chat", "/eliana/conversaciones", "/eliana/memoria", "/eliana/tareas", "/eliana/configuracion"]
 const marketplacePublicRoutes = ["/marketplace", "/marketplace/productos", "/marketplace/tiendas"]
 const sellerRoutes = ["/marketplace/vender", "/marketplace/crear-tienda", "/dashboard"]
 const adminRoutes = ["/admin"]

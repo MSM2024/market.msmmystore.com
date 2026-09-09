@@ -1,16 +1,19 @@
 'use client'
 
 // ================================================================
-// ELIANA PERSISTENCE LAYER
-// localStorage for visitors, Supabase for authenticated users
+// ELIANA PERSISTENCE — SOLO ESTADO TEMPORAL DE SESIÓN
+// ZAFIRO NO almacena historial permanente de conversaciones.
+// - Sin Supabase: no escribe en eliana_conversations/eliana_messages.
+// - sessionStorage: efímero, vive solo durante la pestaña de sesión
+//   y se limpia al cerrar la pestaña/navegador (o al resetear chat).
+// - Al cargar, se eliminan los datos permanentes legados de
+//   localStorage (limpieza del archivo antiguo).
+// - Límite de mensajes por sesión para visitantes (50).
 // ================================================================
 
-import { getSupabaseClient, isSupabaseAvailable } from '@/lib/supabase'
-import { getSession } from '@/lib/auth'
-
-const MESSAGES_KEY = 'eliana_chat_messages'
-const CONVERSATION_KEY = 'eliana_chat_conversation_id'
-const MAX_LOCAL_MESSAGES = 100
+const SESSION_MESSAGES_KEY = "eliana_session_chat_messages_v2"
+const LEGACY_LOCAL_KEYS = ["eliana_chat_messages", "eliana_chat_conversation_id"]
+const MAX_SESSION_MESSAGES = 60
 
 export interface PersistedMessage {
   id: string
@@ -19,191 +22,80 @@ export interface PersistedMessage {
   timestamp: number
 }
 
-// --- LocalStorage Helpers ---
+// --- Session-scoped helpers ---
 
-function getLocalMessages(): PersistedMessage[] {
+function getSessionMessages(): PersistedMessage[] {
   if (typeof window === 'undefined') return []
   try {
-    return JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]')
+    const raw = window.sessionStorage.getItem(SESSION_MESSAGES_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
 }
 
-function saveLocalMessages(messages: PersistedMessage[]) {
+function saveSessionMessages(messages: PersistedMessage[]) {
   if (typeof window === 'undefined') return
-  const trimmed = messages.slice(-MAX_LOCAL_MESSAGES)
-  localStorage.setItem(MESSAGES_KEY, JSON.stringify(trimmed))
+  try {
+    const trimmed = messages.slice(-MAX_SESSION_MESSAGES)
+    window.sessionStorage.setItem(SESSION_MESSAGES_KEY, JSON.stringify(trimmed))
+  } catch {
+    // sessionStorage no disponible: la conversación vive solo en memoria
+  }
 }
 
-function getLocalConversationId(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(CONVERSATION_KEY)
-}
-
-function setLocalConversationId(id: string) {
+// Limpieza del historial permanente legado (localStorage) al arrancar.
+function cleanupLegacyHistory() {
   if (typeof window === 'undefined') return
-  localStorage.setItem(CONVERSATION_KEY, id)
+  try {
+    for (const key of LEGACY_LOCAL_KEYS) {
+      window.localStorage.removeItem(key)
+    }
+  } catch {
+    // ignorar
+  }
 }
 
-// --- Supabase Helpers ---
-
-function getSupabase() {
-  if (!isSupabaseAvailable()) return null
-  return getSupabaseClient()
-}
-
-async function getOrCreateSupabaseConversation(userId: string): Promise<string> {
-  const supabase = getSupabase()
-  if (!supabase) return ''
-
-  // Check existing conversation
-  const { data: existing } = await supabase
-    .from('eliana_conversations')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('channel', 'eliana_domain')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (existing) return existing.id
-
-  // Create new conversation
-  const { data: newConvo } = await supabase
-    .from('eliana_conversations')
-    .insert({
-      user_id: userId,
-      channel: 'eliana_domain',
-      status: 'active',
-      risk_level: 'low',
-      metadata: { user_id: userId },
-    })
-    .select('id')
-    .maybeSingle()
-
-  return newConvo?.id || ''
-}
-
-// --- Public API ---
+// --- Public API (firma idéntica para todos los chats) ---
 
 export async function loadMessages(): Promise<PersistedMessage[]> {
-  const session = getSession()
-
-  if (session) {
-    // Authenticated: try Supabase first
-    const supabase = getSupabase()
-    if (supabase) {
-      try {
-        const conversationId = getLocalConversationId()
-        if (conversationId) {
-          const { data } = await supabase
-            .from('eliana_messages')
-            .select('id, role, content, created_at')
-            .eq('conversation_id', conversationId)
-            .order('created_at', { ascending: true })
-            .limit(MAX_LOCAL_MESSAGES)
-
-          if (data && data.length > 0) {
-            return data.map((m: { id: string; role: string; content: string; created_at: string }) => ({
-              id: m.id,
-              role: m.role as 'user' | 'eliana',
-              text: m.content,
-              timestamp: new Date(m.created_at).getTime(),
-            }))
-          }
-        }
-      } catch {
-        // Fall through to localStorage
-      }
-    }
-  }
-
-  // Visitor or Supabase unavailable: use localStorage
-  return getLocalMessages()
+  cleanupLegacyHistory()
+  return getSessionMessages()
 }
 
 export async function saveMessage(message: PersistedMessage): Promise<void> {
-  const session = getSession()
-
-  // Always save locally for immediate UI access
-  const local = getLocalMessages()
-  const exists = local.find(m => m.id === message.id)
+  const messages = getSessionMessages()
+  const exists = messages.find(m => m.id === message.id)
   if (!exists) {
-    local.push(message)
-    saveLocalMessages(local)
-  }
-
-  // If authenticated, also save to Supabase
-  if (session) {
-    const supabase = getSupabase()
-    if (supabase) {
-      try {
-        let conversationId = getLocalConversationId()
-        if (!conversationId) {
-          conversationId = await getOrCreateSupabaseConversation(session.id)
-          if (conversationId) {
-            setLocalConversationId(conversationId)
-          }
-        }
-
-        if (conversationId) {
-          await supabase.from('eliana_messages').insert({
-            conversation_id: conversationId,
-            user_id: session.id,
-            role: message.role,
-            content: message.text,
-            channel: 'eliana_domain',
-          })
-        }
-      } catch {
-        // localStorage backup is sufficient
-      }
-    }
+    messages.push(message)
+    saveSessionMessages(messages)
   }
 }
 
 export async function clearHistory(): Promise<void> {
-  // Clear local
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(MESSAGES_KEY)
-    localStorage.removeItem(CONVERSATION_KEY)
-  }
-
-  // Mark Supabase conversation as resolved (don't delete)
-  const session = getSession()
-  if (session) {
-    const supabase = getSupabase()
-    if (supabase) {
-      try {
-        const conversationId = getLocalConversationId()
-        if (conversationId) {
-          await supabase
-            .from('eliana_conversations')
-            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-            .eq('id', conversationId)
-        }
-      } catch {
-        // Best effort
-      }
-    }
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.removeItem(SESSION_MESSAGES_KEY)
+  } catch {
+    // best effort
   }
 }
 
 export function getVisitorMessageCount(): number {
-  return getLocalMessages().length
+  return getSessionMessages().length
 }
 
 export function canSendMessage(): { allowed: boolean; reason?: string } {
-  const messages = getLocalMessages()
+  const messages = getSessionMessages()
   const userMessages = messages.filter(m => m.role === 'user')
 
-  // Visitor limit: 50 messages per session
+  // Límite por sesión del visitante: 50 mensajes (efímeros, se reinician
+  // al cerrar la pestaña). Los usuarios con sesión no tienen límite.
   if (userMessages.length >= 50) {
     return {
       allowed: false,
-      reason: 'Has alcanzado el límite de mensajes como visitante. Inicia sesión para continuar.',
+      reason: 'Has alcanzado el límite de esta sesión. Cierra la pestaña o espera a una sesión nueva.',
     }
   }
 

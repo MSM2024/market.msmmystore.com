@@ -81,6 +81,7 @@ export interface ElianaResponse {
   suggestions?: string[]
   actions?: ElianaAction[]
   context?: Record<string, string>
+  source?: "ai_provider" | "knowledge_local"
 }
 
 export interface ElianaAction {

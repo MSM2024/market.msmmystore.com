@@ -13,30 +13,44 @@ import { buildKnowledgeContext } from './knowledge'
 
 // ================================================================
 // ELIANA CONVERSATION ENGINE
-// Motor central de conversación multi-canal
+// Motor central de conversación multi-canal (legado del dashboard)
+// NOTA v1.0.1: sin histórico permanente — todo es SOLO SESIÓN.
+// Se usa sessionStorage (efímero) y se limpia el almacén de
+// localStorage del archivo antiguo al cargar.
 // ================================================================
 
-const CONVERSATIONS_KEY = 'eliana_conversations'
-const MESSAGES_KEY = 'eliana_messages'
+const CONVERSATIONS_KEY = 'eliana_conversations_session'
+const MESSAGES_KEY = 'eliana_messages_session'
+const LEGACY_KEYS = ['eliana_conversations', 'eliana_messages']
 
-// --- Storage helpers ---
+function cleanupLegacy() {
+  if (typeof window === 'undefined') return
+  try {
+    for (const k of LEGACY_KEYS) window.localStorage.removeItem(k)
+  } catch { /* ignorar */ }
+}
+
+// --- Storage helpers (solo sesión) ---
 
 function getConversations(): ElianaConversation[] {
   if (typeof window === 'undefined') return []
-  try { return JSON.parse(localStorage.getItem(CONVERSATIONS_KEY) || '[]') } catch { return [] }
+  cleanupLegacy()
+  try { return JSON.parse(window.sessionStorage.getItem(CONVERSATIONS_KEY) || '[]') } catch { return [] }
 }
 
 function saveConversations(convos: ElianaConversation[]) {
-  localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(convos))
+  if (typeof window === 'undefined') return
+  try { window.sessionStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(convos)) } catch { /* efímero */ }
 }
 
 function getMessages(): ElianaMessage[] {
   if (typeof window === 'undefined') return []
-  try { return JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]') } catch { return [] }
+  try { return JSON.parse(window.sessionStorage.getItem(MESSAGES_KEY) || '[]') } catch { return [] }
 }
 
 function saveMessages(msgs: ElianaMessage[]) {
-  localStorage.setItem(MESSAGES_KEY, JSON.stringify(msgs))
+  if (typeof window === 'undefined') return
+  try { window.sessionStorage.setItem(MESSAGES_KEY, JSON.stringify(msgs)) } catch { /* efímero */ }
 }
 
 // --- Intent Classification ---
