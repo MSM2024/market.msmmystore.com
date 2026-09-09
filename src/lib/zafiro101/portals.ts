@@ -106,10 +106,11 @@ export const PORTALS: PortalDef[] = [
     id: "marketplace",
     nombre: "Marketplace",
     descripcion: "La plataforma de comercio de MSM. Se abre en el sitio externo.",
-    // URL externa del marketplace MSM. Confirmar con el dueño del proyecto
-    // si el dominio público difiere de msmmystore.com.
+    // URL externa del marketplace MSM. Sobrescribible con
+    // NEXT_PUBLIC_MARKETPLACE_URL sin tocar código (p. ej.
+    // https://market.msmmystore.com si el comercio vive en ese dominio).
     icono: Store,
-    url: "https://msmmystore.com",
+    url: process.env.NEXT_PUBLIC_MARKETPLACE_URL || "https://msmmystore.com",
     estado: "acceso",
     external: true,
   },

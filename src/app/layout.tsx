@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "ZAFIRO - Knowledge Future",
+    default: "ZAFIRO — ELIANA Viva · Puerta del ecosistema MSM",
     template: "%s | ZAFIRO",
   },
-  description: "La red social del conocimiento impulsada por Inteligencia Artificial.",
-  keywords: ["conocimiento", "IA", "red social", "ciencia", "tecnología", "gemología", "ZAFIRO"],
+  description: "La puerta inteligente del ecosistema MSM. Entra con ELIANA, tu guía IA, y abre cada portal del universo ZAFIRO.",
+  keywords: ["ZAFIRO", "ELIANA", "MSM", "ecosistema", "IA", "gemología", "Marketplace", "portales", "puerta inteligente"],
   authors: [{ name: "MSM" }],
   openGraph: {
-    title: "ZAFIRO — Knowledge Future",
-    description: "La red social del conocimiento impulsada por Inteligencia Artificial.",
+    title: "ZAFIRO — ELIANA Viva · Puerta del ecosistema MSM",
+    description: "La puerta inteligente del ecosistema MSM. Entra con ELIANA y abre cada portal del universo ZAFIRO.",
     siteName: "ZAFIRO",
     type: "website",
     locale: "es_ES",
