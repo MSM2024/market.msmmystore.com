@@ -1,8 +1,8 @@
 # ZAFIRO — ESTADO DEL PROYECTO (PROJECT_STATUS)
 
 > Documento de continuidad. Cualquier IA/desarrollador debe leer esto antes de tocar código.
-> Última auditoría: 2026-09-09 (ZAFIRO 1.0.1 — CAMBIO MAESTRO de arquitectura: ELIANA = puerta,
-> sin persistencia de conversaciones; ver Apéndice 4 al final).
+> Última auditoría: 2026-09-10 (CIERRE DEL ESTADO ACTUAL — world-map preparado con flags OFF,
+> pipeline 100% verde, desplegado en producción; ver Apéndice 5 al final).
 
 ## 1. OBJETIVO ACTUAL
 
@@ -565,3 +565,46 @@ migraciones de chat en Supabase. Los módulos son **portales externos** con una 
 - Estimación realista **~95–98%** del alcance v1.0.1 aplicable sin tocarse backend externo.
   **NO se declara 100%** (regla del cliente: E2E producción + validación de Don Miguel).
 - ZAFIRO v1.0.1 **CONGELADO**; funciones nuevas → v1.0.2. Marketplace intacto.
+
+---
+
+## Apéndice 5 — CIERRE DEL ESTADO ACTUAL (2026-09-10)
+
+### Objetivo cumplido
+Todo lo construido hasta aquí queda TERMINADO, CONECTADO, CORREGIDO, VALIDADO y DESPLEGADO.
+**No hay funciones nuevas en este cierre** (solo terminación/corrección del alcance existente).
+
+### ZAFIRO WORLD MAP 🌎 — PREPARADO, flags OFF (listo para release futuro)
+- Dominio puro en `src/lib/world-map/`: `types`, `flags`, `places`, `search`, `clustering`,
+  `privacy` (+`time`, `cache`, `analytics`, `aggregates`, `spatial`, `gates`, `geo`).
+- Endpoints `/api/world-map/nodes` (bbox-constrained, clusters, rate-limit, PRIVATE nunca sale)
+  y `/api/world-map/story` (agregados solo-números). Con `worldMap.enabled=false` devuelven
+  vacío honesto (NO tocan Supabase).
+- UI `src/components/world-map/`: StoryPreview, EmptyState, MapNodeCard, MapWorldClock, MapPrivacy,
+  MapLayers, MapSearch, MapEliana, MapRealtime, MapCanvas (MapLibre lazy `ssr:false`), WorldMapPage.
+- Ruta `/world` (placeholder honesto con flags OFF — el mapa NO entra al bundle inicial),
+  preview en `/historias`, portal `world-map` + keywords en el orquestador (estado "futuro").
+- 31 tests nuevos. **TODAS las flags nacen en `false`**: ZAFIRO funciona igual que antes.
+
+### Pipeline validado (2026-09-10)
+- `pnpm lint` → 0 · `pnpm typecheck` → 0 · `pnpm test` → **118/118** (87 previos + 31 world-map)
+  · `pnpm build` → **144 páginas** (141 + `/world`).
+- Build Windows: recuperación del clásico `EPERM .next` con `rmdir /s /q .next` + rebuild limpio.
+
+### Correcciones reales hechas en este cierre
+- `publicNodes()` ordenaba por prioridad DESPUÉS de cortar en 500 → cortaba un subconjunto
+  arbitrario. Ahora ordena primero y corta después (máxima prioridad global).
+- `MapNodeCard` mostraba `ciudad, región, código` con duplicados ("La Habana, La Habana, CU") →
+  ahora localización legible y país traducido ("La Habana, Cuba").
+- Errores TS reales corregidos: `aggregates` (tipado de contadores por entidad) y `clustering`
+  (uso de `cx/cy` fuera de contexto).
+- Lint: refs escritas fuera de render en `MapCanvas` y `setState` síncrono en efectos
+  (`WorldMapStoryPreview`), conforme a `react-hooks` v6.
+
+### Dependencias externas sin cambio (bloqueadores ya conocidos)
+- `SUPABASE_SERVICE_ROLE_KEY` = PENDIENTE (los endpoints world-map usan anon y fallan vacío).
+- Stripe sigue 401 live; `GEMINI_API_KEY` sin publicar en Vercel. Marketplace intacto.
+
+### Descarga del cierre
+- Commit + push a `origin/main` (rama `main`); deploy Vercel verificado (Production + commit
+  status "Vercel" = success). Detalle en el informe final de sesión.

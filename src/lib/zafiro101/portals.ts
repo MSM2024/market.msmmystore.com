@@ -17,6 +17,7 @@ import {
   GraduationCap,
   Store,
   Crown,
+  Map,
   type LucideIcon,
 } from "lucide-react"
 
@@ -120,6 +121,18 @@ export const PORTALS: PortalDef[] = [
     descripcion: "Planes y beneficios ZAFIRO. Pendiente de activación de pagos.",
     icono: Crown,
     url: "/memberships",
+    estado: "futuro",
+    external: false,
+  },
+  {
+    // Portal del Mapa Mundial: se enciende SOLO cuando worldMap.enabled=true
+    // (release futuro). Mientras tanto ZAFIRO responde honestamente
+    // "Próximamente" y no ofrece ABRIR.
+    id: "world-map",
+    nombre: "Mapa Mundial",
+    descripcion: "El mundo vivo en ZAFIRO 🌎 — lugares, historias y búsquedas de ELIANA.",
+    icono: Map,
+    url: "/world",
     estado: "futuro",
     external: false,
   },

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
 import EmptyState from "@/components/ui/EmptyState"
+import WorldMapStoryPreview from "@/components/world-map/WorldMapStoryPreview"
 
 interface Story {
   id: string
@@ -47,6 +48,8 @@ export default function HistoriasPage() {
     <div className="min-h-screen zafiro-page text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold zafiro-gold-text mb-8">Historias</h1>
+
+        <WorldMapStoryPreview />
 
         <div className="flex flex-wrap gap-3 mb-6">
           <input

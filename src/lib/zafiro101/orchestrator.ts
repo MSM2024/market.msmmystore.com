@@ -33,6 +33,11 @@ const KEYWORDS: Record<string, string[]> = {
     "carrito", "proveedor", "articulo", "oferta", "stock", "catalogo",
   ],
   memberships: ["membresia", "membresias", "plan de beneficio", "suscripcion", "cuba plus"],
+  "world-map": [
+    "mapa mundial", "mapa del mundo", "world map", "eliana buscadora", "buscadora",
+    "villa esperanza", "cerca de mi", "cerca de mí", "dónde hay", "donde hay",
+    "ubicacion", "ubicación", "en el mapa", "que hay en mi zona", "buscar en el mapa",
+  ],
 }
 
 /**
