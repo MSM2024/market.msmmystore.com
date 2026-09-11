@@ -645,3 +645,10 @@ Todo lo construido hasta aquí queda TERMINADO, CONECTADO, CORREGIDO, VALIDADO y
   quedaron reescritas con los valores canónicos de `.env.local`
   (`https://vcfevlpoqwnsvkwfoprv.supabase.co` y `sb_publishable_C7J-...`) y se redisplegó.
   Verificar de nuevo `/api/health` → esperado `supabase:ok`.
+- 🔐 **Auth en prod verificado (2026-09-11)**: smoke test de login contra
+  `https://zafiro.msmmystore.com/auth/login` → Supabase Auth responde (GoTrue devuelve
+  `invalid_credentials` = el flujo funciona), pero las credenciales de
+  `ZAFIRO_ADMIN_EMAIL`/`ZAFIRO_ADMIN_PASSWORD` de `.env.local` NO son la contraseña activa
+  de la cuenta real → **Don Miguel debe crear/confirmar la cuenta owner en Supabase Auth**
+  (o resetear su contraseña) y actualizar `ZAFIRO_ADMIN_PASSWORD`. ELIANA IA validada real
+  en prod (respondió "LISTO" vía Gemini).
