@@ -639,3 +639,9 @@ Todo lo construido hasta aquí queda TERMINADO, CONECTADO, CORREGIDO, VALIDADO y
 - ⚠️ `GEMINI_API_KEY` quedó publicada desde `.env.local` para que ELIANA funcione en prod,
   pero esa key está marcada como "expuesta" en auditorías previas → **rotarla** en el
   dashboard de AI Studio y actualizar la variable en Vercel.
+- 🔧 **FIX Supabase en prod (2026-09-11)**: `/api/health` reportaba `supabase: error:fetch
+  failed` pese a que `https://vcfevlpoqwnsvkwfoprv.supabase.co` es alcanzable (401=auth).
+  Las variables `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Vercel
+  quedaron reescritas con los valores canónicos de `.env.local`
+  (`https://vcfevlpoqwnsvkwfoprv.supabase.co` y `sb_publishable_C7J-...`) y se redisplegó.
+  Verificar de nuevo `/api/health` → esperado `supabase:ok`.
