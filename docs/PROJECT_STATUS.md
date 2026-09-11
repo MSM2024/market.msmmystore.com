@@ -625,3 +625,17 @@ Todo lo construido hasta aquí queda TERMINADO, CONECTADO, CORREGIDO, VALIDADO y
   `/api/world-map/story` 200 JSON (`enabled:false` → vacío honesto). Sin "Knowledge Future".
 - **Pendiente opcional**: `eliana.msmmystore.com` sigue en el proyecto legacy `zafiro`;
   rebindearlo a `market-msmmystore` solo si se desea que sirva la ELIANA del build nuevo.
+
+### Variables de entorno en Vercel — estado real (2026-09-11)
+- Tras el rebind de dominios se verificó Vercel: el proyecto `market-msmmystore` YA tenía 9
+  variables (Supabase `NEXT_PUBLIC_SUPABASE_URL`/`_ANON_KEY`, `NEXT_PUBLIC_APP_URL`,
+  Stripe `publishable`/`secret`, Cloudinary, `MSM_COMMERCIAL_EMAIL`). Se publicaron las 3
+  pendientes existentes en `.env.local`:
+  - `GEMINI_API_KEY` (production) — habilita ELIANA IA en prod (era el pendiente documentado).
+  - `NEXT_PUBLIC_STRIPE_PRICE_PRO` y `NEXT_PUBLIC_STRIPE_PRICE_CUBA_PLUS` (production).
+- Todavía SIN valor real (no publicables, requieren dashboard de Don Miguel):
+  `SUPABASE_SERVICE_ROLE_KEY` (=PENDIENTE), `STRIPE_WEBHOOK_SECRET` (vacío),
+  `ZAFIRO_SETUP_TOKEN`, `ELIANA_API_KEY`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- ⚠️ `GEMINI_API_KEY` quedó publicada desde `.env.local` para que ELIANA funcione en prod,
+  pero esa key está marcada como "expuesta" en auditorías previas → **rotarla** en el
+  dashboard de AI Studio y actualizar la variable en Vercel.
