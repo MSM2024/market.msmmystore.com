@@ -14,7 +14,9 @@ declararse DONE.
 ## 2. ARQUITECTURA
 
 - **Framework**: Next.js 16.2.10 (App Router), React 19.2.4, TypeScript 5, Tailwind 4.
-- **Deploy**: Vercel (proyecto `zafiro`), dominio `zafiro.msmmystore.com`.
+- **Deploy**: Vercel (proyecto **`market-msmmystore`**, conectado al repo vía GitHub),
+  dominio de producción `zafiro.msmmystore.com` (rebindado de 2026-09-10, ver Apéndice 5).
+  El proyecto legacy `zafiro` quedó como respaldo (builds 39+ días, ya no recibe deploys).
 - **Auth + DB**: Supabase (`vcfevlpoqwnsvkwfoprv.supabase.co`), proyecto **compartido** entre
   ZAFIRO y otras apps MSM. Cliente dual: `createClient` (server) / `createBrowserClient` (browser).
 - **IA**: Google Gemini (`@google/genai`), con relleno/`provider.ts` (retry 429/502/503/504).
@@ -608,3 +610,18 @@ Todo lo construido hasta aquí queda TERMINADO, CONECTADO, CORREGIDO, VALIDADO y
 ### Descarga del cierre
 - Commit + push a `origin/main` (rama `main`); deploy Vercel verificado (Production + commit
   status "Vercel" = success). Detalle en el informe final de sesión.
+
+### Resolución del dominio de producción (2026-09-10)
+- **Síntoma**: tras el push `ebcee03`, GitHub reportaba Vercel success pero
+  `https://zafiro.msmmystore.com/` seguía sirviendo el build legacy "ZAFIRO - Knowledge Future"
+  (raíz = 404 custom, `/world` 404, `/api/world-map/*` 404).
+- **Causa raíz**: `zafiro.msmmystore.com` estaba asignado al proyecto Vercel **`zafiro`**
+  (builds de hace 39-42 días), NO al proyecto `market-msmmystore` donde desplegaba el repo.
+  El alias `market-msmmystore.vercel.app` ya servía el build nuevo; el dominio custom no.
+- **Fix** (Vercel API, scope `msmmystore`): quitar el dominio de `projects/zafiro/domains` y
+  agregarlo a `projects/market-msmmystore/domains` (`verified: true`, CNAME DNS intacto).
+- **Verificación en `https://zafiro.msmmystore.com`**: `/` 200 "ZAFIRO - ELIANA Viva",
+  `/world` 200, `/historias` 200, `/inicio` 200, `/eliana` 200,
+  `/api/world-map/story` 200 JSON (`enabled:false` → vacío honesto). Sin "Knowledge Future".
+- **Pendiente opcional**: `eliana.msmmystore.com` sigue en el proyecto legacy `zafiro`;
+  rebindearlo a `market-msmmystore` solo si se desea que sirva la ELIANA del build nuevo.
