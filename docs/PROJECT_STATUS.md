@@ -652,3 +652,42 @@ Todo lo construido hasta aquí queda TERMINADO, CONECTADO, CORREGIDO, VALIDADO y
   de la cuenta real → **Don Miguel debe crear/confirmar la cuenta owner en Supabase Auth**
   (o resetear su contraseña) y actualizar `ZAFIRO_ADMIN_PASSWORD`. ELIANA IA validada real
   en prod (respondió "LISTO" vía Gemini).
+
+### SEPARACIÓN TOTAL DE DOMINIOS Y PROYECTOS (2026-09-14)
+Regla absoluta del cliente: `zafiro`, `eliana` y `market` son TRES aplicaciones
+independientes, sin compartir deployments ni repositorios.
+
+**Identificación final (GitHub → Vercel → dominio):**
+- **ZAFIRO** → repo `MSM2024/market.msmmystore.com` → proyecto `market-msmmystore`
+  (`prj_KIFm9yY2oQzxFgF594NaeWq9Z37d`) → `https://zafiro.msmmystore.com`
+- **ELIANA CENTRAL** → repo `MSM2024/msm-eliana-app` (privado) → proyecto `msm-eliana-app`
+  (`prj_Q0i3rhlqo5mbnZsdPNNiWemJupBS`) → `https://eliana.msmmystore.com`
+- **MARKET** → repo `MSM2024/msm` → proyecto `msm-original` →
+  `https://market.msmmystore.com` (+ `marketplace.msmmystore.com`, `beta.msmmystore.com`)
+
+**Corrección realizada (cruce detectado y eliminado):**
+- `eliana.msmmystore.com` estaba adjunto al proyecto ZAFIRO `market-msmmystore` (heredado del
+  rebind del 2026-09-10), sirviendo la portada ZAFIRO desde el dominio de ELIANA.
+- Se quitó de `market-msmmystore` (DELETE domain) y se adjuntó a `msm-eliana-app`
+  (POST domain, `verified: true`, DNS/CNAME intacto). Resultado: cada proyecto retiene
+  SOLO su propio dominio + alias `.vercel.app`.
+
+**ELIANA CENTRAL también se dejó operativa en Vercel:**
+- El proyecto `msm-eliana-app` tenía **0 env vars** (la app no podía iniciar Supabase).
+  Se publicaron (production/preview/development): `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `GEMINI_API_KEY` (mismos valores canónicos del ecosistema).
+- Se redisplegó el deploy de producción existente (`vercel redeploy` del commit `7153d9e`,
+  rama `master`) con rebuild: `Ready in 56s`, alias `msm-eliana-app.vercel.app`.
+- Nota: el proyecto tiene SSO protection `all_except_custom_domains` → el alias `.vercel.app`
+  pide login, pero el dominio custom `eliana.msmmystore.com` queda público.
+
+**Verificación en producción (los TRES abren su propia app):**
+- `https://zafiro.msmmystore.com/` → 200, "ZAFIRO - ELIANA Viva · Puerta del ecosistema MSM".
+- `https://eliana.msmmystore.com/` → 200, "ELIANA - AI Assistant | MSM MY STORE"
+  (`/chat`, `/memoria`, `/tareas` = 200; `/api/health` = 200 `{status:degraded,
+  database:down, gemini:up}` — DB down porque las tablas `eliana_*` requieren
+  `SUPABASE_SERVICE_ROLE_KEY`, bloqueador conocido).
+- `https://market.msmmystore.com/` → 200, "MSM my store" (MARKET intacto, no modificado).
+
+**Reglas cumplidas:** no compartir deployments ✓ · no confundir proyectos ✓ · sin dobles
+asignaciones de dominio ✓ · sin tocar MARKET ✓ · integración solo vía APIs/enlaces ✓.
