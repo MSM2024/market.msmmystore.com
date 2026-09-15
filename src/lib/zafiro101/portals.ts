@@ -1,5 +1,5 @@
 // ================================================================
-// PORTALES ZAFIRO v1.0.1 — Configuración ÚNICA y centralizada.
+// PORTALES ZAFIRO v1.1.0 — Configuración ÚNICA y centralizada.
 // ZAFIRO es la PUERTA al universo MSM: cada burbuja abre una
 // plataforma. Si una plataforma externa cambia de dominio, se
 // actualiza SOLO aquí (ningún otro componente dispersa URLs).
@@ -18,6 +18,7 @@ import {
   Store,
   Crown,
   Map,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react"
 
@@ -40,6 +41,18 @@ export const PORTAL_STATUS_LABEL: Record<PortalStatus, string> = {
 }
 
 export const PORTALS: PortalDef[] = [
+  {
+    id: "eliana-central",
+    nombre: "ELIANA Central",
+    descripcion: "Asistente inteligente central del ecosistema MSM. Se abre en el sitio externo.",
+    // ELIANA CENTRAL vive en su propio proyecto/dominio (eliana.msmmystore.com).
+    // ZAFIRO NO duplica su backend: solo enlaza al asistente central real.
+    // Sobrescribible con NEXT_PUBLIC_ELIANA_URL sin tocar código.
+    icono: Sparkles,
+    url: process.env.NEXT_PUBLIC_ELIANA_URL || "https://eliana.msmmystore.com",
+    estado: "disponible",
+    external: true,
+  },
   {
     id: "gemologia",
     nombre: "Gemología",
@@ -107,11 +120,14 @@ export const PORTALS: PortalDef[] = [
     id: "marketplace",
     nombre: "Marketplace",
     descripcion: "La plataforma de comercio de MSM. Se abre en el sitio externo.",
-    // URL externa del marketplace MSM. Sobrescribible con
-    // NEXT_PUBLIC_MARKETPLACE_URL sin tocar código (p. ej.
-    // https://market.msmmystore.com si el comercio vive en ese dominio).
+    // URL externa del marketplace MSM (market.msmmystore.com). Sobrescribible
+    // con NEXT_PUBLIC_MARKET_URL (o el legado NEXT_PUBLIC_MARKETPLACE_URL)
+    // sin tocar código.
     icono: Store,
-    url: process.env.NEXT_PUBLIC_MARKETPLACE_URL || "https://msmmystore.com",
+    url:
+      process.env.NEXT_PUBLIC_MARKET_URL ||
+      process.env.NEXT_PUBLIC_MARKETPLACE_URL ||
+      "https://market.msmmystore.com",
     estado: "acceso",
     external: true,
   },

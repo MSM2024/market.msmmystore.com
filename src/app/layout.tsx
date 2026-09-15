@@ -68,7 +68,7 @@ export default function RootLayout({
             pointerEvents: "none",
           }}
         >
-          {`ZAFIRO v1.0.1 · ${buildSha}`}
+          {`ZAFIRO v1.1.0 · ${buildSha}`}
         </div>
       </body>
     </html>

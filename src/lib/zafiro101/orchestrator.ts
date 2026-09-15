@@ -21,6 +21,7 @@ const INTENT: string[] = [
 ]
 
 const KEYWORDS: Record<string, string[]> = {
+  "eliana-central": ["eliana central", "asistente central", "eliana completa", "eliana del ecosistema"],
   gemologia: ["gema", "zafiro", "rubi", "piedra", "diamante", "corindon", "kashmir", "padparadscha", "laboratorio", "handbook"],
   universo: ["universo", "mapa de proyectos", "mapa de plataformas"],
   ecosistema: ["ecosistema", "servicios", "servicio", "marca", "proyectos", "empresa", "negocio", "branding"],

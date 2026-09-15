@@ -30,7 +30,7 @@ export default function ElianaEntrance({ onEnter }: Props) {
         <div className="zaf101-rise flex items-center gap-2">
           <span className="zaf101-gold-text text-sm font-black tracking-[0.3em] sm:text-base">ZAFIRO</span>
           <span className="hidden rounded-full border border-[#DAA520]/30 bg-[#DAA520]/5 px-2 py-0.5 text-[9px] font-medium tracking-widest text-[#E8C766] sm:inline-block">
-            1.0.1
+            1.1.0
           </span>
         </div>
         <div className="zaf101-rise zaf101-rise-delay-1 flex items-center gap-1.5 text-[10px] text-neutral-400">

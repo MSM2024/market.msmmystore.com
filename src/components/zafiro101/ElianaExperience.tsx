@@ -4,16 +4,20 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import ElianaEntrance from "@/components/zafiro101/ElianaEntrance"
-import ElianaVivaChat from "@/components/zafiro101/ElianaVivaChat"
+import ElianaCentralWidget from "@/components/eliana-central/ElianaCentralWidget"
 
 type Phase = "entrada" | "viva"
 
-// Experiencia ENTRADA SOBERANA → ELIANA VIVA (ZAFIRO 1.0.1).
+// Experiencia ENTRADA SOBERANA → ELIANA CENTRAL (ZAFIRO 1.1.0).
 // Es EL entrypoint de ZAFIRO: lo renderizan tanto la raíz `/` como
-// `/eliana` (y `eliana.msmmystore.com` reescribe su raíz aquí).
-// No hay segunda interfaz: esta es la UNICA puerta.
+// `/eliana`. Es la UNICA puerta.
+//
+// ZAFIRO NO duplica a ELIANA: la fase VIVA monta el widget reutilizable
+// que conecta con la MISMA ELIANA CENTRAL (eliana.msmmystore.com) con
+// source="zafiro". ZAFIRO solo aporta el acceso visual y el contexto;
+// la inteligencia, voz, estados y lógica viven en ELIANA CENTRAL.
 export default function ElianaExperience() {
-  usePageTitle("ELIANA Viva — ZAFIRO 1.0.1")
+  usePageTitle("ELIANA Viva — ZAFIRO 1.1.0")
   const [phase, setPhase] = useState<Phase>("entrada")
   const [entering, setEntering] = useState(false)
 
@@ -49,7 +53,7 @@ export default function ElianaExperience() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: "easeInOut" }}
           >
-            <ElianaVivaChat />
+            <ElianaCentralWidget source="zafiro" context="portal" view="chat" className="h-dvh" />
           </motion.div>
         )}
       </AnimatePresence>
