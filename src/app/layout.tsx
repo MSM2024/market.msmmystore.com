@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   },
 };
 
+const buildSha = (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7);
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,6 +52,24 @@ export default function RootLayout({
       </head>
       <body className="bg-[#050816] text-white antialiased flex flex-col min-h-screen">
         <ClientLayout>{children}</ClientLayout>
+        <div
+          id="zafiro-version"
+          style={{
+            position: "fixed",
+            bottom: "4px",
+            left: "6px",
+            zIndex: 9999,
+            fontSize: "10px",
+            lineHeight: 1,
+            opacity: 0.5,
+            color: "#D4AF37",
+            fontFamily: "ui-monospace, SFMono-Regular, monospace",
+            letterSpacing: "0.5px",
+            pointerEvents: "none",
+          }}
+        >
+          {`ZAFIRO v1.0.1 · ${buildSha}`}
+        </div>
       </body>
     </html>
   );

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "zafiro-v2"
+const CACHE_VERSION = "zafiro-v3"
 const PRECACHE_URLS = ["/", "/manifest.json", "/zafiro-mark.svg"]
 
 self.addEventListener("install", (event) => {
