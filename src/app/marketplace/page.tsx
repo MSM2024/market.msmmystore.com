@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { FormEvent, useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Package, Store, Star, ChevronRight, Grid3X3, List, Truck, Shield, Zap } from "lucide-react"
+import {
+  ArrowRight, BadgeCheck, ChevronRight, CircleDollarSign, Gamepad2, Heart,
+  Home, Landmark, MapPin, Package, Search, ShieldCheck, ShoppingCart,
+  Smartphone, Sofa, Star, Store, Truck, Headphones, UtensilsCrossed,
+  WashingMachine, Send, RefreshCcw, HeartPulse
+} from "lucide-react"
+import { useRouter } from "next/navigation"
 import { usePageTitle } from "@/lib/usePageTitle"
-import { formatPrice } from "@/lib/marketplace/constants"
-import { fetchCategories, fetchStores, fetchProducts } from "@/lib/marketplace/client"
+import { fetchCategories, fetchProducts, fetchStores } from "@/lib/marketplace/client"
 import type { ProductStatus } from "@/lib/marketplace/types"
 
 interface HomeProduct {
@@ -14,266 +19,172 @@ interface HomeProduct {
   image: string; store: { name: string }; average_rating: number; review_count: number;
   free_shipping: boolean; status: ProductStatus
 }
+interface HomeStore { name:string; slug:string; average_rating:number; product_count:number; country:string; logo_url:string }
 
-const FALLBACK_CATEGORIES = [
-  { name: "Electrónica", slug: "electronica", icon: "📱", product_count: 234 },
-  { name: "Hogar y Cocina", slug: "hogar-cocina", icon: "🏠", product_count: 189 },
-  { name: "Moda", slug: "moda-accesorios", icon: "👕", product_count: 312 },
-  { name: "Belleza", slug: "belleza-salud", icon: "💄", product_count: 156 },
-  { name: "Deportes", slug: "deportes-aires-libre", icon: "⚽", product_count: 98 },
-  { name: "Automotriz", slug: "automotriz", icon: "🚗", product_count: 67 },
-  { name: "Mascotas", slug: "mascotas", icon: "🐾", product_count: 45 },
-  { name: "Libros", slug: "libros-educacion", icon: "📚", product_count: 203 },
+const sampleProducts: HomeProduct[] = [
+  {id:"1",name:"Nevera Mabe 11 pies Top Freezer",slug:"nevera-mabe-11",final_price:320,base_price:320,image:"",store:{name:"ElectroHogar"},average_rating:4.8,review_count:124,free_shipping:true,status:"published"},
+  {id:"2",name:"Freidora de aire 5.5L Digital",slug:"freidora-aire",final_price:85,base_price:85,image:"",store:{name:"TecnoTotal"},average_rating:4.6,review_count:98,free_shipping:false,status:"published"},
+  {id:"3",name:"Xiaomi Redmi Note 13 128GB",slug:"redmi-note-13",final_price:180,base_price:180,image:"",store:{name:"MundoTech"},average_rating:4.7,review_count:56,free_shipping:true,status:"published"},
+  {id:"4",name:"Olla arrocera 1.8L Oster",slug:"olla-oster",final_price:55,base_price:55,image:"",store:{name:"Hogar Perfecto"},average_rating:4.5,review_count:87,free_shipping:false,status:"published"},
+  {id:"5",name:"Ventilador de pie 18\" Milex",slug:"ventilador-milex",final_price:70,base_price:70,image:"",store:{name:"Casa & Más"},average_rating:4.6,review_count:72,free_shipping:false,status:"published"},
+  {id:"6",name:"Televisor Samsung 43\" Smart TV",slug:"tv-samsung-43",final_price:340,base_price:340,image:"",store:{name:"TecnoTotal"},average_rating:4.7,review_count:103,free_shipping:true,status:"published"},
 ]
 
-const FALLBACK_STORES = [
-  { name: "MSM Tech Store", slug: "msm-tech", average_rating: 4.8, product_count: 45, country: "US", logo_url: "" },
-  { name: "Cuba Express", slug: "cuba-express", average_rating: 4.6, product_count: 128, country: "CU", logo_url: "" },
-  { name: "Moda Latina", slug: "moda-latina", average_rating: 4.9, product_count: 89, country: "MX", logo_url: "" },
+const sampleStores: HomeStore[] = [
+  {name:"ElectroHogar",slug:"electrohogar",average_rating:4.8,product_count:124,country:"CU",logo_url:""},
+  {name:"TecnoTotal",slug:"tecnototal",average_rating:4.6,product_count:98,country:"CU",logo_url:""},
+  {name:"Hogar Perfecto",slug:"hogar-perfecto",average_rating:4.7,product_count:176,country:"CU",logo_url:""},
+  {name:"MundoTech",slug:"mundotech",average_rating:4.6,product_count:93,country:"CU",logo_url:""},
+  {name:"Vida Sana",slug:"vida-sana",average_rating:4.5,product_count:68,country:"CU",logo_url:""},
+  {name:"DeportePlus",slug:"deporteplus",average_rating:4.6,product_count:57,country:"CU",logo_url:""},
 ]
 
-const FALLBACK_PRODUCTS: HomeProduct[] = [
-  { id: "1", name: "iPhone 15 Pro Max 256GB", slug: "iphone-15-pro-max-256gb", final_price: 1199.99, base_price: 1299.99, image: "", store: { name: "MSM Tech Store" }, average_rating: 4.8, review_count: 124, free_shipping: true, status: "published" },
-  { id: "2", name: "Samsung Galaxy S24 Ultra", slug: "samsung-galaxy-s24-ultra", final_price: 1049.99, base_price: 1199.99, image: "", store: { name: "MSM Tech Store" }, average_rating: 4.7, review_count: 89, free_shipping: false, status: "published" },
-  { id: "3", name: "MacBook Air M3 15\"", slug: "macbook-air-m3-15", final_price: 1499.00, base_price: 1499.00, image: "", store: { name: "MSM Tech Store" }, average_rating: 4.9, review_count: 201, free_shipping: true, status: "published" },
-  { id: "4", name: "AirPods Pro 2da Gen", slug: "airpods-pro-2da-gen", final_price: 189.99, base_price: 249.99, image: "", store: { name: "MSM Tech Store" }, average_rating: 4.6, review_count: 567, free_shipping: true, status: "published" },
-  { id: "5", name: "iPad Air M2 256GB", slug: "ipad-air-m2-256gb", final_price: 749.00, base_price: 799.00, image: "", store: { name: "MSM Tech Store" }, average_rating: 4.8, review_count: 156, free_shipping: false, status: "published" },
-  { id: "6", name: "Apple Watch Series 9", slug: "apple-watch-series-9", final_price: 349.99, base_price: 399.99, image: "", store: { name: "MSM Tech Store" }, average_rating: 4.7, review_count: 234, free_shipping: true, status: "published" },
+const categories = [
+  {label:"Electrodomésticos",icon:WashingMachine,href:"/marketplace/productos?category=electrodomesticos"},
+  {label:"Alimentos",icon:UtensilsCrossed,href:"/marketplace/productos?category=alimentos"},
+  {label:"Remesas",icon:Send,href:"/remesas"},
+  {label:"Cambio de divisas",icon:RefreshCcw,href:"/cambio"},
+  {label:"Cajeros",icon:Landmark,href:"/cajeros"},
+  {label:"Tiendas VIP",icon:Store,href:"/marketplace/tiendas"},
+  {label:"Salud y belleza",icon:HeartPulse,href:"/marketplace/productos?category=salud-belleza"},
+  {label:"Tecnología",icon:Gamepad2,href:"/marketplace/productos?category=tecnologia"},
+  {label:"Hogar",icon:Sofa,href:"/marketplace/productos?category=hogar"},
+  {label:"Deportes",icon:CircleDollarSign,href:"/marketplace/productos?category=deportes"},
 ]
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  US: "🇺🇸", CU: "🇨🇺", MX: "🇲🇽", CA: "🇨🇦", ES: "🇪🇸", CO: "🇨🇴",
-  AR: "🇦🇷", VE: "🇻🇪", BR: "🇧🇷", CL: "🇨🇱", PE: "🇵🇪", EC: "🇪🇨",
-}
+const quick = [
+  ["Electrodomésticos",WashingMachine,"/marketplace/productos?category=electrodomesticos"],
+  ["Alimentos",UtensilsCrossed,"/marketplace/productos?category=alimentos"],
+  ["Remesas",Send,"/remesas"],["Cambio",RefreshCcw,"/cambio"],["Cajeros",MapPin,"/cajeros"],["Tiendas VIP",Star,"/marketplace/tiendas"]
+] as const
 
-function getBadge(product: HomeProduct) {
-  if (product.final_price < product.base_price) return { label: "Oferta", color: "bg-red-500/20 text-red-400" }
-  if (product.review_count > 200) return { label: "Popular", color: "bg-[#197BD2]/20 text-[#197BD2]" }
-  return null
+function ProductVisual({index}:{index:number}) {
+  const icons = [WashingMachine, UtensilsCrossed, Smartphone, Home, RefreshCcw, Gamepad2]
+  const Icon = icons[index % icons.length]
+  return <div className="msm-product-fallback"><Icon size={54}/></div>
 }
 
 export default function MarketplacePage() {
-  usePageTitle("Marketplace — MSM")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  usePageTitle("MSM Marketplace")
+  const router = useRouter()
+  const [heroQuery,setHeroQuery] = useState("")
+  const [products,setProducts] = useState<HomeProduct[]>(sampleProducts)
+  const [stores,setStores] = useState<HomeStore[]>(sampleStores)
 
-  const [categories, setCategories] = useState(FALLBACK_CATEGORIES)
-  const [stores, setStores] = useState(FALLBACK_STORES)
-  const [products, setProducts] = useState<HomeProduct[]>(FALLBACK_PRODUCTS)
-  const [, setLoading] = useState(true)
+  useEffect(()=>{
+    Promise.all([fetchProducts({limit:6,sort:"popular"}),fetchStores({limit:6}),fetchCategories()])
+      .then(([p,s])=>{
+        if(p.products.length) setProducts(p.products.slice(0,6).map(x=>({
+          id:x.id,name:x.name,slug:x.slug,final_price:x.final_price,base_price:x.base_price,
+          image:x.images?.[0]?.url||"",store:{name:x.store?.name||"MSM Store"},
+          average_rating:x.average_rating,review_count:x.review_count,free_shipping:x.free_shipping,status:x.status
+        })))
+        if(s.stores.length) setStores(s.stores.slice(0,6).map(x=>({
+          name:x.name,slug:x.slug,average_rating:x.average_rating,product_count:x.product_count,country:x.country,logo_url:x.logo_url
+        })))
+      }).catch(()=>{})
+  },[])
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [catRes, storeRes, prodRes] = await Promise.all([
-          fetchCategories(),
-          fetchStores({ limit: 6 }),
-          fetchProducts({ limit: 6, sort: "popular" }),
-        ])
-
-        if (catRes.length > 0) {
-          setCategories(catRes.map(c => ({
-            name: c.name,
-            slug: c.slug,
-            icon: c.icon,
-            product_count: c.product_count,
-          })))
-        }
-
-        if (storeRes.stores.length > 0) {
-          setStores(storeRes.stores.map(s => ({
-            name: s.name,
-            slug: s.slug,
-            average_rating: s.average_rating,
-            product_count: s.product_count,
-            country: s.country,
-            logo_url: s.logo_url,
-          })))
-        }
-
-        if (prodRes.products.length > 0) {
-          setProducts(prodRes.products.map(p => ({
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            final_price: p.final_price,
-            base_price: p.base_price,
-            image: p.images?.[0]?.url || "",
-            store: p.store ? { name: p.store.name } : { name: "" },
-            average_rating: p.average_rating,
-            review_count: p.review_count,
-            free_shipping: p.free_shipping,
-            status: p.status,
-          })))
-        }
-      } catch {
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const submitHero=(e:FormEvent)=>{
+    e.preventDefault()
+    if(heroQuery.trim()) router.push(`/marketplace/productos?q=${encodeURIComponent(heroQuery.trim())}`)
+  }
 
   return (
-    <div className="min-h-screen zafiro-page text-white">
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#0C3F6A] via-[#197BD2] to-[#0C3F6A] rounded-2xl p-6 md:p-8">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-4 right-4 w-32 h-32 border border-white/20 rounded-full" />
-          <div className="absolute bottom-4 left-4 w-24 h-24 border border-white/20 rounded-full" />
-        </div>
-        <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black zafiro-gold-text mb-2">
-            MSM <span className="text-[#F1D98C]">Marketplace</span>
-          </h1>
-          <p className="text-sm text-white/70 mb-4 max-w-md">
-            Compra y vende con confianza. Envíos a Cuba, Estados Unidos y Latinoamérica.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/marketplace/productos" className="inline-flex items-center gap-2 bg-white text-[#0C3F6A] px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/90 transition-colors">
-              <Package className="w-4 h-4" /> Explorar Productos
-            </Link>
-            <Link href="/marketplace/crear-tienda" className="inline-flex items-center gap-2 bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#D4AF37]/30 transition-colors">
-              <Store className="w-4 h-4" /> Crear Mi Tienda
-            </Link>
+    <>
+      <section className="msm-hero">
+        <div className="msm-hero-photo"/>
+        <div className="msm-hero-overlay"/>
+        <div className="msm-container msm-hero-grid">
+          <div className="msm-hero-copy">
+            <div className="msm-eyebrow">COMPRAS LOCALES <i/> SERVICIOS CONFIABLES <i/> UNA CUBA MÁS CONECTADA</div>
+            <h1>Descubre más en<br/><span>MSM Marketplace</span></h1>
+            <p>Productos, servicios, remesas y tiendas verificadas<br className="desktop-only"/> para una Cuba más conectada.</p>
+            <form className="msm-hero-search" onSubmit={submitHero}>
+              <Search size={21}/>
+              <input value={heroQuery} onChange={e=>setHeroQuery(e.target.value)} placeholder="Explora productos, tiendas o servicios..." />
+              <button>Buscar</button>
+            </form>
+            <div className="msm-quick-links">
+              {quick.map(([label,Icon,href])=><Link key={label} href={href}><Icon size={16}/>{label}</Link>)}
+            </div>
+          </div>
+
+          <div className="msm-city-script">Santiago<br/><span>de Cuba</span><small>NUESTRA GENTE<br/>NUESTRAS TIENDAS<br/>MÁS POSIBILIDADES</small></div>
+
+          <div className="msm-location-card">
+            <div className="msm-location-top">
+              <MapPin size={33}/>
+              <div><small>Tienda oficial en tu zona</small><strong>Segundo Frente,<br/>Santiago de Cuba</strong></div>
+              <ChevronRight/>
+            </div>
+            <div className="msm-location-features">
+              <span><Truck/><b>Entrega local</b></span>
+              <span><BadgeCheck/><b>Tiendas verificadas</b></span>
+              <span><Headphones/><b>Soporte real</b></span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-3 gap-3 mt-4">
-        {[
-          { icon: Truck, label: "Envío Directo", sub: "Del proveedor a tu puerta" },
-          { icon: Shield, label: "Pago Seguro", sub: "Protección al comprador" },
-          { icon: Zap, label: "Entrega Rápida", sub: "3-7 días hábiles" },
-        ].map((b, i) => (
-          <div key={i} className="text-center p-3 rounded-xl bg-slate-900/30 border border-slate-800/50">
-            <b.icon className="w-5 h-5 text-[#197BD2] mx-auto mb-1" />
-            <p className="text-[10px] font-bold text-white">{b.label}</p>
-            <p className="text-[8px] text-slate-500">{b.sub}</p>
-          </div>
-        ))}
-      </div>
+      <main className="msm-content">
+        <div className="msm-container">
+          <section className="msm-trustbar">
+            <div><ShieldCheck/><span><b>Pagos seguros</b><small>Tu dinero protegido</small></span></div>
+            <div><Truck/><span><b>Entregas locales</b><small>Rápido y confiable</small></span></div>
+            <div><BadgeCheck/><span><b>Vendedores verificados</b><small>Tiendas con buena reputación</small></span></div>
+            <div><Headphones/><span><b>Soporte real</b><small>Estamos para ayudarte</small></span></div>
+          </section>
 
-      <div className="mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-white">Categorías</h2>
-          <Link href="/marketplace/productos" className="text-[10px] text-[#197BD2] hover:underline flex items-center gap-1">
-            Ver todo <ChevronRight className="w-3 h-3" />
-          </Link>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {categories.map((cat) => (
-            <Link
-              key={cat.slug}
-              href={`/marketplace/productos?category=${cat.slug}`}
-              className="flex-shrink-0 flex flex-col items-center gap-1 p-3 rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all min-w-[80px]"
-            >
-              <span className="text-2xl">{cat.icon}</span>
-              <span className="text-[9px] font-bold text-white text-center">{cat.name}</span>
-              <span className="text-[7px] text-slate-500">{cat.product_count}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+          <section className="msm-section">
+            <div className="msm-section-title"><h2>Categorías populares</h2><Link href="/marketplace/productos">Ver todas las categorías <ArrowRight size={16}/></Link></div>
+            <div className="msm-category-row">
+              {categories.map(({label,Icon,href})=><Link className="msm-category-card" key={label} href={href}><Icon/><span>{label}</span></Link>)}
+              <button className="msm-round-next"><ChevronRight/></button>
+            </div>
+          </section>
 
-      <div className="mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-white">Tiendas Destacadas</h2>
-          <Link href="/marketplace/tiendas" className="text-[10px] text-[#197BD2] hover:underline flex items-center gap-1">
-            Ver todas <ChevronRight className="w-3 h-3" />
-          </Link>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-          {stores.map((store) => (
-            <Link
-              key={store.slug}
-              href={`/marketplace/tiendas/${store.slug}`}
-              className="flex-shrink-0 w-48 p-4 rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#197BD2] to-[#0C3F6A] flex items-center justify-center text-lg overflow-hidden relative">
-                  {store.logo_url ? (
-                    <Image src={store.logo_url} alt={store.name} fill sizes="80px" className="w-full h-full object-cover" />
-                  ) : (
-                    COUNTRY_FLAGS[store.country] || "🌍"
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold text-white truncate">{store.name}</p>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-2.5 h-2.5 text-[#D4AF37] fill-[#D4AF37]" />
-                    <span className="text-[9px] text-slate-400">{store.average_rating}</span>
+          <section className="msm-section">
+            <div className="msm-section-title"><h2>Productos destacados</h2><Link href="/marketplace/productos">Ver más productos <ArrowRight size={16}/></Link></div>
+            <div className="msm-products-grid">
+              {products.slice(0,6).map((p,i)=>(
+                <Link className="msm-product-card" key={p.id} href={`/marketplace/productos/${p.slug}`}>
+                  <div className="msm-product-image">
+                    {p.image ? <Image src={p.image} alt={p.name} fill sizes="180px" className="object-contain"/> : <ProductVisual index={i}/>}
                   </div>
-                </div>
-              </div>
-              <p className="text-[9px] text-slate-500">{store.product_count} productos</p>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-white">Productos Recomendados</h2>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-lg ${viewMode === "grid" ? "bg-[#197BD2]/20 text-[#197BD2]" : "text-slate-500"}`}>
-              <Grid3X3 className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-lg ${viewMode === "list" ? "bg-[#197BD2]/20 text-[#197BD2]" : "text-slate-500"}`}>
-              <List className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-        <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 gap-3" : "space-y-3"}>
-          {products.map((product) => {
-            const badge = getBadge(product)
-            return (
-              <Link
-                key={product.id}
-                href={`/marketplace/productos/${product.slug}`}
-                className={`group rounded-xl bg-slate-900/30 border border-slate-800/50 hover:border-[#197BD2]/30 transition-all overflow-hidden ${viewMode === "list" ? "flex" : ""}`}
-              >
-                <div className={`bg-slate-800/30 flex items-center justify-center relative ${viewMode === "list" ? "w-28 h-28 shrink-0" : "h-36"}`}>
-                  {product.image ? (
-                    <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 50vw, 350px" className="w-full h-full object-cover" />
-                  ) : (
-                    <Package className="w-10 h-10 text-slate-600" />
-                  )}
-                </div>
-                <div className={`p-3 ${viewMode === "list" ? "flex-1" : ""}`}>
-                  {badge && (
-                    <span className={`inline-block text-[7px] font-bold px-1.5 py-0.5 rounded-full mb-1 ${badge.color}`}>
-                      {badge.label}
-                    </span>
-                  )}
-                  <p className="text-[11px] font-bold text-white mb-1 line-clamp-2 group-hover:text-[#197BD2] transition-colors">{product.name}</p>
-                  <p className="text-[9px] text-slate-500 mb-2">{product.store.name}</p>
-                  <div className="flex items-center gap-1 mb-1">
-                    <Star className="w-2.5 h-2.5 text-[#D4AF37] fill-[#D4AF37]" />
-                    <span className="text-[9px] text-slate-400">{product.average_rating} ({product.review_count})</span>
+                  <div className="msm-product-info">
+                    <h3>{p.name}</h3>
+                    <div className="msm-price">${Math.round(p.final_price)} <span>USD</span></div>
+                    <div className="msm-storeline">{p.store.name}<BadgeCheck size={13}/></div>
+                    <div className="msm-rating"><Star size={13} fill="currentColor"/><b>{p.average_rating || "4.8"}</b> <span>({p.review_count || 0})</span></div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black text-[#197BD2]">{formatPrice(product.final_price)}</span>
-                    {product.base_price > product.final_price && (
-                      <span className="text-[9px] text-slate-500 line-through">{formatPrice(product.base_price)}</span>
-                    )}
-                  </div>
-                  <p className="text-[8px] text-emerald-400 mt-1">{product.free_shipping ? "Envío gratis" : ""}</p>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      </div>
+                  <span className="msm-addcart"><ShoppingCart size={16}/></span>
+                </Link>
+              ))}
+            </div>
+          </section>
 
-      <div className="mt-8 mb-8 p-6 rounded-2xl bg-gradient-to-br from-[#D4AF37]/10 to-[#D4AF37]/5 border border-[#D4AF37]/20 text-center">
-        <Store className="w-8 h-8 text-[#D4AF37] mx-auto mb-2" />
-        <h3 className="text-sm font-bold text-white mb-1">¿Tienes algo para vender?</h3>
-        <p className="text-[10px] text-slate-400 mb-3 max-w-sm mx-auto">
-          Crea tu tienda gratis y llega a miles de compradores en Cuba, USA y Latinoamérica.
-        </p>
-        <Link href="/marketplace/crear-tienda" className="inline-flex items-center gap-2 bg-[#D4AF37] text-[#14171A] px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#D4AF37]/90 transition-colors">
-          <Store className="w-4 h-4" /> Crear Mi Tienda
-        </Link>
-      </div>
-    </div>
+          <section className="msm-section msm-stores-section">
+            <div className="msm-section-title"><h2>Tiendas destacadas</h2><Link href="/marketplace/tiendas">Ver todas las tiendas <ArrowRight size={16}/></Link></div>
+            <div className="msm-stores-grid">
+              {stores.slice(0,6).map((s,i)=>(
+                <Link href={`/marketplace/tiendas/${s.slug}`} className="msm-store-card" key={s.slug}>
+                  <div className="msm-store-logo">{s.logo_url ? <Image src={s.logo_url} alt={s.name} fill sizes="52px" className="object-cover"/> : ["EH","TT","HP","MT","VS","DP"][i] || "MS"}</div>
+                  <div><h3>{s.name} <BadgeCheck size={13}/></h3><p>{["Hogar y electrodomésticos","Tecnología para todos","Hogar y cocina","Celulares y electrónica","Salud y belleza","Deportes y fitness"][i]||"Marketplace"}</p><span className="msm-rating"><Star size={13} fill="currentColor"/><b>{s.average_rating || "4.8"}</b> ({s.product_count || 0})</span></div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer className="msm-footer">
+        <div className="msm-container msm-footer-inner">
+          <div className="msm-footer-brand"><span className="msm-brand-mark">◧</span><div><strong>MSM</strong><small>Marketplace</small></div><p>Cada compra nos acerca a una Cuba más conectada.</p></div>
+          <form className="msm-newsletter"><span>✉</span><input placeholder="Tu correo electrónico"/><button>Suscribirme</button></form>
+          <div className="msm-social"><span>Síguenos</span><b>f</b><b>◎</b><b>▶</b><b>𝕏</b></div>
+        </div>
+      </footer>
+    </>
   )
 }
