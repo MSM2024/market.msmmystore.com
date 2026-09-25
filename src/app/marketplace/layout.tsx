@@ -1,55 +1,67 @@
 'use client'
 
-import { useState } from "react"
+import { FormEvent, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, ShoppingCart } from "lucide-react"
+import {
+  CircleHelp, CreditCard, MapPin, Package, Search, Send, ShoppingCart,
+  UserRound, WalletCards, Landmark, ChevronDown
+} from "lucide-react"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { useCart } from "@/contexts/CartContext"
+import "./marketplace.css"
 
 export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
-  usePageTitle("Marketplace — MSM")
+  usePageTitle("MSM Marketplace")
   const router = useRouter()
   const { itemCount } = useCart()
-  const [searchQuery, setSearchQuery] = useState("")
+  const [query, setQuery] = useState("")
 
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      router.push(`/marketplace/productos?q=${encodeURIComponent(searchQuery.trim())}`)
-    }
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    const q = query.trim()
+    if (q) router.push(`/marketplace/productos?q=${encodeURIComponent(q)}`)
   }
 
   return (
-    <div className="min-h-screen zafiro-page text-white">
-      <div className="sticky top-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Link href="/marketplace" className="text-[#197BD2] font-black text-lg">MSM</Link>
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar productos, tiendas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearch}
-                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#197BD2]/50 transition-colors"
-              />
-            </div>
-            <Link href="/marketplace/pedidos" className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 hover:border-[#197BD2]/30 transition-colors relative">
-              <ShoppingCart className="w-5 h-5 text-slate-300" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-[#197BD2] rounded-full text-[9px] font-bold flex items-center justify-center px-1">
-                  {itemCount > 99 ? "99+" : itemCount}
-                </span>
-              )}
-            </Link>
+    <div className="msm-market">
+      <div className="msm-utility">
+        <div className="msm-container msm-utility-inner">
+          <span className="msm-domain">marketplace.msmmystore.com</span>
+          <div className="msm-utility-actions">
+            <button><MapPin size={14}/> Segundo Frente, Santiago de Cuba <ChevronDown size={13}/></button>
+            <span className="msm-separator"/>
+            <button>CUP <ChevronDown size={13}/></button>
+            <span className="msm-separator"/>
+            <Link href="/help"><CircleHelp size={14}/> Ayuda</Link>
           </div>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 pb-20">
-        {children}
-      </div>
+
+      <header className="msm-header">
+        <div className="msm-container msm-header-inner">
+          <Link href="/marketplace" className="msm-brand" aria-label="MSM Marketplace">
+            <span className="msm-brand-mark">◧</span>
+            <span><strong>MSM</strong><small>Marketplace</small></span>
+          </Link>
+
+          <form className="msm-top-search" onSubmit={submit}>
+            <Search size={20}/>
+            <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Explora productos, tiendas o servicios..." />
+            <button type="submit">Buscar</button>
+          </form>
+
+          <nav className="msm-main-nav" aria-label="Navegación principal">
+            <Link href="/marketplace/productos"><Package/><span>Productos</span></Link>
+            <Link href="/remesas"><Send/><span>Remesas</span></Link>
+            <Link href="/cajeros"><Landmark/><span>Cajeros</span></Link>
+            <Link href="/wallet"><WalletCards/><span>Billetera</span></Link>
+            <Link href="/profile"><UserRound/><span>Mi cuenta</span></Link>
+            <Link href="/marketplace/pedidos" className="msm-cart"><ShoppingCart/><span>Carrito</span><b>{itemCount > 99 ? "99+" : itemCount}</b></Link>
+          </nav>
+        </div>
+      </header>
+      {children}
     </div>
   )
 }
